@@ -28,7 +28,7 @@ process._linkedBinding = name => {
                 return;
             }
             queueMicrotask(() => receive(JSON.stringify({id:request.id,
-                result:request.op === 'list' ? [{path:`android-usb:${device}:0`,vendorId:'0483',productId:'5740',manufacturer:'Simulated SLB'}] : null})));
+                result:request.op === 'list' ? [{path:`android-usb:${device}:0`,vendorId:'10c4',productId:'ea60',manufacturer:'Simulated USB controller'}] : null})));
             if (request.op === 'write' && Buffer.from(request.data,'base64').toString().includes('$I')) {
                 queueMicrotask(() => receive(JSON.stringify({event:'data',session,data:Buffer.from('GrblHAL 1.1f [test]\r\nok\r\n').toString('base64')})));
             }

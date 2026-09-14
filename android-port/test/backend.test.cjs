@@ -58,7 +58,7 @@ for (const launch of [1, 2]) test(`backend launch ${launch}: session renewal, au
             socket.once('serialport:list',(recognized)=>resolve(recognized));
         });
         assert.equal(ports[0].port,'android-usb:42:0');
-        assert.equal(ports[0].manufacturer,'Simulated SLB');
+        assert.equal(ports[0].manufacturer,'Simulated USB controller');
         const fatal = [];
         child.on('message', msg => { if (msg.host === 'error') fatal.push(msg.message); });
         for (let cycle = 0; cycle < 3; cycle++) {
