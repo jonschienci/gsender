@@ -1,0 +1,35 @@
+name: Android upstream Node prototype
+on:
+  push:
+    branches: [android-node24-prototype]
+    paths:
+      - 'android-port/node-lts/**'
+      - '.github/workflows/android-node-lts.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  runtime:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install 32-bit host toolchain
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+      - name: Install pinned NDK
+        run: sdkmanager 'ndk;27.2.12479018'
+      - name: Build upstream Node for Android ARM
+        run: |
+          set -o pipefail
+          python3 android-port/node-lts/build.py \
+            --ndk "$ANDROID_HOME/ndk/27.2.12479018" \
+            --work "$RUNNER_TEMP/node-build" \
+            --output "$RUNNER_TEMP/node-runtime" --jobs 4 2>&1 | tee "$RUNNER_TEMP/node-build.log"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: node-24-android-arm-prototype
+          path: |
+            ${{ runner.temp }}/node-runtime
+            ${{ runner.temp }}/node-build.log
+          retention-days: 7
