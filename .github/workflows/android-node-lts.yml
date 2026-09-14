@@ -17,7 +17,7 @@ jobs:
       - name: Install 32-bit host toolchain
         run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
       - name: Install pinned NDK
-        run: sdkmanager 'ndk;27.2.12479018'
+        run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"'
       - name: Build upstream Node for Android ARM
         run: |
           set -o pipefail
