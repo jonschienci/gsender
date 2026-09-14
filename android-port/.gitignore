@@ -1,0 +1,14 @@
+.gradle/
+**/build/
+**/.cxx/
+**/node_modules/
+vendor/
+local.properties
+debug.keystore
+app/src/main/assets/payload.zip
+app/src/main/assets/payload.sha256
+
+*.jks
+*.keystore
+!runtime-deps/yarn.lock
+vendor

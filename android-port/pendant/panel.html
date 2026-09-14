@@ -1,0 +1,8 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>USB knob</title>
+<style>body{font:18px system-ui;color:#eee;background:#14212b;margin:20px}h2{margin:0 0 12px}button{font:inherit;padding:10px;margin:4px;border-radius:6px;border:1px solid #789}#disarm{background:#a31d26;color:white}#arm{background:#d2a84a}pre{white-space:pre-wrap;font:16px monospace}small{display:block;font-size:15px;line-height:1.4}#error{color:#ffc280}</style></head><body>
+<h2>USB knob — Precision pendant</h2>
+<button id="connect">Connect knob</button><button id="disconnect">Disconnect</button>
+<button id="arm">Arm Precision jog</button><button id="disarm">Disarm / cancel knob jog</button>
+<pre id="status">Checking backend…</pre><p id="error"></p>
+<small>Uses gSender’s saved Precision feedrate. Tap: X → Y → Z → STEP. All four rows stay visible. Turn STEP to edit the distance (0–10 mm, in 0.1 mm increments); this never moves the CNC. At STEP 0, axis turns do nothing. Otherwise each accepted axis detent sends that finite distance. Busy/late turns are discarded without disconnecting. Clicking does nothing.<br><br>10 mm means up to 10 mm of travel per accepted detent. Keep the machine clear and physical E-stop available. This is not an emergency-stop device. Reconnection never re-arms jogging. Keep gSender visible while jogging.</small>
+<script src="/usb-pendant/panel.js"></script></body></html>
