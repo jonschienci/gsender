@@ -42,6 +42,11 @@ env.update(CC=str(toolchain / 'armv7a-linux-androideabi26-clang'),
            CC_host='gcc -m32', CXX_host='g++ -m32', AR_host='ar',
            GYP_DEFINES=f'target_arch=arm v8_target_arch=arm android_target_arch=arm host_os=linux OS=android android_ndk_path={ndk}')
 env['PATH'] = str(toolchain) + os.pathsep + env['PATH']
+if shutil.which('ccache'):
+    for key in ('CC', 'CXX', 'CC_host', 'CXX_host'):
+        env[key] = 'ccache ' + env[key]
+    env['CCACHE_BASEDIR'] = str(work)
+    env['CCACHE_MAXSIZE'] = '2G'
 flags = ['--dest-cpu=arm', '--dest-os=android', '--cross-compiling', '--shared',
          '--openssl-no-asm', '--without-node-snapshot', '--without-node-code-cache', '--with-intl=small-icu']
 subprocess.run(['./configure', *flags], cwd=source, env=env, check=True)

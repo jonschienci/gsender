@@ -1,0 +1,8 @@
+--- a/deps/v8/src/compiler/turboshaft/int64-lowering-reducer.h
++++ b/deps/v8/src/compiler/turboshaft/int64-lowering-reducer.h
+@@ -640 +640 @@
+-    return __ Tuple<Word32, Word32>(result, __ Word32Constant(0));
++    return __ template Tuple<Word32, Word32>(result, __ Word32Constant(0));
+@@ -653 +653 @@
+-    return __ Tuple<Word32, Word32>(result, __ Word32Constant(0));
++    return __ template Tuple<Word32, Word32>(result, __ Word32Constant(0));

@@ -15,9 +15,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Install 32-bit host toolchain
-        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib
+        run: sudo apt-get update && sudo apt-get install -y gcc-multilib g++-multilib ccache
       - name: Install pinned NDK
         run: '"$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "ndk;27.2.12479018"'
+      - uses: actions/cache/restore@v4
+        with:
+          path: ~/.cache/ccache
+          key: android-node24-ndk27-${{ github.run_id }}
+          restore-keys: android-node24-ndk27-
       - name: Build upstream Node for Android ARM
         run: |
           set -o pipefail
@@ -25,6 +30,11 @@ jobs:
             --ndk "$ANDROID_HOME/ndk/27.2.12479018" \
             --work "$RUNNER_TEMP/node-build" \
             --output "$RUNNER_TEMP/node-runtime" --jobs 4 2>&1 | tee "$RUNNER_TEMP/node-build.log"
+      - uses: actions/cache/save@v4
+        if: always()
+        with:
+          path: ~/.cache/ccache
+          key: android-node24-ndk27-${{ github.run_id }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
