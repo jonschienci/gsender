@@ -46,11 +46,13 @@ if shutil.which('ccache'):
     for key in ('CC', 'CXX', 'CC_host', 'CXX_host'):
         env[key] = 'ccache ' + env[key]
     env['CCACHE_BASEDIR'] = str(work)
-    env['CCACHE_MAXSIZE'] = '2G'
+    env['CCACHE_MAXSIZE'] = '4G'
 flags = ['--dest-cpu=arm', '--dest-os=android', '--cross-compiling', '--shared',
          '--openssl-no-asm', '--without-node-snapshot', '--without-node-code-cache', '--with-intl=small-icu']
 subprocess.run(['./configure', *flags], cwd=source, env=env, check=True)
-subprocess.run(['make', '-j' + str(a.jobs)], cwd=source, env=env, check=True)
+# Build only the APK library, not the unused Node executable and cctest target.
+subprocess.run(['make', '-C', 'out', 'BUILDTYPE=Release', '-j' + str(a.jobs), 'libnode'],
+               cwd=source, env=env, check=True)
 libs = [x for x in (source / 'out/Release').glob('libnode.so*') if x.is_file()]
 if not libs:
     libs = [x for x in (source / 'out/Release/obj.target').glob('libnode.so*') if x.is_file()]
