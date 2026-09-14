@@ -13,7 +13,12 @@ export default defineConfig({
     css: { postcss: { plugins: [tailwindcss(path.join(root, pendant ? 'src/pendant/tailwind.config.ts' : 'src/app/tailwind.config.ts'))] },
         preprocessorOptions: { stylus: { modules: true } },
         modules: { localsConvention: 'camelCaseOnly', generateScopedName: '[name]__[local]___[hash:base64:5]' } },
-    plugins: [{ name: 'android-knob-connection-location', enforce: 'pre', transform(code, id) {
+    plugins: [{ name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
+        if (!id.endsWith('/pendant/src/components/JoggingCard.tsx')) return;
+        const start = 'onStart: () => {';
+        if (code.split(start).length !== 2) throw new Error('Pendant jog press handler changed');
+        return {code: code.replace(start, start + ' try { (window as any).AndroidHaptics?.jogPress(); } catch {}'), map:null};
+    } }, { name: 'android-knob-connection-location', enforce: 'pre', transform(code, id) {
         const marker = id.endsWith('/components/PendantTopBar.tsx') ? '<ConnectionWidget />'
             : id.endsWith('/workspace/TopBar/index.tsx') ? '<Connection />' : null;
         if (!marker) return;

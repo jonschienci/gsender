@@ -87,6 +87,25 @@ public final class MainActivity extends Activity {
             }
         });
         web.addJavascriptInterface(new Object() {
+            @JavascriptInterface public void jogPress() {
+                runOnUiThread(() -> {
+                    if (web == null || !web.hasWindowFocus() || !local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) return;
+                    android.os.Vibrator vibrator = getSystemService(android.os.Vibrator.class);
+                    if (vibrator == null || !vibrator.hasVibrator()) return;
+                    // An explicit app pulse works even when system key-click feedback is off.
+                    // Keep this independent of jogging so vibration failure cannot interrupt motion handling.
+                    try {
+                        vibrator.vibrate(android.os.VibrationEffect.createOneShot(75, 255),
+                            new android.media.AudioAttributes.Builder()
+                                .setUsage(android.media.AudioAttributes.USAGE_ASSISTANCE_SONIFICATION)
+                                .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SONIFICATION).build());
+                    } catch (RuntimeException error) {
+                        android.util.Log.w("gSenderHaptics", "Jog vibration unavailable", error);
+                    }
+                });
+            }
+        }, "AndroidHaptics");
+        web.addJavascriptInterface(new Object() {
             @JavascriptInterface public void save(String name, String data) {
                 if (data.length() > 48 * 1024 * 1024) return;
                 runOnUiThread(() -> {
