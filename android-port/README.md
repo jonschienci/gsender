@@ -1,6 +1,6 @@
 # gSender Android
 
-Android host for gSender's existing desktop and pendant interfaces, Node backend, and direct USB serial connection to a CNC controller. The Android-specific code lives in this directory; upstream source is adapted only at bundle time.
+Android host for gSender's existing desktop and pendant interfaces, Node backend, and direct USB serial connection to a CNC controller. The Android-specific code lives in this directory; upstream source is adapted only at bundle time. See [Android port integration notes](../ANDROID-PORT-EXPLAINED.md) for the platform contracts, build transforms, and Build 13 methodology.
 
 ## Target and status
 
