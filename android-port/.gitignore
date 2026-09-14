@@ -12,3 +12,5 @@ app/src/main/assets/payload.sha256
 *.keystore
 !runtime-deps/yarn.lock
 vendor
+
+**/__pycache__/

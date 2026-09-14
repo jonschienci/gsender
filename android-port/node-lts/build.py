@@ -9,6 +9,7 @@ import platform
 import shutil
 import subprocess
 import tarfile
+import time
 
 here = Path(__file__).resolve().parent
 info = json.loads((here / 'source.json').read_text())
@@ -47,12 +48,30 @@ if shutil.which('ccache'):
         env[key] = 'ccache ' + env[key]
     env['CCACHE_BASEDIR'] = str(work)
     env['CCACHE_MAXSIZE'] = '4G'
+    # SDK installation timestamps can differ between otherwise identical runners.
+    env['CCACHE_COMPILERCHECK'] = 'content'
 flags = ['--dest-cpu=arm', '--dest-os=android', '--cross-compiling', '--shared',
          '--openssl-no-asm', '--without-node-snapshot', '--without-node-code-cache', '--with-intl=small-icu']
 subprocess.run(['./configure', *flags], cwd=source, env=env, check=True)
 # Build only the APK library, not the unused Node executable and cctest target.
-subprocess.run(['make', '-C', 'out', 'BUILDTYPE=Release', '-j' + str(a.jobs), 'libnode'],
-               cwd=source, env=env, check=True)
+started = time.monotonic()
+command = ['make', '-C', 'out', 'BUILDTYPE=Release', '-j' + str(a.jobs), 'libnode']
+compiler = subprocess.Popen(command, cwd=source, env=env)
+while True:
+    try:
+        result = compiler.wait(timeout=60)
+        if result:
+            raise subprocess.CalledProcessError(result, command)
+        break
+    except subprocess.TimeoutExpired:
+        objects = sum(1 for _ in (source / 'out/Release').rglob('*.o'))
+        memory = next(line.strip() for line in Path('/proc/meminfo').read_text().splitlines()
+                      if line.startswith('MemAvailable:'))
+        print(f'BUILD_PROGRESS elapsed={int(time.monotonic() - started)}s objects={objects} '
+              f'load={os.getloadavg()} {memory}', flush=True)
+        stats = subprocess.run(['ps', '-eo', 'pid,pcpu,rss,comm', '--sort=-pcpu'],
+                               capture_output=True, text=True, check=True)
+        print('\n'.join(stats.stdout.splitlines()[:7]), flush=True)
 libs = [x for x in (source / 'out/Release').glob('libnode.so*') if x.is_file()]
 if not libs:
     libs = [x for x in (source / 'out/Release/obj.target').glob('libnode.so*') if x.is_file()]
