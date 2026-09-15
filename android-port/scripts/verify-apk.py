@@ -2,11 +2,12 @@ from pathlib import Path
 import zipfile, hashlib, io, argparse, json
 parser = argparse.ArgumentParser()
 parser.add_argument("--abi", action="append")
+parser.add_argument("--apk", type=Path)
 parser.add_argument("--runtime-version")
 args = parser.parse_args()
 abis = args.abi or ["arm64-v8a", "armeabi-v7a"]
 root = Path(__file__).resolve().parents[1]
-apk = root/'app/build/outputs/apk/debug/app-debug.apk'
+apk = args.apk or root/'app/build/outputs/apk/debug/app-debug.apk'
 with zipfile.ZipFile(apk) as zip:
     packaged_abis = {name.split('/')[1] for name in zip.namelist() if name.startswith('lib/') and name.endswith('.so')}
     assert packaged_abis == set(abis), f'Unexpected APK architectures: {packaged_abis}'

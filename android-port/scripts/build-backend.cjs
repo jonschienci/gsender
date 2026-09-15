@@ -12,7 +12,7 @@ const replace = (source, from, to) => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
         bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
-        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.21-prototype"','global.METRICS_ENDPOINT':'""'},
+        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.22-prototype"','global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
@@ -25,6 +25,7 @@ const replace = (source, from, to) => {
                 build.onResolve({filter:/^(server|app)\//},args=>({path:require.resolve(path.join(root,'src',args.path))}));
                 build.onLoad({filter:/src\/server\/.*\.js$/},args=>{
                     let s=fs.readFileSync(args.path,'utf8');
+                    if(args.path.endsWith('lib/logger.js')) s=replace(s, 'acc[level] = (...args) => {', 'acc[level] = (...args) => { if (!logger.isLevelEnabled(level)) return;');
                     if(args.path.endsWith('lib/Connection.js')) s=replace(s, 'path: port,', 'path: port, requestPermission: options.requestPermission !== false,');
                     if(args.path.endsWith('lib/SerialConnection.js')) s=replace(s, 'this.port.write(Buffer.from(data));',
                         'if (context?.usbPendant === true) { const port = this.port; port.writeBounded(Buffer.from(data), err => { if (err) port.destroy(err); }); } else this.port.write(Buffer.from(data));');

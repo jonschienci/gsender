@@ -14,11 +14,12 @@
     close.style.cssText = 'display:block;margin:8px 12px 8px auto;min-height:44px;padding:8px 16px;border:1px solid #aac;border-radius:6px;color:white;background:#173d59;font:16px sans-serif';
     const panel = document.createElement('iframe'); panel.title = 'USB knob controls';
     panel.style.cssText = 'display:block;width:100%;height:calc(100% - 68px);border:0;background:#14212b';
-    panel.src = '/usb-pendant/panel.html';
+    const panelVisibility = () => panel.contentWindow?.postMessage({type:'usb-knob-visibility', visible:dialog.open}, location.origin);
+    panel.addEventListener('load', panelVisibility);
     dialog.append(close, panel); document.head.append(style); document.body.append(dialog);
-    button.onclick = () => { if (!dialog.open) { dialog.showModal(); button.setAttribute('aria-expanded', 'true'); close.focus(); } };
+    button.onclick = () => { if (!dialog.open) { if (!panel.getAttribute('src')) panel.src = '/usb-pendant/panel.html'; dialog.showModal(); panelVisibility(); button.setAttribute('aria-expanded', 'true'); close.focus(); } };
     close.onclick = () => dialog.close();
-    dialog.addEventListener('close', () => { button.setAttribute('aria-expanded', 'false'); button.focus(); });
+    dialog.addEventListener('close', () => { panelVisibility(); button.setAttribute('aria-expanded', 'false'); button.focus(); });
     // Modal top layer makes every underlying CNC control inert. Backdrop taps
     // do not dismiss it, so the closing gesture cannot land on a machine control.
     function mount() {

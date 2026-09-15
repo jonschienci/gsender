@@ -8,7 +8,7 @@ Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through 
 
 ## Upstream Node prototype
 
-The `android-node24-prototype` branch can build against upstream Node 24.21.0 while preserving the existing backend and USB bridge. Builds 18–21 use that runtime for the Lenovo’s 32-bit Android system. Follow [the runtime build instructions](node-lts/README.md); the default legacy build instructions below still select Node.js Mobile unless `nodeRuntimeRoot` is provided. This is an Android runtime prototype with explicit maintenance and hardware-validation requirements.
+The `android-node24-prototype` branch can build against upstream Node 24.21.0 while preserving the existing backend and USB bridge. Builds 18–22 use that runtime for the Lenovo’s 32-bit Android system. Follow [the runtime build instructions](node-lts/README.md); the default legacy build instructions below still select Node.js Mobile unless `nodeRuntimeRoot` is provided. This is an Android runtime prototype with explicit maintenance and hardware-validation requirements.
 
 ## Build requirements
 
@@ -33,10 +33,10 @@ keytool -genkeypair -keystore android-port/debug.keystore -storepass android -ke
 ./android-port/scripts/build.sh
 ```
 
-Output: `android-port/app/build/outputs/apk/debug/app-debug.apk`.
+Starting with Build 22, the build script produces an optimized, non-debuggable release APK: `android-port/app/build/outputs/apk/release/app-release.apk`. It uses the existing local signing key so it can update earlier builds. `assembleDebug` remains available for debugging.
 
 ```sh
-adb install -r android-port/app/build/outputs/apk/debug/app-debug.apk
+adb install -r android-port/app/build/outputs/apk/release/app-release.apk
 ```
 
 Keep the signing key private and preserve it for updates. An APK signed with another key cannot update an existing installation in place. No APKs, signing keys, SDK files, downloaded runtimes, or generated payloads are tracked.
@@ -58,6 +58,31 @@ Swiping the app out of Recents stops USB and the embedded backend process. Backg
 Build 21 raises the embedded Node V8 old-generation heap ceiling from 384 to 768 MiB. This is a growth limit, not a preallocated block or a limit on total application memory. Native buffers, Java, and the WebView consume additional memory. The Lenovo reports approximately 1.77 GiB usable RAM and runs 32-bit Android, so the budget leaves room for those other uses instead of exhausting its memory/address space.
 
 A G-code file can expand to several times its disk size during parsing and visualization. This change provides more headroom; it does not establish that every 100+ MB job fits. The test-only `test/native-memory-probe.cjs` uses the isolated Java JNI harness and APK libraries to check the actual heap limit and retain 512 MiB of JavaScript arrays while exercising the bridge. On the Lenovo, the Build 21 APK libraries reported an 816 MiB total V8 heap limit (768 MiB old generation plus other heap spaces), retained 514 MiB of heap data, and passed the JNI echo at 550 MiB process RSS. All 66 regression tests, Gradle assemble/lint, and APK verification also passed. The isolated memory test excludes the WebView and does not open a USB device or stream a job.
+
+## Build 22 performance
+
+- Keep the pendant SVG visualizer options stable between renders. Position updates now update the marker without rebuilding every toolpath. The geometry and position-update logic are preserved.
+- Reuse parsed line totals for progress. When metadata is unavailable, count nonblank lines in 32 KiB chunks using posted tasks, avoiding a full temporary line array and yielding between chunks. Cancel obsolete work when the file changes.
+- Load the USB knob panel on first opening and pause its status polling while hidden. The 400 ms arming heartbeat and motion protocol are unchanged.
+- Skip formatting disabled backend logs and suppress verbose Electron-shim logging. Warnings, errors, and informational messages remain available.
+- Enable Android release optimization and resource shrinking, with explicit keep rules for JNI, WebView JavaScript methods, and reflected USB driver constructors. The Node runtime and 768 MiB old-generation heap budget are unchanged.
+
+All 70 regression tests, both frontend builds, Gradle release assemble/lint, and APK verification passed. The APK is 66.1 MiB, compared with 69.9 MiB for Build 21, and uses the same signing certificate.
+
+| Check | Before | Build 22 | Scope |
+| --- | --- | --- | --- |
+| 30 position updates with 30,000 SVG segments | 30 full toolpath rebuilds | 0 full toolpath rebuilds | Real gviewer component/renderer in Mac Node 24 with JSDOM; not a tablet frame-rate measurement |
+| Count lines in a 20 MiB synthetic job | 799 ms blocking computation | 447 ms computation across 640 chunks; longest measured chunk 5.57 ms | Isolated Node 24 on Lenovo; excludes browser scheduling and full job parsing |
+
+The optimized APK classes were checked on the Lenovo using `test/release/ReleaseProbe.java`: all seven serial drivers retained their reflection entry points, the `jogPress` and `save` WebView bridges remained available, and JNI names were preserved. The actual release native libraries also passed the isolated JNI/memory probe (816 MiB total V8 limit, 514 MiB heap used, 620 MiB process RSS). These probes do not launch the full interface or open a controller; they do not establish end-to-end streaming or large-job performance.
+
+Performance regression tests run in the normal test suite. The optional line-count benchmark is:
+
+```sh
+node android-port/test/line-count-benchmark.cjs "$PWD/android-port/ui/line-count.mjs"
+```
+
+When packaging the upstream Node runtime, use `assembleRelease lintRelease` with the runtime properties from the Node instructions, then pass `--apk android-port/app/build/outputs/apk/release/app-release.apk` to `scripts/verify-apk.py` alongside the runtime version and ABI options. Retain `app/build/outputs/mapping/release/mapping.txt` with each distributed APK to decode optimized Java stack traces.
 
 ## Architecture
 

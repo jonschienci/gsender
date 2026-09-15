@@ -1,8 +1,8 @@
 (() => {
     const status = document.querySelector('#status'), error = document.querySelector('#error');
-    let pending = false;
+    let pending = false, visible = window === parent;
     async function refresh() {
-        if (pending) return;
+        if (pending || !visible || document.visibilityState === 'hidden') return;
         pending = true;
         try {
             const s = await (await fetch('/api/usb-pendant')).json();
@@ -20,6 +20,10 @@
     };
     document.querySelector('#arm').onclick = () => { error.textContent = ''; parent.postMessage({ type: 'usb-knob-arm' }, location.origin); };
     window.addEventListener('message', event => {
+        if (event.origin === location.origin && event.source === parent && event.data?.type === 'usb-knob-visibility') {
+            visible = event.data.visible === true;
+            if (visible) refresh();
+        }
         if (event.origin === location.origin && event.source === parent && event.data?.type === 'usb-knob-result') {
             error.textContent = event.data.error || ''; refresh();
         }

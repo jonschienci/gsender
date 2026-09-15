@@ -1,5 +1,6 @@
 import { defineConfig } from 'vite';
 import connectionUi from './scripts/connection-ui.cjs';
+import performanceUi from './scripts/performance-ui.cjs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
 import tailwindcss from 'tailwindcss';
@@ -14,7 +15,7 @@ export default defineConfig({
     css: { postcss: { plugins: [tailwindcss(path.join(root, pendant ? 'src/pendant/tailwind.config.ts' : 'src/app/tailwind.config.ts'))] },
         preprocessorOptions: { stylus: { modules: true } },
         modules: { localsConvention: 'camelCaseOnly', generateScopedName: '[name]__[local]___[hash:base64:5]' } },
-    plugins: [{ name: 'android-connection-state', enforce: 'pre', transform: connectionUi.transform }, { name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
+    plugins: [{ name: 'android-performance', enforce: 'pre', transform: performanceUi.transform }, { name: 'android-connection-state', enforce: 'pre', transform: connectionUi.transform }, { name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
         if (!id.endsWith('/pendant/src/components/JoggingCard.tsx')) return;
         const start = 'onStart: () => {';
         if (code.split(start).length !== 2) throw new Error('Pendant jog press handler changed');
