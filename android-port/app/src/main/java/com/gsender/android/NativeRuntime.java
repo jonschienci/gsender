@@ -8,10 +8,14 @@ public final class NativeRuntime {
     private volatile boolean closing;
     private final EngineService service;
     private final UsbSerialModule usb;
+    private final WifiKnobNetwork wifi;
     private final java.util.Map<Long, JSONObject> pending = new java.util.concurrent.ConcurrentHashMap<>();
     private final java.util.Set<String> connected = java.util.concurrent.ConcurrentHashMap.newKeySet();
     public NativeRuntime(EngineService service) {
         this.service = service;
+        wifi = new WifiKnobNetwork(service, json -> {
+            if (!closing && !deliver(json)) service.fail("Wi-Fi bridge queue stopped or overflowed");
+        });
         usb = new UsbSerialModule(service, json -> {
             if (closing) return;
             try {
@@ -37,7 +41,8 @@ public final class NativeRuntime {
         if (closing) return;
         try {
             JSONObject message = new JSONObject(json);
-            if (message.has("host")) {
+            if (message.optString("host").equals("wifi")) { wifi.accept(message); }
+            else if (message.has("host")) {
                 if (message.getString("host").equals("ui-status")) EngineService.uiStatus = message.getString("message");
                 else if (message.getString("host").equals("ready")) service.ready(message.getInt("port"), message.getString("token"));
                 else service.fail(message.optString("message", "Backend failed"));
@@ -48,9 +53,11 @@ public final class NativeRuntime {
             }
         } catch (Exception e) { service.fail(e.toString()); }
     }
+    void foregroundChanged() { wifi.foregroundChanged(); }
     public void close() { close(() -> {}); }
     public void close(Runnable done) {
         closing = true;
+        wifi.close();
         pending.clear(); connected.clear();
         usb.close(done);
     }

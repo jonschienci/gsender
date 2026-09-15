@@ -12,7 +12,7 @@ const replace = (source, from, to) => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
         bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
-        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.24-prototype"','global.METRICS_ENDPOINT':'""'},
+        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.26-prototype"','global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
@@ -55,6 +55,7 @@ const replace = (source, from, to) => {
                 });
             }
         }]});
+    fs.copyFileSync(path.join(runtime,'wifi-network.cjs'),path.join(out,'wifi-network.cjs'));
     fs.copyFileSync(path.join(runtime,'bootstrap.cjs'),path.join(out,'bootstrap.cjs'));
     fs.cpSync(path.join(root,'android-port/usb/js'),path.join(out,'android-usb'),{recursive:true});
     fs.mkdirSync(path.join(out,'usb-pendant'),{recursive:true});

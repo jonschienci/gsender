@@ -28,15 +28,18 @@ class Lines {
     }
 }
 class Gate {
-    constructor(boot, now = clock) {
+    constructor(boot, now = clock, wireless = false) {
+        this.wireless = wireless; this.leaseMs = wireless ? 250 : 500;
+        this.freshMs = wireless ? 100 : 500; this.aliveTicket = 0; this.capTicket = 0;
         this.boot = boot; this.now = now; this.session = randomBytes(16).toString('hex');
         this.ticket = 0; this.sequence = 0; this.tickets = new Map(); this.ready = false; this.aliveAt = -Infinity;
         this.stepUm = 500; this.selection = 0; this.dropped = 0;
         this.velocityAt=-Infinity; this.wheel=null;
     }
-    healthy() { return this.ready && this.now() - this.aliveAt >= 0 && this.now() - this.aliveAt < 500; }
+    live() { return this.now() - this.aliveAt >= 0 && this.now() - this.aliveAt < this.leaseMs; }
+    healthy() { return this.ready && this.live(); }
     revoke() { for (const t of this.tickets.values()) t.armed = false; }
-    velocityReady() { return this.healthy() && this.now()-this.velocityAt>=0 && this.now()-this.velocityAt<500; }
+    velocityReady() { return this.healthy() && this.now()-this.velocityAt>=0 && this.now()-this.velocityAt<this.leaseMs; }
     state(xyz, valid, status, arm = false) {
         if (++this.ticket > MAX) throw Error('USB ticket exhausted');
         valid = valid && xyz.length === 3 && xyz.every(n => Number.isFinite(n) && Math.abs(n) <= 99999.999);
@@ -48,6 +51,8 @@ class Gate {
         return `P2 STATE ${this.session} ${this.ticket} ${+!!valid} ${+armed} ${um.join(' ')} ${label} ${this.stepUm}\n`;
     }
     receive(line) {
+        if (this.wireless && Number.isFinite(this.aliveAt) && this.now() - this.aliveAt >= this.leaseMs)
+            throw Error('Wi-Fi heartbeat lease expired; reconnect manually');
         if (line.startsWith('P2 HELLO ')) {
             if (hello(line) !== this.boot) throw Error('ESP rebooted; reconnect and re-arm manually');
             return;
@@ -58,11 +63,12 @@ class Gate {
             throw Error('Invalid USB frame/session');
         const ticket = integer(p[alive ? 4 : 5], 1, MAX), issued = this.tickets.get(ticket);
         if (ticket > this.ticket || issued && this.now() - issued.at < 0) throw Error('Unissued USB ticket');
-        const fresh = issued && this.now() - issued.at < 500;
+        const fresh = issued && this.now() - issued.at < this.freshMs;
         if (alive) {
             const ready = !!integer(p[5], 0, 1), selection = integer(p[7], 0, 3), stepUm = step(p[8]);
             if (integer(p[6], 0, 1)) throw Error('ESP fault');
-            if (!fresh) return; // Late heartbeat must not renew the lease.
+            if (!fresh || this.wireless && ticket <= this.aliveTicket) return; // A replay cannot renew a wireless lease.
+            this.aliveTicket = ticket;
             this.ready = ready; this.selection = selection; this.stepUm = stepUm;
             this.aliveAt = this.now(); return;
         }
@@ -75,14 +81,14 @@ class Gate {
         // Turns already in USB at disarm/setting changes are discarded, never
         // replayed and never treated as a reason to close a healthy connection.
         if (!fresh || !issued.armed || !this.healthy() || this.selection === 3 || !stepUm || stepUm !== issued.stepUm || stepUm !== this.stepUm) { this.dropped++; return; }
-        return { axis: p[6], direction: Number(p[7]), stepUm };
+        return { axis: p[6], direction: Number(p[7]), stepUm, ...(this.wireless ? { queueDeadline: issued.at + 100 } : {}) };
     }
     velocity(line) {
         const p=line.split(' '),cap=p[1]==='VCAP';
         if(p.length!==(cap?6:11) || p[2]!==this.boot || p[3]!==this.session)throw Error('Invalid wheel session');
         const ticket=integer(p[cap?4:5],1,MAX),issued=this.tickets.get(ticket),now=this.now();
         if(ticket>this.ticket || issued && now<issued.at)throw Error('Unissued wheel ticket');
-        if(cap){if(p[5]!=='1')throw Error('Unknown wheel capability');if(issued && now-issued.at<500)this.velocityAt=now;return;}
+        if(cap){if(p[5]!=='1')throw Error('Unknown wheel capability');if(issued && now-issued.at<this.freshMs && (!this.wireless || ticket>this.capTicket)){this.velocityAt=now;this.capTicket=ticket;}return;}
         const seq=integer(p[4],0,MAX),direction=integer(p[7],-1,1),period=integer(p[8],0,65535),age=integer(p[9],0,10000),stepUm=step(p[10]);
         if(!/^[XYZS]$/.test(p[6]))throw Error('Invalid wheel axis');
         if(seq<this.sequence)return;
@@ -91,13 +97,16 @@ class Gate {
         if(!isNew && this.wheel && direction && this.wheel.direction &&
             (age<this.wheel.age || period!==this.wheel.period || p[6]!==this.wheel.axis || direction!==this.wheel.direction))throw Error('Inconsistent repeated wheel sample');
         // A timestamped repeat may update age, NEVER renew a turn's deadline.
-        const expires=(!isNew && this.wheel)?Math.min(this.wheel.expires,now+180-age):now+180-age;
+        const origin = this.wireless ? (issued?.at ?? -Infinity) : now;
+        const deadline = origin + 180 - age;
+        const expires=(!isNew && this.wheel)?Math.min(this.wheel.expires,deadline):deadline;
         this.wheel={axis:p[6],direction,period,age,expires,seq};
         if(!issued || now-issued.at>=100 || !issued.armed || !this.velocityReady() ||
             !stepUm || stepUm!==issued.stepUm || stepUm!==this.stepUm || this.selection===3 || p[6]==='S') {
             this.dropped++; return {direction:0,isNew:false};
         }
-        return {...this.wheel,stepUm,isNew,direction:expires>now?direction:0};
+        return {...this.wheel,stepUm,isNew,direction:expires>now?direction:0,
+            ...(this.wireless ? { queueDeadline: Math.min(issued.at + 100, expires) } : {})};
     }
 }
 function step(value) {

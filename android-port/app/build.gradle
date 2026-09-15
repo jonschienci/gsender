@@ -11,8 +11,8 @@ android {
         applicationId 'com.gsender.android'
         minSdk 26
         targetSdk 35
-        versionCode 24
-        versionName (providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '1.7.0-dev-android.24-node24-prototype' : '1.7.0-dev-android.24-node18')
+        versionCode 26
+        versionName (providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '1.7.0-dev-android.26-node24-prototype' : '1.7.0-dev-android.26-node18')
         resValue 'string', 'app_name', "gSender Android Build ${versionCode}"
         ndk { abiFilters.addAll(nodeRuntimeAbis) }
         externalNativeBuild { cmake { cppFlags nodeCppStandard; arguments '-DANDROID_STL=c++_shared', "-DNODE_ROOT=${nodeRuntimeRoot.absolutePath}" } }
@@ -36,7 +36,15 @@ android {
         }
     }
 }
-dependencies { implementation project(':usb') }
+dependencies { implementation project(':usb'); implementation files('libs/zxing-core-3.5.3.jar') }
+
+tasks.register('verifyQrDecoder') {
+    doLast {
+        def hash = java.security.MessageDigest.getInstance('SHA-256').digest(file('libs/zxing-core-3.5.3.jar').bytes).encodeHex().toString()
+        if (hash != '8d8064c1636fdaef7189dd9055c7d59950a8940a12f2293956446ec3c109fd82') throw new GradleException('QR decoder integrity mismatch')
+    }
+}
+tasks.named('preBuild').configure { dependsOn('verifyQrDecoder') }
 
 // Keep upstream runtime provenance and license with prototype APKs.
 if (providers.gradleProperty('nodeRuntimeRoot').isPresent()) {

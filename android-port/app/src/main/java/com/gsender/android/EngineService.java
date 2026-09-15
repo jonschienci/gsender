@@ -13,6 +13,13 @@ public final class EngineService extends Service {
     public static volatile String url;
     public static volatile String token;
     private static boolean started;
+    static volatile boolean uiForeground;
+    private static volatile EngineService instance;
+    static void foreground(boolean visible) {
+        uiForeground = visible;
+        EngineService current = instance;
+        if (current != null) current.main.post(() -> { if (current.runtime != null) current.runtime.foregroundChanged(); });
+    }
     private NativeRuntime runtime;
     private PowerManager.WakeLock wakeLock;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -21,6 +28,7 @@ public final class EngineService extends Service {
 
     @Override public void onCreate() {
         super.onCreate();
+        instance = this;
         NotificationManager notifications = getSystemService(NotificationManager.class);
         notifications.createNotificationChannel(new NotificationChannel("engine", "CNC connection", NotificationManager.IMPORTANCE_LOW));
         startForeground(1, notification("Starting gSender"));
@@ -127,6 +135,7 @@ public final class EngineService extends Service {
     private void stopEverything() {
         if (stopping) return;
         stopping = true;
+        instance = null;
         url = null; token = null;
         main.removeCallbacksAndMessages(null);
         if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();

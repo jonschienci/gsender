@@ -18,6 +18,7 @@ public final class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private byte[] export;
     private boolean loaded;
+    private KnobQrFlow qr;
     private final Runnable poll = new Runnable() {
         public void run() {
             status.setText(EngineService.status);
@@ -45,6 +46,7 @@ public final class MainActivity extends Activity {
     };
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        qr = new KnobQrFlow(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         status = new TextView(this); status.setPadding(16, 12, 16, 12); layout.addView(status);
@@ -64,7 +66,15 @@ public final class MainActivity extends Activity {
         settings.setTextZoom(100); settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { if (qr != null) qr.cancel(); }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (local(request.getUrl()) && "/native/knob-pair".equals(request.getUrl().getPath())) {
+                    // A fixed first-party navigation from an explicit tap, not a general camera JS bridge.
+                    if (request.isForMainFrame() && request.hasGesture() && web.hasWindowFocus()
+                        && request.getUrl().getQuery() == null && request.getUrl().getFragment() == null
+                        && local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) qr.request();
+                    return true;
+                }
                 if (local(request.getUrl())) return false;
                 if (request.isForMainFrame() && "https".equals(request.getUrl().getScheme())) {
                     startActivity(new Intent(Intent.ACTION_VIEW, request.getUrl()));
@@ -135,6 +145,10 @@ public final class MainActivity extends Activity {
         // Android grants access when the user chooses this USB handler. Keep the
         // existing WebView/backend; the USB scan observes the authoritative grant.
     }
+    @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
+        if (qr != null) qr.cancel();
+        super.onConfigurationChanged(configuration);
+    }
     private void showUsbStatus() {
         TextView details = new TextView(this);
         details.setPadding(20, 12, 20, 12); details.setTextSize(14); details.setTextIsSelectable(true);
@@ -171,6 +185,8 @@ public final class MainActivity extends Activity {
         }
     }
     @Override protected void onPause() {
+        if (qr != null) qr.pause();
+        EngineService.foreground(false);
         // Revoke pendant arming when Android backgrounds the app or covers it
         // with a permission dialog. The backend also enforces a short UI lease.
         if (web != null) web.evaluateJavascript("window.__usbKnobActive=false;window.dispatchEvent(new Event('usb-knob-visibility'));", null);
@@ -178,12 +194,19 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
+        if (qr != null) qr.resume();
+        EngineService.foreground(true);
         if (web != null) web.evaluateJavascript("window.__usbKnobActive=true;window.dispatchEvent(new Event('usb-knob-visibility'));", null);
     }
     @Override protected void onDestroy() {
+        if (qr != null) qr.destroy();
         handler.removeCallbacks(poll);
         if (fileCallback != null) fileCallback.onReceiveValue(null);
         web.destroy();
         super.onDestroy();
+    }
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] grants) {
+        super.onRequestPermissionsResult(request, permissions, grants);
+        if (request == KnobQrFlow.CAMERA_PERMISSION && qr != null) qr.permissionResult(grants);
     }
 }

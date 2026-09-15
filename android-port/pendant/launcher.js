@@ -2,7 +2,7 @@
     if (window.__usbKnobPanel) return;
     window.__usbKnobPanel = true;
     const button = document.createElement('button');
-    button.textContent = 'USB knob'; button.type = 'button';
+    button.textContent = 'CNC knob'; button.type = 'button';
     button.style.cssText = 'background:#173d59;color:white;border:1px solid #aac;padding:8px 12px;border-radius:8px;font:16px sans-serif;white-space:nowrap';
     button.setAttribute('aria-expanded', 'false'); button.setAttribute('aria-controls', 'usb-knob-controls');
     const dialog = document.createElement('dialog');

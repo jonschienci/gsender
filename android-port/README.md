@@ -105,3 +105,7 @@ Run tests with `JAVA_HOME` set and `--test-concurrency=1` because backend tests 
 Build 20 passed 66 tests, Gradle assemble/lint, and APK verification. Regressions cover the rendered pendant connection button, same-address USB recovery, retry backoff, silent permission waiting, manual disconnect, knob exclusion, and absence of motion commands during connection. The APK backend also passed startup, hotplug, same-address failure/recovery and silent permission-wait simulations on the Lenovo under Node 24.21.0. Physical SLB reconnection and Android's remembered default choice still require validation with the board attached.
 
 Firmware flashing is disabled. Desktop-only shell/Electron features are not generally ported. Node.js Mobile 18.20.4 uses 4 KiB-page libraries; 16 KiB-page devices are outside this target. Sustained CNC jobs, hardware knob integration, tablet layout and background behavior require physical validation. Simulator tests do not establish machine safety or reliable timing on actual hardware.
+
+## Build 25 Wi-Fi knob candidate
+
+See [Wi-Fi fallback](pendant/WIFI.md) for pairing, the disarmed link test, timing rules, validation, and hardware limitations. The CNC remains directly connected by USB.

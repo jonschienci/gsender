@@ -117,7 +117,7 @@ class Controller {
     clearQueue() { this.dropped += this.queue.length; this.queue = []; if(this.mode==='adaptive')this.adaptive.halt(); }
     expire() {
         const count = this.queue.length, now = this.now();
-        this.queue = this.queue.filter(e => now - e.at >= 0 && now - e.at < 200);
+        this.queue = this.queue.filter(e => now - e.at >= 0 && now - e.at < 200 && (e.queueDeadline === undefined || now < e.queueDeadline));
         this.dropped += count - this.queue.length;
     }
     tick() {
