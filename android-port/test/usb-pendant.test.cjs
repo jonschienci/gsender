@@ -252,3 +252,26 @@ test('real ESP faults still disconnect and never auto-rearm', async () => {
     p.emit('data',Buffer.from(`P2 ALIVE ${boot} ${g.session} ${g.ticket} 0 1 0 500\n`));
     assert.equal(f.s.port,null);assert.equal(f.s.armed,false);assert.equal(f.writes.length,0);
 });
+
+test('adaptive mode never arms old firmware or unknown axis limits',async()=>{
+    const f=fixture(),p=await f.ready();f.s.setMode('adaptive');f.s.tick();
+    assert.equal(f.s.armed,false);assert.throws(()=>f.s.arm(f.body),/firmware/);
+    const g=f.s.gate;p.emit('data',Buffer.from(`P2 VCAP ${boot} ${g.session} ${g.ticket} 1\n`));
+    assert.throws(()=>f.s.arm(f.body),/maximum feed/);assert.equal(f.writes.length,0);
+});
+test('mode changes disarm and require a new capability handshake without moving',async()=>{
+    const f=fixture(),p=await f.ready();f.s.arm(f.body);f.s.setMode('adaptive');
+    assert.equal(f.s.armed,false);assert.equal(f.s.status().mode,'adaptive');assert.equal(f.writes.length,0);
+    f.s.tick();const g=f.s.gate;
+    Object.assign(f.c.settings.settings,{$110:2000,$111:2000,$112:500,$120:100,$121:100,$122:100});
+    p.emit('data',Buffer.from(`P2 VCAP ${boot} ${g.session} ${g.ticket} 1\n`));f.s.arm(f.body);
+    assert.equal(f.s.armed,true);f.s.setMode('step');assert.equal(f.s.armed,false);assert.equal(f.writes.length,0);
+    assert.throws(()=>f.s.setMode('continuous-unbounded'),/Unknown/);
+});
+test('background parser and synthetic replies do not release the next motion',()=>{
+    const f=machine();f.m.submit({axis:'X',direction:1},preset);f.m.tick();
+    f.c.actionMask={queryParserState:{reply:true}};
+    f.c.runner.emit('ok',{raw:'ok'});assert.equal(f.m.active.acked,false);
+    f.c.actionMask.queryParserState.reply=false;f.c.runner.emit('ok',{raw:'force ok'});assert.equal(f.m.active.acked,false);
+    f.c.runner.emit('ok',{raw:'ok'});assert.equal(f.m.active.acked,true);
+});

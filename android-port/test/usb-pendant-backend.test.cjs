@@ -6,7 +6,9 @@ const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn,description){for(let i=0;i<80;i++){const value=await fn();if(value)return value;await sleep(100);}throw Error('Timeout: '+description);}
 test('packaged Android backend: real gSender controller + two simulated USB endpoints', {timeout:30000}, async()=>{
     const dir=fs.mkdtempSync(path.join(os.tmpdir(),'gsender-pendant-apk-')), payload=path.join(dir,'runtime');
-    execFileSync('python3',['-m','zipfile','-e',path.resolve(__dirname,'../app/src/main/assets/payload.zip'),payload]);
+    execFileSync('python3',['-m','zipfile','-e',process.env.PENDANT_TEST_PAYLOAD||path.resolve(__dirname,'../app/src/main/assets/payload.zip'),payload]);
+    if(process.env.PENDANT_TEST_SERVER)fs.copyFileSync(process.env.PENDANT_TEST_SERVER,path.join(payload,'server.cjs'));
+    if(process.env.PENDANT_TEST_SERVER)for(const name of ['adaptive-mode.js','panel.html'])fs.copyFileSync(path.resolve(__dirname,'../pendant',name),path.join(payload,'usb-pendant',name));
     fs.copyFileSync(path.join(__dirname,'pendant-native.cjs'),path.join(dir,'native.cjs'));
     const child=fork(path.join(payload,'bootstrap.cjs'),[],{execArgv:['--no-global-search-paths','--require',path.join(dir,'native.cjs')],env:{...process.env,NODE_PATH:''},stdio:['ignore','pipe','pipe','ipc']});
     const messages=[];let logs='',socket;
@@ -18,6 +20,8 @@ test('packaged Android backend: real gSender controller + two simulated USB endp
         assert.equal((await fetch(base+'/api/usb-pendant/arm',{method:'POST',headers:key})).status,403);
         assert.match(await (await fetch(base+'/pendant/',{headers:key})).text(),/usb-pendant\/launcher.js/);
         assert.equal((await fetch(base+'/usb-pendant/panel.html',{headers:key})).status,200);
+        assert.match(await(await fetch(base+'/usb-pendant/panel.html',{headers:key})).text(),/adaptive-mode\.js/);
+        assert.equal((await fetch(base+'/usb-pendant/adaptive-mode.js',{headers:key})).status,200);
         const post=async(action,body={})=>{
             const response=await fetch(base+'/api/usb-pendant/'+action,{method:'POST',headers:{...key,'X-USB-Pendant':'1','Content-Type':'application/json'},body:JSON.stringify(body)});
             const value=await response.json(); if(!response.ok)throw Error(JSON.stringify(value));return value;
@@ -38,8 +42,23 @@ test('packaged Android backend: real gSender controller + two simulated USB endp
         await until(()=>messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length===2,'second finite jog');
         const lines=messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).map(m=>m.data.trim());
         assert.deepEqual(lines,['$J=G21G91 X0.5000 F1000.000','$J=G21G91 Z-0.5000 F1000.000']);
+        await post('mode',{mode:'adaptive'});
+        await until(async()=> (await state()).velocityReady,'timestamped wheel capability');
+        assert.equal((await state()).armed,false);await post('arm',body);await sleep(80);
+        child.send({test:'wheel',seq:3,period:0});
+        await until(async()=> (await state()).cnc.xyz[0]===1,'slow adaptive detent exact .5mm');
+        child.send({test:'wheel',seq:4,period:80});
+        await until(async()=> (await state()).cnc.xyz[0]===1.5,'second adaptive detent exact .5mm');
+        child.send({test:'wheel',seq:5,period:80});
+        await until(()=>messages.some(m=>m.test==='cnc-write'&&/\$J=.*F300\.000/.test(m.data)),'variable-speed fast stream');
+        await sleep(500);
+        assert.ok(messages.some(m=>m.test==='cnc-write'&&m.data.includes('\x85')),'release cancels');
+        assert.equal((await state()).adaptivePhase,'step');
+        const quiet=messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length;
+        await sleep(200);assert.equal(messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length,quiet,'no late replay');
+        await post('mode',{mode:'step'});await sleep(150);await post('arm',body);await sleep(100);
         await post('heartbeat',body);
-        child.send({test:'burst',first:3,count:100});await sleep(150);
+        child.send({test:'burst',first:6,count:100});await sleep(150);
         assert.equal((await state()).connected,true);assert.equal((await state()).armed,true);
         assert.ok((await state()).droppedTurns>0);
         child.send({test:'step',stepUm:10000,selection:3});await sleep(250);
@@ -48,7 +67,7 @@ test('packaged Android backend: real gSender controller + two simulated USB endp
         await post('heartbeat',body);await sleep(100);
         assert.equal(messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length,before);
         child.send({test:'step',stepUm:10000,selection:0});await sleep(250);
-        child.send({test:'detent',seq:103});
+        child.send({test:'detent',seq:106});
         await until(()=>messages.some(m=>m.test==='cnc-write'&&m.data.includes('X10.0000')),'10mm step through packaged backend');
         child.send({test:'detach-esp'});await until(async()=>!(await state()).connected,'disconnect');
         const s=await state();assert.equal(s.armed,false);await sleep(600);

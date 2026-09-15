@@ -1,14 +1,18 @@
 // Isolated test process ONLY. Simulates both USB endpoints; never APK content.
 let receive, esp, cnc, ticket, session, active = 'Idle', introduced = false;
-let stepUm = 500, selection = 0;
+let stepUm = 500, selection = 0, velocityRequested=false;
 const boot = '0123456789abcdef', xyz = [0,0,0];
 const handles = new Map();
 const rx = (id,text) => { if (id) receive(JSON.stringify({event:'data',session:id,data:Buffer.from(text).toString('base64')})); };
 const status = () => rx(cnc,`<${active}|MPos:${xyz.map(n=>n.toFixed(3)).join(',')}|FS:0,0>\n`);
 const hello = () => rx(esp,`P2 HELLO ${boot} 2 1 0\n`);
-const alive = () => rx(esp,`P2 ALIVE ${boot} ${session} ${ticket} 1 0 ${selection} ${stepUm}\n`);
+const alive = () => {
+    rx(esp,`P2 ALIVE ${boot} ${session} ${ticket} 1 0 ${selection} ${stepUm}\n`);
+    if(velocityRequested)rx(esp,`P2 VCAP ${boot} ${session} ${ticket} 1\n`);
+};
 setInterval(()=>{if(esp){hello();if(session)alive();}},100).unref();
 process.on('message', msg => {
+    if(msg.test==='wheel')rx(esp,`P2 WHEEL ${boot} ${session} ${msg.seq} ${ticket} X 1 ${msg.period} 0 ${stepUm}\n`);
     if(msg.test==='detent')rx(esp,`P2 DETENT ${boot} ${session} ${msg.seq} ${ticket} ${msg.axis || 'X'} ${msg.direction || 1} ${stepUm}\n`);
     if(msg.test==='step'){stepUm=msg.stepUm;selection=msg.selection;alive();}
     if(msg.test==='burst')for(let seq=msg.first;seq<msg.first+msg.count;seq++)rx(esp,`P2 DETENT ${boot} ${session} ${seq} ${ticket} X 1 ${stepUm}\n`);
@@ -32,7 +36,7 @@ process._linkedBinding = name => {
             const data=Buffer.from(r.data,'base64').toString();
             if(r.session===esp){
                 if(r.maxQueueMs!==250)throw Error('ESP state write lacks queue deadline');
-                const p=data.trim().split(' ');if(p[0]==='P2'&&p[1]==='STATE'){session=p[2];ticket=p[3];queueMicrotask(alive);}
+                const p=data.trim().split(' ');if(p[0]==='P2'&&p[1]==='STATE'){session=p[2];ticket=p[3];velocityRequested=p[9].startsWith('VEL_');queueMicrotask(alive);}
             } else if(r.session===cnc){
                 process.send({test:'cnc-write',data});
                 queueMicrotask(()=>{
@@ -40,7 +44,7 @@ process._linkedBinding = name => {
                         rx(cnc,(introduced?'':'GrblHAL 1.1f [test]\n')+'[VER:1.1f.20260911:test]\n[OPT:V,15,128]\n[AXS:3:XYZ]\nok\n');
                         introduced=true;
                     }
-                    else if(data.includes('$$'))rx(cnc,'$13=0\n$22=0\nok\n');
+                    else if(data.includes('$$'))rx(cnc,'$13=0\n$22=0\n$110=2000\n$111=2000\n$112=1000\n$120=100\n$121=100\n$122=100\nok\n');
                     else if(data.includes('$G'))rx(cnc,'[GC:G0 G54 G17 G21 G90 G94 M5 M9 T0 F0 S0]\nok\n');
                     else if(data.includes('?')||data.includes('\x87'))status();
                     else if(data.includes('$J=')){

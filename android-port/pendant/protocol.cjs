@@ -32,9 +32,11 @@ class Gate {
         this.boot = boot; this.now = now; this.session = randomBytes(16).toString('hex');
         this.ticket = 0; this.sequence = 0; this.tickets = new Map(); this.ready = false; this.aliveAt = -Infinity;
         this.stepUm = 500; this.selection = 0; this.dropped = 0;
+        this.velocityAt=-Infinity; this.wheel=null;
     }
     healthy() { return this.ready && this.now() - this.aliveAt >= 0 && this.now() - this.aliveAt < 500; }
     revoke() { for (const t of this.tickets.values()) t.armed = false; }
+    velocityReady() { return this.healthy() && this.now()-this.velocityAt>=0 && this.now()-this.velocityAt<500; }
     state(xyz, valid, status, arm = false) {
         if (++this.ticket > MAX) throw Error('USB ticket exhausted');
         valid = valid && xyz.length === 3 && xyz.every(n => Number.isFinite(n) && Math.abs(n) <= 99999.999);
@@ -50,6 +52,7 @@ class Gate {
             if (hello(line) !== this.boot) throw Error('ESP rebooted; reconnect and re-arm manually');
             return;
         }
+        if (line.startsWith('P2 VCAP ') || line.startsWith('P2 WHEEL ')) return this.velocity(line);
         const p = line.split(' '), alive = p[1] === 'ALIVE';
         if (p[0] !== 'P2' || (!alive && p[1] !== 'DETENT') || p.length !== 9 || p[2] !== this.boot || p[3] !== this.session)
             throw Error('Invalid USB frame/session');
@@ -73,6 +76,28 @@ class Gate {
         // replayed and never treated as a reason to close a healthy connection.
         if (!fresh || !issued.armed || !this.healthy() || this.selection === 3 || !stepUm || stepUm !== issued.stepUm || stepUm !== this.stepUm) { this.dropped++; return; }
         return { axis: p[6], direction: Number(p[7]), stepUm };
+    }
+    velocity(line) {
+        const p=line.split(' '),cap=p[1]==='VCAP';
+        if(p.length!==(cap?6:11) || p[2]!==this.boot || p[3]!==this.session)throw Error('Invalid wheel session');
+        const ticket=integer(p[cap?4:5],1,MAX),issued=this.tickets.get(ticket),now=this.now();
+        if(ticket>this.ticket || issued && now<issued.at)throw Error('Unissued wheel ticket');
+        if(cap){if(p[5]!=='1')throw Error('Unknown wheel capability');if(issued && now-issued.at<500)this.velocityAt=now;return;}
+        const seq=integer(p[4],0,MAX),direction=integer(p[7],-1,1),period=integer(p[8],0,65535),age=integer(p[9],0,10000),stepUm=step(p[10]);
+        if(!/^[XYZS]$/.test(p[6]))throw Error('Invalid wheel axis');
+        if(seq<this.sequence)return;
+        if(seq>this.sequence+1)throw Error('Missing wheel event');
+        const isNew=seq>this.sequence;this.sequence=seq;
+        if(!isNew && this.wheel && direction && this.wheel.direction &&
+            (age<this.wheel.age || period!==this.wheel.period || p[6]!==this.wheel.axis || direction!==this.wheel.direction))throw Error('Inconsistent repeated wheel sample');
+        // A timestamped repeat may update age, NEVER renew a turn's deadline.
+        const expires=(!isNew && this.wheel)?Math.min(this.wheel.expires,now+180-age):now+180-age;
+        this.wheel={axis:p[6],direction,period,age,expires,seq};
+        if(!issued || now-issued.at>=100 || !issued.armed || !this.velocityReady() ||
+            !stepUm || stepUm!==issued.stepUm || stepUm!==this.stepUm || this.selection===3 || p[6]==='S') {
+            this.dropped++; return {direction:0,isNew:false};
+        }
+        return {...this.wheel,stepUm,isNew,direction:expires>now?direction:0};
     }
 }
 function step(value) {

@@ -12,7 +12,7 @@ const replace = (source, from, to) => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
         bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
-        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.22-prototype"','global.METRICS_ENDPOINT':'""'},
+        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.23-prototype"','global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
@@ -58,7 +58,7 @@ const replace = (source, from, to) => {
     fs.copyFileSync(path.join(runtime,'bootstrap.cjs'),path.join(out,'bootstrap.cjs'));
     fs.cpSync(path.join(root,'android-port/usb/js'),path.join(out,'android-usb'),{recursive:true});
     fs.mkdirSync(path.join(out,'usb-pendant'),{recursive:true});
-    for (const name of ['panel.html','panel.js','launcher.js']) fs.copyFileSync(path.join(root,'android-port/pendant',name),path.join(out,'usb-pendant',name));
+    for (const name of ['panel.html','panel.js','launcher.js','adaptive-mode.js']) fs.copyFileSync(path.join(root,'android-port/pendant',name),path.join(out,'usb-pendant',name));
     fs.cpSync(path.join(root,'src/server/i18n'),path.join(out,'i18n'),{recursive:true});
     fs.cpSync(path.join(root,'src/server/views'),path.join(out,'views'),{recursive:true});
     fs.copyFileSync(path.join(root,'LICENSE'),path.join(out,'LICENSE'));
