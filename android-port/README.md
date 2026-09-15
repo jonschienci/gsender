@@ -8,7 +8,7 @@ Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through 
 
 ## Upstream Node prototype
 
-The `android-node24-prototype` branch can build against upstream Node 24.21.0 while preserving the existing backend and USB bridge. Builds 18–20 use that runtime for the Lenovo’s 32-bit Android system. Follow [the runtime build instructions](node-lts/README.md); the default legacy build instructions below still select Node.js Mobile unless `nodeRuntimeRoot` is provided. This is an Android runtime prototype with explicit maintenance and hardware-validation requirements.
+The `android-node24-prototype` branch can build against upstream Node 24.21.0 while preserving the existing backend and USB bridge. Builds 18–21 use that runtime for the Lenovo’s 32-bit Android system. Follow [the runtime build instructions](node-lts/README.md); the default legacy build instructions below still select Node.js Mobile unless `nodeRuntimeRoot` is provided. This is an Android runtime prototype with explicit maintenance and hardware-validation requirements.
 
 ## Build requirements
 
@@ -52,6 +52,12 @@ In Config > Basics > UI Options, enable **Use pendant view as default UI**, then
 The USB knob button sits to the right of the board connection. Its connection/arming dialog blocks underlying UI interaction while open. The optional ESP32-C6 knob integration starts disarmed and requires explicit connection and arming with a compatible P2 firmware (see `pendant/P2-PROTOCOL.md`). It uses the validated P2 step selection and saved Precision feed rate in mm, one bounded finite increment at a time, rejects stale/duplicate events, and does not reconnect or re-arm automatically. Ordinary SLB serial traffic keeps the upstream serial interface.
 
 Swiping the app out of Recents stops USB and the embedded backend process. Backgrounding with Home preserves the service but disarms the knob. Closing the app is not a machine emergency stop.
+
+## Backend memory
+
+Build 21 raises the embedded Node V8 old-generation heap ceiling from 384 to 768 MiB. This is a growth limit, not a preallocated block or a limit on total application memory. Native buffers, Java, and the WebView consume additional memory. The Lenovo reports approximately 1.77 GiB usable RAM and runs 32-bit Android, so the budget leaves room for those other uses instead of exhausting its memory/address space.
+
+A G-code file can expand to several times its disk size during parsing and visualization. This change provides more headroom; it does not establish that every 100+ MB job fits. The test-only `test/native-memory-probe.cjs` uses the isolated Java JNI harness and APK libraries to check the actual heap limit and retain 512 MiB of JavaScript arrays while exercising the bridge. On the Lenovo, the Build 21 APK libraries reported an 816 MiB total V8 heap limit (768 MiB old generation plus other heap spaces), retained 514 MiB of heap data, and passed the JNI echo at 550 MiB process RSS. All 66 regression tests, Gradle assemble/lint, and APK verification also passed. The isolated memory test excludes the WebView and does not open a USB device or stream a job.
 
 ## Architecture
 

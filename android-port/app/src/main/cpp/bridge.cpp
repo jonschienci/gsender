@@ -76,7 +76,10 @@ Java_com_gsender_android_NativeRuntime_start(JNIEnv* env, jobject self, jstring 
     const char* path = env->GetStringUTFChars(entry, nullptr);
     // node::Start expects argv strings in writable contiguous memory.
     std::string script(path); env->ReleaseStringUTFChars(entry, path);
-    std::string flags = "--max-old-space-size=384";
+    // Double the old-generation budget for large jobs on the 2 GiB Lenovo.
+    // This is a ceiling, not a reservation; native buffers and WebView use
+    // additional memory outside this heap.
+    std::string flags = "--max-old-space-size=768";
     std::vector<char> storage(5 + flags.size() + 1 + script.size() + 1);
     char* argv[3]; argv[0] = storage.data(); std::strcpy(argv[0], "node");
     argv[1] = argv[0] + 5; std::strcpy(argv[1], flags.c_str());
