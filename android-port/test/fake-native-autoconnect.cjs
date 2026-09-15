@@ -1,6 +1,6 @@
 // Test-only USB fixture. No physical device access; never included in the APK.
-let receive, devices = [], deny = false, defer = false, waiting;
-const sessions = new Map(), opens = [], writes = [];
+let receive, devices = [], deny = false, defer = false, waiting, fail = false;
+const sessions = new Map(), opens = [], writes = [], openOptions = [];
 const reply = (request, result = null, error) => queueMicrotask(() => receive(JSON.stringify({ id:request.id, result, error })));
 process.on('message', message => {
     if (message.test === 'devices') {
@@ -10,10 +10,17 @@ process.on('message', message => {
             receive(JSON.stringify({event:'close', session, error:{code:'ENODEV', message:'USB detached'}}));
         }
     }
+    if (message.test === 'drop') {
+        for (const session of sessions.keys()) {
+            sessions.delete(session);
+            receive(JSON.stringify({event:'close', session, error:{code:'EIO', message:'Simulated USB transport failure'}}));
+        }
+    }
+    if (message.test === 'fail') fail = true;
     if (message.test === 'deny') deny = true;
     if (message.test === 'defer') defer = true;
     if (message.test === 'allow') { defer = false; reply(waiting); waiting = null; }
-    process.send({ test:message.test, id:message.id, opens, writes });
+    process.send({ test:message.test, id:message.id, opens, writes, openOptions });
 });
 process._linkedBinding = () => ({
     subscribe(fn) { receive = fn; },
@@ -22,8 +29,9 @@ process._linkedBinding = () => ({
         if (request.host) { process.send(request); return; }
         if (request.op === 'list') { reply(request, devices); return; }
         if (request.op === 'open') {
-            opens.push(request.options.path);
-            if (deny) { deny = false; reply(request, null, {code:'EACCES', message:'USB permission denied'}); return; }
+            opens.push(request.options.path); openOptions.push(request.options);
+            if (fail) { fail = false; reply(request, null, {code:'EIO', message:'Simulated open failure'}); return; }
+            if (deny) { deny = false; devices.find(p => p.path === request.options.path).usbPermission = false; reply(request, null, {code:'EACCES', message:'USB permission denied'}); return; }
             sessions.set(request.session, request.options.path);
             if (defer) { waiting = request; return; }
         }

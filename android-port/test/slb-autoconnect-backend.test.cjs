@@ -4,9 +4,9 @@ const { fork, execFileSync } = require('node:child_process');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const { io } = require('socket.io-client');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const slb = id => ({path:`android-usb:${id}:0`,vendorId:'0483',productId:'5740',manufacturer:'Simulated SLB'});
+const slb = id => ({path:`android-usb:${id}:0`,vendorId:'0483',productId:'5740',usbPermission:true,manufacturer:'Simulated SLB'});
 const knob = {path:'android-usb:99:0',vendorId:'303a',productId:'1001',manufacturer:'Simulated USB knob'};
-test('packaged backend: SLB autoconnect, hotplug, manual disconnect, denied permission and concurrent open', {timeout:30000}, async () => {
+test('packaged backend: SLB autoconnect, hotplug, manual disconnect, denied permission and concurrent open', {timeout:45000}, async () => {
     const isolated = fs.mkdtempSync(path.join(os.tmpdir(), 'gsender-auto-'));
     execFileSync('python3', ['-m','zipfile','-e',path.resolve(__dirname,'../app/src/main/assets/payload.zip'),path.join(isolated,'runtime')]);
     fs.copyFileSync(path.join(__dirname,'fake-native-autoconnect.cjs'),path.join(isolated,'fake.cjs'));
@@ -23,7 +23,7 @@ test('packaged backend: SLB autoconnect, hotplug, manual disconnect, denied perm
         child.on('message',receive);child.send({test,id:request,...extra});
     });
     const event = name => new Promise((resolve,reject) => {
-        const timer=setTimeout(()=>{socket.off(name,receive);reject(Error('Missing '+name+': '+logs));},5000);
+        const timer=setTimeout(()=>{socket.off(name,receive);reject(Error('Missing '+name+': '+logs));},10000);
         const receive = value => {clearTimeout(timer);resolve(value);};socket.once(name,receive);
     });
     const count = async expected => {
@@ -58,7 +58,14 @@ test('packaged backend: SLB autoconnect, hotplug, manual disconnect, denied perm
         assert.ok(error,'Concurrent manual open must be rejected');
         assert.equal((await ipc('stats')).opens.length,4);
         opened=event('serialport:open');await ipc('allow');assert.equal((await opened).port,slb(45).path);
-        const stats=await ipc('stats');assert.deepEqual(stats.opens,[42,43,44,45].map(id=>slb(id).path));
+        // A transport drop with the USB device still enumerated must recover.
+        const dropped=event('serialport:close');await ipc('drop');await dropped;
+        await ipc('fail');
+        opened=event('serialport:open');
+        assert.equal((await opened).port,slb(45).path);
+        const stats=await ipc('stats');
+        assert.ok(stats.openOptions.every(options=>options.requestPermission===false),'Automatic opens must never request permission');
+        assert.deepEqual(stats.opens,[42,43,44,45,45,45].map(id=>slb(id).path));
         assert.ok(!stats.writes.some(data=>/\$J=|\$H\b|\bG[01]\b|\bM3\b/.test(data)),'Connecting must not issue motion');
     } finally {
         socket?.close();await new Promise(resolve=>{child.once('exit',resolve);child.kill();});

@@ -129,6 +129,12 @@ public final class MainActivity extends Activity {
         startForegroundService(new Intent(this, EngineService.class));
         handler.post(poll);
     }
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        // Android grants access when the user chooses this USB handler. Keep the
+        // existing WebView/backend; the USB scan observes the authoritative grant.
+    }
     private void showUsbStatus() {
         TextView details = new TextView(this);
         details.setPadding(20, 12, 20, 12); details.setTextSize(14); details.setTextIsSelectable(true);

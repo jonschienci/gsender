@@ -154,6 +154,7 @@ public final class UsbSerialModule implements AutoCloseable {
                 for (UsbSerialPort port : driver.getPorts()) {
                     JSONObject item = new JSONObject();
                     item.put("path", path(port));
+                    item.put("usbPermission", manager.hasPermission(d));
                     item.put("vendorId", String.format("%04x", d.getVendorId()));
                     item.put("productId", String.format("%04x", d.getProductId()));
                     try {
@@ -193,6 +194,13 @@ public final class UsbSerialModule implements AutoCloseable {
                 }
             }
             if (port == null) { reject(r, "ENODEV", "USB serial device not found"); return; }
+            // Automatic attempts must never open a permission dialog, including
+            // a grant revoked between enumeration and opening. Manual Connect
+            // can still explicitly request permission.
+            if (!options.optBoolean("requestPermission", true) && !manager.hasPermission(port.getDevice())) {
+                reject(r, "EACCES", "Choose gSender as the Android USB handler or connect manually to grant access");
+                return;
+            }
             Session s = new Session();
             s.id = id; s.request = r; s.port = port;
             sessions.put(id, s);

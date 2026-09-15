@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- SLB STM32 CDC: 0483:5740. Do not claim the USB knob or unrelated devices. -->
+    <usb-device vendor-id="1155" product-id="22336" />
+</resources>

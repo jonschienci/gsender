@@ -1,11 +1,11 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { SlbAutoConnect, isSlb } = require('../runtime/slb-autoconnect.cjs');
-const slb = id => ({ path: `android-usb:${id}:0`, vendorId: '0483', productId: '5740' });
+const slb = id => ({ path: `android-usb:${id}:0`, vendorId: '0483', productId: '5740', usbPermission: true });
 function fixture() {
-    const f = { ports: [], connection: null, calls: [], ui: true };
+    const f = { ports: [], connection: null, calls: [], ui: true, now: 0 };
     f.connector = new SlbAutoConnect({
-        list: async () => f.ports,
+        list: async () => f.ports, now: () => f.now,
         getConnection: () => f.connection,
         getOpener: () => f.ui ? (...args) => f.connector.open((...call) => f.calls.push(call), ...args) : null,
     });
@@ -24,7 +24,7 @@ test('opens an attached SLB once, then reconnects using its new Android USB path
     const f = fixture(); f.ports = [slb(42)];
     await f.connector.scan();
     assert.equal(f.calls.length, 1);
-    assert.deepEqual(f.calls[0].slice(0, 2), ['android-usb:42:0', { baudrate:115200, network:false, defaultFirmware:'GrblHAL' }]);
+    assert.deepEqual(f.calls[0].slice(0, 2), ['android-usb:42:0', { baudrate:115200, network:false, defaultFirmware:'GrblHAL', requestPermission:false }]);
     await f.connector.scan(); assert.equal(f.calls.length, 1);
     f.connection = {}; f.calls[0][2](null);
     await f.connector.scan(); assert.equal(f.calls.length, 1);
@@ -36,7 +36,9 @@ test('manual disconnect and permission denial stay suppressed until detach', asy
     f.connector.suppress(slb(42).path);
     await f.connector.scan(); assert.equal(f.calls.length, 0);
     f.ports = []; await f.connector.scan(); f.ports = [slb(42)];
-    await f.connector.scan(); f.calls[0][2](new Error('Permission denied'));
+    f.connector.open((...args) => f.calls.push(args), slb(42).path, {}, () => {});
+    f.calls[0][2](Object.assign(new Error('Permission denied'), {code:'EACCES'}));
+    f.now = 60000;
     await f.connector.scan(); await f.connector.scan(); assert.equal(f.calls.length, 1);
     // Explicit Connect is still allowed on the same attachment.
     f.connector.open((...args) => f.calls.push(args), slb(42).path, {}, () => {});
@@ -61,11 +63,40 @@ test('pending permission blocks duplicate manual opens; old close callbacks cann
 test('failed scans preserve suppression; delayed scans do not connect after stop or UI departure', async () => {
     const f = fixture(); f.connector.suppress(slb(42).path);
     f.connector.list = async () => { throw new Error('enumeration failed'); };
-    await f.connector.scan(); assert.ok(f.connector.attempted.has(slb(42).path));
+    await f.connector.scan(); assert.ok(f.connector.attachments.has(slb(42).path));
     let resolve;
     f.connector.list = () => new Promise(r => { resolve = r; });
     const scan = f.connector.scan(); f.ui = false; resolve([slb(43)]); await scan;
     assert.equal(f.calls.length, 0);
     f.ui = true; const stopped = f.connector.scan(); f.connector.stop(); resolve([slb(43)]); await stopped;
     assert.equal(f.calls.length, 0);
+});
+
+test('unexpected disconnect retries the same attachment; failed opens back off to 30 seconds', async () => {
+    const f = fixture(); f.ports = [slb(42)];
+    await f.connector.scan(); f.connection = {}; f.calls[0][2](null);
+    f.now = 10000; f.connection = null; f.connector.disconnected(slb(42).path);
+    await f.connector.scan(); assert.equal(f.calls.length, 1);
+    f.now = 12000; await f.connector.scan(); assert.equal(f.calls.length, 2);
+    for (const wait of [2000, 4000, 8000, 16000, 30000, 30000]) {
+        f.calls.at(-1)[2](Object.assign(new Error('driver failed'), {code:'EIO'}));
+        const count = f.calls.length;
+        f.now += wait - 1; await f.connector.scan(); assert.equal(f.calls.length, count);
+        f.now++; await f.connector.scan(); assert.equal(f.calls.length, count + 1);
+    }
+    f.connection = {}; f.calls.at(-1)[2](null);
+    f.now += 100000; await f.connector.scan();
+    assert.equal(f.calls.length, 8, 'Successful recovery ends retries');
+});
+test('automatic scans wait silently for a grant and never request Android permission', async () => {
+    const f = fixture(); f.ports = [{...slb(42), usbPermission:false}];
+    for (let i=0; i<5; i++) { f.now += 30000; await f.connector.scan(); }
+    assert.equal(f.calls.length, 0);
+    f.ports[0].usbPermission = true; await f.connector.scan();
+    assert.equal(f.calls.length, 1); assert.equal(f.calls[0][1].requestPermission, false);
+    // Native open can still reject a grant revoked after enumeration.
+    f.calls[0][2](Object.assign(new Error('grant lost'), {code:'EACCES'}));
+    f.ports[0].usbPermission = false; f.now += 30000;
+    await f.connector.scan(); assert.equal(f.calls.length, 1);
+    f.ports[0].usbPermission = true; await f.connector.scan(); assert.equal(f.calls.length, 2);
 });

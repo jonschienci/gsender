@@ -7,20 +7,31 @@ const isSlb = port => /^android-usb:\d+:0$/.test(port.path || '') &&
     String(port.productId).toLowerCase() === '5740';
 
 class SlbAutoConnect {
-    constructor({ list, getConnection, getOpener, report = () => {} }) {
-        Object.assign(this, { list, getConnection, getOpener, report });
-        this.attempted = new Set();
+    constructor({ list, getConnection, getOpener, report = () => {}, now = Date.now }) {
+        Object.assign(this, { list, getConnection, getOpener, report, now });
+        this.attachments = new Map();
         this.opening = null;
         this.scanning = false;
         this.stopped = false;
     }
-    suppress(path) { this.attempted.add(path); }
+    attachment(path) {
+        if (!this.attachments.has(path)) this.attachments.set(path, { failures: 0, nextAt: 0, suppressed: false });
+        return this.attachments.get(path);
+    }
+    suppress(path) { this.attachment(path).suppressed = true; }
+    disconnected(path) {
+        if (path && this.attachments.has(path)) {
+            const record = this.attachment(path);
+            record.nextAt = Math.max(record.nextAt, this.now() + 2000);
+        }
+    }
     open(opener, path, options, callback = () => {}) {
         if (this.stopped || this.opening) {
             callback(new Error(this.stopped ? 'USB autoconnect stopped' : 'A board connection is already in progress'));
             return;
         }
-        this.attempted.add(path);
+        const record = this.attachment(path);
+        record.suppressed = false; // Explicit manual Connect overrides Disconnect.
         const attempt = {};
         this.opening = attempt;
         let settled = false;
@@ -30,6 +41,14 @@ class SlbAutoConnect {
             if (settled) return;
             settled = true;
             if (this.opening === attempt) this.opening = null;
+            if (error) {
+                record.failures++;
+                // Respect an explicit permission denial/abandoned manual prompt.
+                // Automatic attempts never request permission and may retry once
+                // Android grants access through its default-device handler.
+                if (options.requestPermission !== false && ['EACCES', 'ETIMEDOUT'].includes(error.code)) record.suppressed = true;
+            } else record.failures = 0;
+            record.nextAt = this.now() + Math.min(30000, 2000 * 2 ** Math.min(4, Math.max(0, record.failures - 1)));
             callback(error);
         };
         try { opener(path, options, done); } catch (error) { done(error); }
@@ -41,19 +60,27 @@ class SlbAutoConnect {
             const ports = await this.list();
             if (this.stopped) return;
             const present = new Set(ports.map(port => port.path));
-            for (const path of this.attempted) {
-                if (!present.has(path)) this.attempted.delete(path);
+            for (const path of this.attachments.keys()) {
+                if (!present.has(path)) this.attachments.delete(path);
             }
             const matches = ports.filter(isSlb);
             const open = this.getOpener();
             // Never replace an active/initializing controller or choose between
-            // multiple boards. One attempt per attachment avoids permission loops.
+            // multiple boards. Retry transport failures with a bounded backoff.
             if (!open || this.opening || this.getConnection() || matches.length !== 1) return;
-            const path = matches[0].path;
-            if (this.attempted.has(path)) return;
+            const { path, usbPermission } = matches[0];
+            const record = this.attachment(path);
+            if (record.suppressed) return;
+            if (usbPermission !== true) {
+                if (!record.waitingPermission) this.report('SLB detected; waiting for Android USB access. Choose gSender as the default USB app or connect manually once.');
+                record.waitingPermission = true;
+                return;
+            }
+            record.waitingPermission = false;
+            if (this.now() < record.nextAt) return;
             this.report('SLB auto-connect: requesting ' + path);
-            open(path, { baudrate: 115200, network: false, defaultFirmware: 'GrblHAL' }, error => {
-                this.report(error ? 'SLB auto-connect failed: ' + error.message : 'SLB connected automatically');
+            open(path, { baudrate: 115200, network: false, defaultFirmware: 'GrblHAL', requestPermission: false }, error => {
+                this.report(error ? 'SLB connection failed; will retry: ' + (error.message || error) : 'SLB connected automatically');
             });
         } catch (error) {
             // A failed enumeration is not a detach; retain suppressed attachments.
@@ -95,5 +122,6 @@ exports.stop = engine => {
     state.clients.clear();
     engines.delete(engine);
 };
+exports.disconnected = (engine, path) => engines.get(engine)?.connector.disconnected(path);
 exports.SlbAutoConnect = SlbAutoConnect;
 exports.isSlb = isSlb;

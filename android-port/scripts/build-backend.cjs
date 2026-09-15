@@ -12,7 +12,7 @@ const replace = (source, from, to) => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
         bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
-        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.19-prototype"','global.METRICS_ENDPOINT':'""'},
+        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.7.0-dev-android.20-prototype"','global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
@@ -25,6 +25,7 @@ const replace = (source, from, to) => {
                 build.onResolve({filter:/^(server|app)\//},args=>({path:require.resolve(path.join(root,'src',args.path))}));
                 build.onLoad({filter:/src\/server\/.*\.js$/},args=>{
                     let s=fs.readFileSync(args.path,'utf8');
+                    if(args.path.endsWith('lib/Connection.js')) s=replace(s, 'path: port,', 'path: port, requestPermission: options.requestPermission !== false,');
                     if(args.path.endsWith('lib/SerialConnection.js')) s=replace(s, 'this.port.write(Buffer.from(data));',
                         'if (context?.usbPendant === true) { const port = this.port; port.writeBounded(Buffer.from(data), err => { if (err) port.destroy(err); }); } else this.port.write(Buffer.from(data));');
                     if(args.path.endsWith('server/app.js')) s=replace(s, 'res.setHeader("Cache-Control", "no-cache");', 'res.setHeader("Cache-Control", "no-store");');
@@ -41,6 +42,7 @@ const replace = (source, from, to) => {
                     if(args.path.endsWith('CNCEngine.js')) {
                         s=replace(s, 'socket.on("open", (port, options, callback) => {', 'const openUsbPort = (port, options, callback) => {');
                         s=replace(s, '});\n\n\t\t\t// Close serial port', '};\n            socket.on("open", require("android-slb-autoconnect").attach(this, socket, { SerialPort, open: openUsbPort }));\n\n            // Close serial port');
+                        s=replace(s, 'this.emit("serialport:close", options, received);', 'require("android-slb-autoconnect").disconnected(this, options?.port); this.emit("serialport:close", options, received);');
                         s=replace(s, 'stop() {', 'stop() { require("android-slb-autoconnect").stop(this);');
                         s=replace(s, 'this.io.on("connection", (socket) => {', "this.io.on('connection', (socket) => { require('./local-access.cjs').report('UI connected to backend'); socket.on('disconnect', () => require('./local-access.cjs').report('UI disconnected from backend')); ");
                         s=replace(s, "serveClient: true,", "serveClient: false, allowRequest: (req, cb) => { const access = require('./local-access.cjs'); const allowed = access.authorized(req); if (!allowed) access.report('UI connection rejected: session credential expired'); cb(null, allowed); },");
