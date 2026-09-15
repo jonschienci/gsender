@@ -5,7 +5,7 @@ const { EventEmitter } = require('node:events');
 const { Gate, Lines, hello, precision, jog } = require('../pendant/protocol.cjs');
 const { Controller } = require('../pendant/controller.cjs');
 const { Pendant } = require('../pendant/service.cjs');
-const boot = '0123456789abcdef', preset = { xyStep: .5, zStep: .1, feedrate: 1000 };
+const boot = '0123456789abcdef', preset = { xyStep: .5, zStep: .1, feedrate: 1000, rapidFeedrate: 5000 };
 function wire(now) {
     const g = new Gate(boot, now);
     const alive = () => `P2 ALIVE ${boot} ${g.session} ${g.ticket} 1 0 0 500`;
@@ -274,4 +274,17 @@ test('background parser and synthetic replies do not release the next motion',()
     f.c.runner.emit('ok',{raw:'ok'});assert.equal(f.m.active.acked,false);
     f.c.actionMask.queryParserState.reply=false;f.c.runner.emit('ok',{raw:'force ok'});assert.equal(f.m.active.acked,false);
     f.c.runner.emit('ok',{raw:'ok'});assert.equal(f.m.active.acked,true);
+});
+test('Rapid is separate from Precision, bounded, captured and never silently changed while armed',async()=>{
+    for(const rapidFeedrate of [null,0,-1,NaN,Infinity,100001,'5000'])assert.throws(()=>precision({...preset,rapidFeedrate}),/Rapid/);
+    assert.equal(jog({...preset,rapidFeedrate:9000},'X',1),'$J=G21G91 X0.5000 F1000.000');
+    const f=fixture();await f.ready();f.s.arm(f.body);
+    f.s.ui({...f.body,preset:{...preset,rapidFeedrate:8000}});
+    assert.equal(f.s.armed,false);f.s.ui(f.body);assert.equal(f.s.armed,false);
+});
+test('old UI without saved Rapid can use Step but cannot arm Precision-to-Rapid mode',async()=>{
+    const f=fixture(),p=await f.ready();const body={...f.body,preset:{xyStep:.5,zStep:.1,feedrate:1000}};
+    f.s.arm(body);assert.equal(f.s.armed,true);f.s.setMode('adaptive');f.s.tick();
+    const g=f.s.gate;p.emit('data',Buffer.from(`P2 VCAP ${boot} ${g.session} ${g.ticket} 1\n`));
+    assert.throws(()=>f.s.arm(body),/Rapid/);assert.equal(f.s.armed,false);
 });

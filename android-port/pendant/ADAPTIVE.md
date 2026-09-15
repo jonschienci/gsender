@@ -1,5 +1,10 @@
 # Adaptive knob jogging — Build 23
 
+This document records the Build 23 fallback behavior. For the newer
+**Precision → Rapid** behavior, see [RAPID.md](RAPID.md). In that update the
+continuous ceiling is the saved Rapid feed (axis-limited), not Precision; the
+same-direction STEP-to-stream handoff does not cancel/restart the existing move.
+
 Build 23 keeps Exact STEP as the default and adds **Adaptive** in the USB knob dialog. Changing mode disarms. An explicit arm request requires a fresh firmware capability handshake, an idle CNC, the saved Precision preset, and all XYZ maximum-feed/acceleration settings. The installed app is named **gSender Android Build 23**; its label follows the version code automatically in future builds.
 
 ## Operation

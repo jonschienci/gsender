@@ -3,11 +3,11 @@
 // same-direction turns <=120ms apart enter a bounded velocity stream.
 class Adaptive {
     constructor(io) { this.io=io; this.reset(); }
-    reset(){this.phase='step';this.latest=null;this.count=0;this.segments=[];this.feed=0;this.lastSend=-Infinity;this.resume=false;}
+    reset(){this.phase='step';this.latest=null;this.count=0;this.period=null;this.segments=[];this.feed=0;this.lastSend=-Infinity;this.resume=false;}
     input(e){
         const now=this.io.now();
         if(!e.direction || e.expires<=now){
-            this.count=0;this.latest=null;
+            this.count=0;this.period=null;this.latest=null;
             if(this.phase==='fast')this.halt();
             return;
         }
@@ -19,17 +19,34 @@ class Adaptive {
         }
         if(this.phase==='fast'){
             if(e.axis!==this.axis || e.direction!==this.direction || e.stepUm!==this.stepUm)this.halt();
+            else if(e.isNew && e.period>0)this.period=this.period===null?e.period:.65*this.period+.35*e.period;
             return;
         }
         if(!e.isNew)return;
-        this.count=prior && prior.axis===e.axis && prior.direction===e.direction &&
-            prior.stepUm===e.stepUm && e.period>0 && e.period<=120 ? this.count+1:1;
+        const same=prior && prior.axis===e.axis && prior.direction===e.direction && prior.stepUm===e.stepUm;
+        if(!same){this.count=1;this.period=null;}
+        else if(e.period>0){
+            this.count=e.period<=120?this.count+1:1;
+            this.period=this.period===null?e.period:.65*this.period+.35*e.period;
+        }
+        // A zero interval means two UART events arrived in one ESP tick. It
+        // cannot establish speed or reset an already measured positive period.
         if(this.count<3){this.io.submitStep(e);return;}
         this.axis=e.axis;this.direction=e.direction;this.stepUm=e.stepUm;
-        if(this.io.stopStep())this.stopping(true);
-        else this.begin();
+        const transfer=this.io.takeStep(e);
+        if(transfer?.blocked){this.io.stopStep();this.stopping(true);}
+        else this.begin(transfer);
     }
-    begin(){this.phase='fast';this.segments=[];this.feed=0;this.lastSend=-Infinity;this.origin=null;}
+    begin(transfer=null){
+        // Adopt issued motion before validation can throw, so the normal fault
+        // path can still cancel it and retain its unacknowledged receipt.
+        this.phase='fast';this.segments=transfer?[transfer.segment]:[];
+        this.feed=transfer?.feed??0;
+        this.lastSend=transfer?.at??-Infinity;this.origin=transfer?.origin??null;
+        const limit=this.io.limits('XYZ'.indexOf(this.axis));
+        if(transfer)transfer.segment.feed=Math.min(transfer.segment.feed,limit.precision);
+        this.feed=Math.min(transfer?.feed??limit.precision,limit.feed);
+    }
     stopping(resume){
         this.phase='stopping';this.resume=resume;this.stopAt=this.io.now();
         this.stopSerial=this.io.snapshot().serial;this.stopSeq=this.latest?.seq || 0;
@@ -66,7 +83,11 @@ class Adaptive {
         const e=this.latest;
         if(!e || e.expires<=now){this.halt();return;}
         const index='XYZ'.indexOf(this.axis), limit=this.io.limits(index);
-        const targetFeed=limit.feed*Math.min(1,100/Math.max(100,e.period || 1000));
+        // Continuous blend from Precision at ~8 turns/s to saved Rapid at
+        // ~40 turns/s, with a smoothstep curve and source-period filtering.
+        const blend=Math.max(0,Math.min(1,(120-(this.period??120))/95));
+        const base=Math.min(limit.precision,limit.feed);
+        const targetFeed=base+(limit.feed-base)*blend*blend*(3-2*blend);
         if(!this.origin)this.origin=[...s.xyz];
         const end=this.segments.at(-1)?.target || this.origin;
         const projected=this.direction*(s.xyz[index]-this.origin[index]);
@@ -77,7 +98,7 @@ class Adaptive {
             this.origin=this.segments.shift().target;
         }
         if(this.segments.some(p=>!p.acked && now-p.at>=400))throw Error('Velocity ACK timeout; never replay');
-        if(this.segments.some(p=>now-p.at>=1500))throw Error('Velocity motion did not progress');
+        if(this.segments.some(p=>now-p.at>=(p.timeout??1500)))throw Error('Velocity motion did not progress');
         // Never free planner capacity merely because wall-clock time passed.
         const remaining=this.segments.reduce((sum,p)=>sum+
             Math.max(0,Math.min(p.distance,this.direction*(p.target[index]-s.xyz[index])))*60/p.feed,0);
@@ -86,7 +107,7 @@ class Adaptive {
         if(!s.empty || (!this.segments.length && s.state!=='IDLE' && s.state!=='JOG'))throw Error('CNC busy');
         // Smooth requested feed; CNC still applies its actual acceleration.
         const dt=Number.isFinite(this.lastSend)?Math.min(.1,(now-this.lastSend)/1000):.06;
-        const slew=Math.min(limit.acceleration*60,limit.feed*5)*dt;
+        const slew=Math.min(limit.acceleration*60,limit.feed)*dt;
         const feed=Math.floor(Math.min(limit.feed,Math.max(1,this.feed+Math.max(-slew,Math.min(slew,targetFeed-this.feed))))*1000)/1000;
         if(feed<=0)throw Error('Axis maximum feed is below supported jog resolution');
         const distance=Math.floor(feed/60*.06*10000)/10000;

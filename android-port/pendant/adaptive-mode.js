@@ -1,7 +1,7 @@
 // Separate from the performance-tuned panel/launcher: no new polling timer.
 (() => {
     const box=document.createElement('section');
-    box.innerHTML='<label>Knob mode: <select id="knob-mode" style="font:inherit;padding:10px"><option value="step">Exact STEP per detent</option><option value="adaptive">Adaptive: slow steps / fast velocity</option></select></label><small>Adaptive: isolated turns use STEP. Sustained fast turns stream variable-speed moves up to Precision feed. Fast-mode distance is NOT STEP × turns. STEP 0 disables motion. Stop turning to cancel the fast stream. Changing mode disarms; re-arm explicitly.</small>';
+    box.innerHTML='<label>Knob mode: <select id="knob-mode" style="font:inherit;padding:10px"><option value="step">Exact STEP per detent</option><option value="adaptive">Adaptive: Precision → Rapid</option></select></label><small>Single detents use STEP at Precision feed. Sustained fast turns ramp toward your saved Rapid feed, limited by the axis maximum. Fast-mode distance is NOT STEP × turns. STEP 0 disables motion. Stop turning to cancel the fast stream. Higher feed increases stopping distance. Changing mode or either feed setting disarms; re-arm explicitly.</small>';
     document.querySelector('#status').before(box);
     const mode=box.querySelector('select');
     async function refresh(){try{const s=await(await fetch('/api/usb-pendant')).json();mode.value=s.mode||'step';}catch{}}

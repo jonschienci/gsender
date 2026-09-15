@@ -14,6 +14,7 @@ class Controller {
         this.adaptive=new Adaptive({now,snapshot:()=>this.snapshot(),
             submitStep:e=>this.submit(e,this.preset),tickStep:()=>this.tickStep(),
             stopStep:()=>this.stopStep(),cancel:()=>this.cancelMotion(),limits:i=>this.limits(i),
+            takeStep:e=>this.takeStep(e),
             receiptsDrained:()=>!this.cancelPending,
             send:line=>this.current.writeln(line,{usbPendant:true},true)});
     }
@@ -89,7 +90,7 @@ class Controller {
         const p=this.preset,settings=this.current?.settings?.settings;
         const maximum=Number(settings?.['$'+(110+index)]),acceleration=Number(settings?.['$'+(120+index)]);
         if(!Number.isFinite(maximum)||maximum<=0||!Number.isFinite(acceleration)||acceleration<=0)throw Error('Adaptive mode needs axis maximum feed and acceleration settings');
-        return {feed:Math.min(p.feedrate,maximum),acceleration};
+        return {precision:Math.min(p.feedrate,maximum),feed:Math.min(p.rapidFeedrate??p.feedrate,maximum),acceleration};
     }
     canArm() { const s = this.snapshot(); return s.valid && s.state === 'IDLE' && s.empty && s.transportEmpty && s.idle && !s.rotary &&
         !this.cancelFailed && !this.cancelPending && (this.cancelAt===-Infinity || this.statusAt>=this.cancelAt+100 && s.serial>this.cancelSerial); }
@@ -145,7 +146,9 @@ class Controller {
         const step = e.stepUm === undefined ? (e.axis === 'Z' ? e.preset.zStep : e.preset.xyStep) : e.stepUm / 1000;
         const target = [...s.xyz]; target['XYZ'.indexOf(e.axis)] += e.direction * step;
         if (target.some(n => !Number.isFinite(n) || Math.abs(n) > 99999.999)) throw Error('Jog target out of pendant range');
-        this.active = { at: now, serial: s.serial, target, tolerance: Math.min(step / 4, .004), acked: false,
+        this.active = { at: now, serial: s.serial, target, origin:[...s.xyz], axis:e.axis, direction:e.direction,
+            distance:step, feed:e.preset.feedrate, stepUm:e.stepUm,
+            tolerance: Math.min(step / 4, .004), acked: false,
             timeout: Math.max(1500, step * 60000 / e.preset.feedrate + 1500) };
         // The same controller write path as upstream jogging, but a FINITE $J.
         // Never jog:start, never insert motion into gSender's feeder backlog.
@@ -156,6 +159,16 @@ class Controller {
         this.cancelPending+=this.adaptive.segments.filter(s=>!s.acked).length;
         try{this.stopStep();}catch{ /* Cancellation uncertainty blocks re-arm. */ }
         try{this.adaptive.stop();}catch{this.adaptive.reset();}
+    }
+    takeStep(e){
+        const a=this.active;
+        // Only transfer ownership of a same-axis/direction exact jog. The
+        // already-issued command and its ACK must not be duplicated or lost.
+        if(a && (a.axis!==e.axis || a.direction!==e.direction || a.stepUm!==e.stepUm))return {blocked:true};
+        this.dropped+=this.queue.length;this.queue=[];
+        if(!a)return null;
+        this.active=null;
+        return {origin:a.origin,segment:{...a},feed:a.feed,at:a.at};
     }
     cancelMotion(){this.cancelAt=this.now();this.cancelSerial=this.serial;try{this.call('jog:stop');}catch(e){this.cancelFailed=true;throw e;}}
     stopStep(){

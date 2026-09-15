@@ -112,11 +112,14 @@ class Pendant {
         this.machine.preset=this.preset;
         if(this.mode==='adaptive'){
             if(!this.gate?.velocityReady())throw Error('Adaptive mode needs the velocity-capable ESP firmware and fresh handshake');
+            if(!Number.isFinite(this.preset.rapidFeedrate))throw Error('Save a Rapid jog feed before arming Adaptive mode');
             for(let i=0;i<3;i++)this.machine.limits(i);
         }
         if (body.visible !== true || !this.port?.isOpen || !this.gate?.healthy() || !this.machine.canArm())
             throw Error('Needs ready knob, fresh XYZ/$13, idle CNC, empty feeder, and visible gSender');
-        this.armed = true; this.machine.owned = true; this.reason = 'Precision jogging armed'; this.schedule();
+        this.armed = true; this.machine.owned = true;
+        this.reason = this.mode==='adaptive'?'Adaptive Precision-to-Rapid jogging armed':'Precision jogging armed';
+        this.schedule();
     }
     send(line) {
         if (this.pendingWrite || !this.port?.isOpen) return;

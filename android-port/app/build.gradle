@@ -11,8 +11,8 @@ android {
         applicationId 'com.gsender.android'
         minSdk 26
         targetSdk 35
-        versionCode 23
-        versionName (providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '1.7.0-dev-android.23-node24-prototype' : '1.7.0-dev-android.23-node18')
+        versionCode 24
+        versionName (providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '1.7.0-dev-android.24-node24-prototype' : '1.7.0-dev-android.24-node18')
         resValue 'string', 'app_name', "gSender Android Build ${versionCode}"
         ndk { abiFilters.addAll(nodeRuntimeAbis) }
         externalNativeBuild { cmake { cppFlags nodeCppStandard; arguments '-DANDROID_STL=c++_shared', "-DNODE_ROOT=${nodeRuntimeRoot.absolutePath}" } }

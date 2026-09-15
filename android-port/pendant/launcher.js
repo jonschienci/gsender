@@ -35,7 +35,9 @@
         if (state?.workspace?.units !== 'mm') throw Error('Set gSender display units to mm');
         const p = state?.widgets?.axes?.jog?.precise;
         if (!p) throw Error('Save a Precision preset in gSender first');
-        return { xyStep: Number(p.xyStep), zStep: Number(p.zStep), feedrate: Number(p.feedrate) };
+        const rapid = state?.widgets?.axes?.jog?.rapid;
+        return { xyStep: Number(p.xyStep), zStep: Number(p.zStep), feedrate: Number(p.feedrate),
+            ...(rapid ? { rapidFeedrate: Number(rapid.feedrate) } : {}) };
     };
     function payload() { return { session, visible: document.visibilityState === 'visible' && window.__usbKnobActive !== false, preset: preset() }; }
     async function heartbeat() {

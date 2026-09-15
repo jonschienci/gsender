@@ -109,7 +109,13 @@ function precision(value) {
     const { xyStep, zStep, feedrate } = value || {};
     if (![xyStep, zStep, feedrate].every(Number.isFinite) || xyStep < 0 || xyStep > 10 || zStep < 0 || zStep > 10 || feedrate < 1 || feedrate > 1000)
         throw Error('Precision requires 0–10 mm steps and 1–1000 mm/min; the knob STEP sets its own distance');
-    return Object.freeze({ xyStep, zStep, feedrate });
+    const result = { xyStep, zStep, feedrate };
+    if (value.rapidFeedrate !== undefined) {
+        if (!Number.isFinite(value.rapidFeedrate) || value.rapidFeedrate < 1 || value.rapidFeedrate > 100000)
+            throw Error('Rapid feed must be 1–100000 mm/min; the axis maximum also applies');
+        result.rapidFeedrate = value.rapidFeedrate;
+    }
+    return Object.freeze(result);
 }
 function jog(p, axis, direction, stepUm) {
     if (!/^[XYZ]$/.test(axis) || ![-1, 1].includes(direction)) throw Error('Invalid jog');
