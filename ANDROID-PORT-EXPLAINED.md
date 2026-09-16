@@ -1,86 +1,67 @@
 # Android port: integration notes for gSender maintainers
 
-**Scope:** Android Build 13, `1.7.0-dev-android.13`, on the fork’s `android-port` branch. The current upstream base is `dev` commit `8a4a5dd4506d5901f0c6c395a11fde53be4ebbd9`; the original port used `v1.7.0-Edge-1`. This note describes Android-specific implementation and deviations from upstream.
+## Reference build and source state
 
-Build 13 carries the existing USB, pendant fitting, connection-dialog, and P2 knob changes onto that newer base. The integration remains under `android-port/`: upstream application files are adapted during bundling. The repository now includes a Gradle wrapper, checksum-verified runtime download, pinned runtime dependency lockfile, and clean-checkout build instructions.
+**Build 30 — `1.7.0-dev-android.30-node24-prototype`**, completed 2026-09-16. Package `com.gsender.android`, API 26 minimum / 35 target, optimized release APK, **armeabi-v7a only**, embedded Node **24.21.0**. APK SHA-256: `e4fad742fc4aa403770597459394f62b7dc3841723c08813a39c1a9cc6f3e590`.
 
-## Platform replacement
+Upstream base remains `dev` commit `8a4a5dd4506d5901f0c6c395a11fde53be4ebbd9`. All 1,421 recorded upstream files still match `android-port/upstream.json`; Android changes are separate files and bundle-time transforms.
 
-Electron is replaced by a Java Activity/WebView and a foreground service embedding Node.js Mobile **18.20.4** on a dedicated thread. Node and the Java service share an application process; Android manages WebView rendering. No external host or helper process is required.
+The Build 30 source is the working tree on **`android-node24-prototype`**, based on `323f5b055262febb68df62e176f496f3f9f529c5` (Build 26). Builds 27–30 were integrated without commits. The Build 30 report, 34-file hash manifest and source delta identify the final integration; that delta alone does not reconstruct the preceding uncommitted builds. This documentation commit does not publish those implementation changes. File references below describe that Build 30 working tree, not the older `android-port` code snapshot.
 
-CMake links a custom JNI library against `libnode.so`. The APK includes `libnode.so`, `libgsender_bridge.so`, and `libc++_shared.so` for `arm64-v8a` and `armeabi-v7a`. Native/build parameters are API 26 minimum, API 35 target/compile, JDK 17, Gradle 8.9, AGP 8.7.3, NDK 27.2.12479018, and CMake 3.22.1. Node's old-space limit is 384 MiB, excluding WebView and native allocations. Hardware validation targets the Lenovo TB-8506F on Android 11. The bundled Node libraries use 4 KiB pages; 16 KiB-page devices are outside the current target.
+## Runtime and platform boundary
 
-## USB binding and compatibility contract
+Java `MainActivity` hosts the WebView; `EngineService` embeds Node on a dedicated thread in the application process. CMake builds `libgsender_bridge.so` against the selected `libnode.so`; `libc++_shared.so` is also packaged. This replaces Electron without adding a remote server or separate USB helper.
 
-`android-port/usb/js/esbuild-plugin.cjs` replaces `serialport` imports with an Android Duplex adapter. Bootstrap installs its transport before requiring the backend bundle. The adapter implements only the API surface currently consumed by the port; it is not a general serialport replacement.
+Build 30 uses upstream Node cross-compiled on Linux x86_64 with NDK 27.2.12479018 and 32-bit V8 host tools. `node-lts/` pins source hashes and the V8 ARM C++ parsing patch. OpenSSL assembly, Node's startup snapshot and Node code cache are disabled; V8's startup snapshot remains enabled. `-PnodeRuntimeRoot=… -PnodeRuntimeAbis=armeabi-v7a` selects this runtime and C++20 JNI compilation. Without those properties, Gradle still selects the legacy Node.js Mobile 18.20.4 / C++17 build; that is not the distributed Build 30 runtime.
 
-The native boundary is `process._linkedBinding('gsender_usb')`. Requests carry an incrementing `id`, an `op`, and a unique port `session`. Replies resolve/reject requests by ID; unsolicited data and close events carry the session. Binary data uses Base64 inside JSON. Java callbacks enter Node through `uv_async`/event-loop dispatch rather than invoking V8 on USB threads.
+JNI exposes `process._linkedBinding('gsender_usb')`. Java callbacks enter V8 through a bounded `uv_async` queue, carrying JSON/Base64 payloads and monotonic queue age. Bootstrap multiplexes serial, Wi-Fi and BLE events to separate adapters. V8 old-space is capped at **768 MiB**, a growth ceiling rather than preallocation or total-process memory limit.
 
-`UsbSerialModule.java` owns discovery, permission requests, and serial operations through `usb-serial-for-android 3.9.0`. Port paths are `android-usb:<Android device ID>:<port number>` and must be rediscovered after attachment changes. Session checks discard stale callbacks. Permission handling covers denial, timeout, cancellation, and delayed grant callbacks; fresh enumeration also clears sessions for missing devices.
+The tested Lenovo runs 32-bit Android 11 despite its CPU capabilities. Other tablets need ABI, WebView, USB-host and native-library/page-size validation. No custom ROM is required or bundled. Separate Lenovo tuning disables selected background apps/animations and adjusts power settings; those reversible device settings are not APK behavior or evidence of a portable custom Android image.
 
-Important behavioral constraints:
+## USB adapter and automatic SLB connection
 
-- A write resolves after the driver returns. Partial/failed writes are not retried.
-- Physical detach reports `close(error)` with `disconnected=true`. Using `destroy(error)` for detach previously introduced an extra stream error that could terminate the bridge through the bootstrap fatal handler.
-- DTR/RTS are initially asserted once, without an intentional reset pulse.
-- The JNI queue is bounded to 2 MiB and the JS receive buffer to 1 MiB; overflow fails the connection.
-- Flow control and several unused serialport operations remain unsupported. Firmware flashing is rejected before the upstream handler can reset or close the controller.
+`usb/js/esbuild-plugin.cjs` substitutes a Duplex adapter for `serialport`; `UsbSerialModule.java` uses Android USB Host and `usb-serial-for-android 3.9.0`. The adapter implements the consumed API subset. Requests have IDs and port-session IDs; unsolicited data/close events are session-scoped. Attachment paths are `android-usb:<device ID>:<port>` and are rediscovered after reattachment.
 
-## Android-only build transforms
+Writes resolve after driver completion; partial writes are never retried. Detach emits `close(error)` with `disconnected=true`, avoiding the extra fatal stream error introduced by the former detach `destroy(error)` path. Initial DTR/RTS are asserted without a reset pulse. JNI input and JS receive buffers are bounded to 2 MiB and 1 MiB respectively. Permission handling covers cancellation, timeout, delayed callbacks and missed detach events.
 
-All 1,421 files recorded in `android-port/upstream.json` matched their SHA-256 hashes during this Build 13 documentation update. The backend bundle still contains modifications: aliases and checked string/regex transforms apply them during the Android build.
+SLB autoconnect requires exactly one eligible `0483:5740` first serial interface, existing Android permission, authenticated UI, and no active/pending controller connection. Android's USB intent reuses the Activity. Same-address failures retry with 2–30 s backoff; automatic attempts never open permission dialogs. Manual Disconnect suppresses that attachment until replug, while manual Connect remains available. Discovery excludes the knob. Connection recovery does not resume jobs or issue motion/unlock/homing commands.
 
-| Integration point | Android delta |
-| --- | --- |
-| Electron path/log imports | Substitute app-private paths and console logging |
-| Home/i18n resolution | Redirect to the extracted runtime and private data directories |
-| Server binding | Prevent persisted desktop Remote Mode configuration from overriding loopback |
-| HTTP/Socket.IO startup | Install local authentication and UI connection diagnostics |
-| Flash handler | Early explicit rejection |
-| Frontend bootstrap | Omit telemetry initialization; select the saved pendant preference; set viewport |
-| `SerialConnection.write` | Select bounded writes only for `context.usbPendant === true` |
-| Top-bar components | Add mount anchors for the Android USB knob launcher |
+Knob/tablet jog writes use `writeBounded` and `WriteDeadline.java`: **250 ms queue-plus-driver budget**, with expired work rejected before transmission. Ordinary CNC writes retain the upstream path. Firmware flashing is rejected before controller reset/close; unused flow-control operations remain unsupported.
 
-`android-port/scripts/build-backend.cjs` fails if its checked transform anchors disappear. Vite also checks the connection-widget anchor; some CSS/HTML substitutions are plain replacements and still need output inspection when upstream changes. Upgrades require reviewing these patches rather than relaxing the checks. Packages remain external in esbuild, so new runtime imports must also be added to `android-port/runtime-deps/`.
+## Bundle transforms, storage and lifecycle
 
-## Persistence, authentication, and process lifetime
+`build-backend.cjs` substitutes Electron paths/logging, private home/i18n paths, flash handlers and local server integration. Checked source anchors fail the build when upstream changes; Vite's plain CSS/HTML substitutions also require inspection. Runtime packages remain external to esbuild and must be present in the pinned `runtime-deps/` manifest/lockfile. Explicit `acorn`/`acorn-walk` dependencies fix the earlier on-device startup failure.
 
-The service extracts the hashed payload to private `files/runtime`; backend data is separate in `files/data`. Payload changes replace runtime files without intentionally clearing saved data. WebView uses the stable origin `http://127.0.0.1:8765` to preserve local storage.
+The service replaces hashed payload files under private `files/runtime`, keeping settings under `files/data`. Both UI variants use `http://127.0.0.1:8765`. Each process generates a fresh credential; the Activity awaits `CookieManager.setCookie` before navigation. HTTP and Socket.IO authenticate it, bootstrap HTML is non-cacheable, and initial navigation has a unique query. This prevents the earlier cached-UI/stale-cookie failure where USB was visible to Android but no open request reached Java. Persisted remote-mode settings cannot change the loopback bind.
 
-The backend creates a new random token per process. `MainActivity` installs an HttpOnly, SameSite=Strict cookie using `CookieManager.setCookie` and **awaits its callback before navigation**. The initial request also carries `X-gSender-Key`; HTTP and Socket.IO validate the same credential. Bootstrap HTML is non-cacheable, and initial navigation has a launch-specific query.
+A foreground service and USB-active wake lock support backend operation. Recents removal closes transports and terminates the process, with a 1.5 s cleanup fallback; Node is initialized once per process. Home/background preserves the CNC service but cancels owned auxiliary jogging and revokes arming. Native visibility events reach the tablet pad even without a connected knob. Android document pickers replace desktop dialogs; the export bridge limits encoded transfers to 48 MiB.
 
-This ordering is required: an earlier build could display cached UI after restart while the backend rejected its stale cookie. Android continued enumerating USB devices, but no open request reached the native module. Explicit cookie renewal fixed that user-reported failure.
+## Frontend integration and performance
 
-The foreground service holds a CPU wake lock while USB is active. Removing the task from Recents closes USB, releases service resources, and terminates the process, with a 1.5-second fallback if cleanup stalls. Node can be initialized only once per process. Backgrounding alone does not intentionally terminate the CNC backend, but Activity visibility changes disarm the optional knob. App shutdown is not a controller emergency stop.
+Both upstream frontends are compiled. Startup reads the existing `sienci` preference `state.workspace.usePendantViewAsDefault` and redirects locally. Android viewport fitting uses 1280 CSS pixels in landscape, 800 in pendant portrait, with pinch disabled. Knob controls share an explicit horizontal row beside board connection; their lazily loaded modal makes the underlying UI inert. Packaging injects the Gradle build number before React loads, and both headers display it.
 
-Android document pickers replace desktop file dialogs. The implemented export bridge limits encoded data to 48 MiB. General Electron-only tools and external shell integrations have not been comprehensively adapted.
+Android transforms stabilize SVG visualizer options so position updates avoid rebuilding toolpaths. Progress reuses parsed totals or counts nonblank lines in cancellable 32 KiB tasks. Hidden knob-panel polling pauses while required UI heartbeats remain active. Disabled log formatting is skipped. Release shrinking retains JNI names, WebView methods and reflected USB-driver constructors. Earlier component/device probes validate these mechanisms, not full-job throughput or tablet frame rate.
 
-## Frontend-specific adjustments
+## Motion ownership: knob and tablet pad
 
-Both frontend bundles are packaged. A small desktop bootstrap script reads `state.workspace.usePendantViewAsDefault` from the existing `sienci` local-storage record and redirects to `/pendant/`. There is no separate Android mode preference or replacement view selector.
+The optional knob remains a second endpoint; the CNC stays on USB. Exact STEP is the default (0–10 mm, 0.1 mm grid), host-acknowledged before accepting detents. P2 validates sessions, sequence/tickets, captured axis/distance and completion. Adaptive mode derives speed from firmware source intervals, blends saved Precision toward Rapid under axis limits, and sends finite segments rather than indefinite jog commands. Existing STEP ownership/ACKs transfer without resending distance. Page capability and generation checks prevent old page input from arming new controls.
 
-WebView density-based sizing made the pendant controls too large on the target tablet. The Android viewport fits 1280 CSS pixels in landscape and 800 in portrait, updates on orientation changes, and disables pinch zoom. Desktop viewport width remains 1280.
+Physical-knob touch hold requires continuing source contact reports, not a latched press. Freshness, controller status, visible UI, idle workflow, feeder state and single motion ownership gate input. New fast motion is limited to 120 ms nominal queued travel; cancellation drains receipts and waits for fresh Idle evidence. An already-authorized long exact STEP may exceed that horizon during adaptive handoff. These are software queue bounds, not physical stopping times.
 
-## USB knob extension
+The new persistent **XY controls** selector offers buttons or `ui/XYJogPad.tsx` in both frontends. The pad is independent of the external knob and keeps Z/rotary controls; rotary mode disables the pad. A 6% dead zone and smoothstep curve map radius to saved Rapid feed, with normalized diagonals and board limits. One touch owns motion and disarms the physical knob. Updates run every 40 ms, at most one outstanding, using a single-use 150 ms challenge; the backend expires contact after 200 ms. Release, reversal/center, lost capture, multitouch, background, settings changes and competing controls cancel. No lost contact automatically resumes.
 
-`android-port/pendant/{service,protocol,controller}.cjs` implements an optional second USB endpoint for ESP32-C6 native USB `303a:1001`. Its routes share the existing localhost authentication layer. It runs inside the embedded backend.
+## Bluetooth transport and recovery
 
-The extension starts disarmed and requires explicit connection/arming, a healthy knob, fresh machine state, idle CNC, empty feeder, and active UI. P2 uses an on-knob STEP value of 0–10 mm in 0.1 mm increments, while retaining gSender’s Precision feedrate. The selected step must be acknowledged by the host before motion is accepted; each detent captures its axis and distance. It accepts finite increments one at a time, checks completion, and rejects stale/duplicate input. Its queue is bounded to eight entries with 200 ms expiry; saturation drops input instead of treating fast rotation as a transport failure. P2 requires matching ESP firmware and rejects older P1/B1 protocols. Reconnection does not re-arm or replay motion.
+Build 30 offers **USB by default or Bluetooth**; legacy Wi-Fi remains in source/API/tests for rollback. Scan the matching firmware's **PAIR BLUETOOTH** QR (the APK abbreviates it “PAIR BT QR”). Camera/discovery permissions are native Android concerns. QR identity and a 256-bit pre-shared key authenticate the application link; no OS Bluetooth bond is used. Credentials live only in process memory, so restart requires rescanning.
 
-`writeBounded` and `WriteDeadline.java` impose a 250 ms queue-plus-driver budget on knob-related writes, rejecting expired requests before transmission. Ordinary CNC writes keep their previous path. UI heartbeat and native Activity visibility updates disarm the extension when inactive. These bounds are software controls, not hard real-time guarantees.
+Java owns GATT and ciphertext; Node/OpenSSL performs mutual HMAC-SHA256 proof, HKDF-SHA256 derivation and directional AES-256-GCM protection for P2 frames. Strict sequence counters reject replay; the advertisement is not authentication. MTU must be at least 247, packets carry one bounded P2 line, and only one response-write is outstanding. Native queues expire after 50 ms, response writes after 100 ms; JNI queue age prevents delayed input appearing fresh. Setup/authentication deadlines are separate from the established 250 ms heartbeat lease. No new crypto/Bluetooth library is added.
 
-Build-time transforms place the launcher beside the board connection widget. The current layout uses an explicit horizontal connection group; its connection/arming iframe is presented in a modal dialog that makes underlying controls inert. These UI adaptations are separate from the knob protocol. ESP firmware is maintained in the separate HID Knob project and is not built into the Android APK.
+Initial arming is manual. Transient BLE loss cancels/discards motion and reconnects while visible. A previously armed setting can be restored only after fresh status, cancellation receipts, unchanged controller/boot/page/settings/UI and at least 300 ms continuously fresh neutral-input proof. New tickets are issued; old motion never replays. Manual disarm/disconnect, background, alarms, authentication/protocol failures or changed context revoke retained arming. USB retains manual knob reconnection. See `pendant/BLE.md`, `RECONNECT.md`, `RAPID.md`, `CONTROL-PAGES.md` and `TABLET-XY-PAD.md` for contracts; older “pending” headings in the latter document predate its Build 30 inclusion.
 
-## Packaging and validation changes
+## Packaging and validation
 
-`package-payload.py` replaces the production dependency directory, assembles both frontends/backend/assets, rejects desktop `.node` binaries, and produces the ZIP/hash embedded by Gradle. Preserve the signing key and application ID for in-place updates.
+Build backend and **both** Vite frontends before packaging. Payload assembly replaces dependencies, excludes native desktop `.node` modules/test fixtures, and generates the embedded ZIP/hash. Use JDK 17 and serial test execution (`--test-concurrency=1`; fixtures share port 8765). For Build 30, supply the explicit Node 24 runtime properties to release assembly/lint and verify the APK with `--abi armeabi-v7a --runtime-version 24.21.0`; the default build script alone selects the legacy runtime. Preserve the signing key and retain release mapping/provenance artifacts. Increment Gradle and backend version metadata together.
 
-A missing-package failure exposed a test isolation problem: Build 7 omitted `acorn`, but desktop tests resolved it from the parent checkout. The runtime manifest now explicitly includes `acorn` and `acorn-walk`. Integration tests extract the **actual payload ZIP outside the checkout**, copy only the native mock, clear `NODE_PATH`, and disable global module search. They then exercise the real backend through HTTP/Socket.IO.
+Build 30 logs report **202/202 tests passed**, both frontend builds and Gradle release assembly/lint passed, with existing lint warnings. Packaged-backend tests extract the actual ZIP outside the checkout and disable global dependency lookup. BLE tests use real encryption with simulated GATT/CNC, including finite jog, cancellation/recovery and replay rejection; public vectors match independent Python and peer ESP implementations.
 
-Protocol details are in [P2-PROTOCOL.md](android-port/pendant/P2-PROTOCOL.md). Build setup is in [android-port/README.md](android-port/README.md). Build-time Node is 22+; the embedded runtime remains 18.20.4, with backend output targeting `node18` and frontend output targeting `chrome87`.
-
-For a clean checkout, install root packages with scripts disabled and runtime packages with the frozen Yarn lockfile, run `scripts/fetch-runtime.py`, configure `local.properties` and a private signing key, then run `./android-port/scripts/build.sh`. Paths here refer to `android-port/`. The downloader verifies the Node archive against `vendor-manifest.json` before extracting it. Runtime binaries, SDK paths, signing keys, payloads, and APKs are ignored by Git.
-
-The build sequence is backend → desktop Vite → pendant Vite → payload ZIP → tests → Gradle assembly/lint → APK verification. Tests use `--test-concurrency=1` because backend fixtures share port 8765; the Java deadline test requires `JAVA_HOME`. Verify APK signing separately. Increment both Gradle version metadata and the backend `BUILD_VERSION` definition for subsequent APKs.
-
-This documentation update verified source provenance and build configuration; it did not rebuild the APK or rerun the runtime suite. The preceding Build 12 integration handoff reported 56 passing Android tests. Earlier tablet testing confirmed SLB control, EEPROM editing, restart recovery, and corrected launch. Those results do not establish Build 13 hardware behavior: knob operation, sustained streaming, timing, layout, and lifecycle under load still require device validation.
+This documentation update independently verified APK version/ABI/runtime metadata, APK/payload hashes, all 34 recorded integration-file hashes, and all 1,421 upstream hashes. It did not rebuild or rerun the suite. Build 30 was not installed on the tablet, and matching ESP firmware was not flashed during its build. Camera/radio permissions, touch-report cadence, physical timing, sustained CNC streaming and lifecycle under load remain hardware-validation work. Earlier isolated Node/JNI/heap probes and earlier SLB control tests do not establish those results for Build 30.
