@@ -1,5 +1,8 @@
 import { defineConfig } from 'vite';
 import connectionUi from './scripts/connection-ui.cjs';
+import buildLabel from './scripts/build-label.cjs';
+import xyPadUi from './scripts/xy-pad-ui.cjs';
+import jogTouchUi from './scripts/jog-touch-ui.cjs';
 import performanceUi from './scripts/performance-ui.cjs';
 import path from 'node:path';
 import react from '@vitejs/plugin-react';
@@ -15,7 +18,7 @@ export default defineConfig({
     css: { postcss: { plugins: [tailwindcss(path.join(root, pendant ? 'src/pendant/tailwind.config.ts' : 'src/app/tailwind.config.ts'))] },
         preprocessorOptions: { stylus: { modules: true } },
         modules: { localsConvention: 'camelCaseOnly', generateScopedName: '[name]__[local]___[hash:base64:5]' } },
-    plugins: [{ name: 'android-performance', enforce: 'pre', transform: performanceUi.transform }, { name: 'android-connection-state', enforce: 'pre', transform: connectionUi.transform }, { name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
+    plugins: [{name:'android-jog-touch',enforce:'pre',transform:jogTouchUi.transform}, { name: 'android-xy-pad', enforce: 'pre', transform: xyPadUi.transform }, { name: 'android-build-label', enforce: 'pre', transform: buildLabel.transform }, { name: 'android-performance', enforce: 'pre', transform: performanceUi.transform }, { name: 'android-connection-state', enforce: 'pre', transform: connectionUi.transform }, { name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
         if (!id.endsWith('/pendant/src/components/JoggingCard.tsx')) return;
         const start = 'onStart: () => {';
         if (code.split(start).length !== 2) throw new Error('Pendant jog press handler changed');
@@ -46,5 +49,5 @@ export default defineConfig({
     } }, tsconfigPaths(), react(), patchCssModules(), nodePolyfills({include:['process'],globals:{global:true,process:true}}),
         { name: 'android-local-telemetry', load(id) { if (/\/sentry-config\.[jt]s$/.test(id)) return 'export {};'; } }],
     resolve: { alias: { 'app-root': root, app: path.join(root, 'src/app/src'), '@': path.join(root, 'src/app/src') } },
-    build: { target: 'chrome87', outDir: path.join(root,'android-port/build/payload', pendant ? 'pendant' : 'app'), emptyOutDir: true, sourcemap: false },
+    build: { commonjsOptions: { include: [/node_modules/, /android-port\/ui\/pad-vector\.cjs$/] }, target: 'chrome87', outDir: path.join(root,'android-port/build/payload', pendant ? 'pendant' : 'app'), emptyOutDir: true, sourcemap: false },
 });

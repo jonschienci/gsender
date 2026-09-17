@@ -16,7 +16,7 @@ final class WifiKnobNetwork implements AutoCloseable {
     private final WifiKnobPolicy policy = new WifiKnobPolicy();
     private WifiManager.WifiLock lock;
     private String address;
-    private boolean registered, closed;
+    private boolean registered, closed, observing;
     private final ConnectivityManager.NetworkCallback changes = new ConnectivityManager.NetworkCallback() {
         @Override public void onAvailable(Network network) { check(); }
         @Override public void onLost(Network network) { check(); }
@@ -37,10 +37,13 @@ final class WifiKnobNetwork implements AutoCloseable {
         main.post(() -> {
             if (closed) { emit(id, "lost"); return; }
             try {
-                if (op.equals("start")) {
+                if (op.equals("observe")) {
+                    observing = true; emitForeground(EngineService.uiForeground);
+                } else if (op.equals("start")) {
+                    observing = true; emitForeground(EngineService.uiForeground);
                     if (policy.id != 0) { emit(id, "lost"); return; }
                     address = target;
-                    if (!policy.start(id, current(), EngineService.uiForeground)) { address = null; emit(id, "lost"); return; }
+                    if (!policy.start(id, current(), EngineService.uiForeground)) { address = null; emit(id, "lost", EngineService.uiForeground ? "network" : "foreground"); return; }
                     if (!registered) { connectivity.registerDefaultNetworkCallback(changes, main); registered = true; }
                     emit(id, "ready"); main.post(poll);
                 } else if (op.equals("connected") && policy.connected(id)) {
@@ -68,21 +71,34 @@ final class WifiKnobNetwork implements AutoCloseable {
         }
         return null;
     }
-    void foregroundChanged() { main.post(this::check); }
-    private void check() {
-        if (closed || policy.id == 0) return;
-        try { if (!policy.valid(current(), EngineService.uiForeground)) stop(true); }
-        catch (RuntimeException error) { stop(true); }
-    }
-    private void emit(long id, String state) {
-        try { output.accept(new JSONObject().put("event", "wifi").put("id", id).put("state", state).toString()); }
+    void foregroundChanged(boolean visible) { main.post(() -> {
+        if (closed) return;
+        // Preserve each lifecycle transition even if pause/resume both occur
+        // before this queued callback runs. A brief background must revoke arm.
+        if (observing) emitForeground(visible);
+        if (!visible && policy.id != 0) stop(true, "foreground"); else check();
+    }); }
+    private void emitForeground(boolean visible) {
+        try { output.accept(new JSONObject().put("event","wifi").put("state","foreground")
+            .put("visible",visible).toString()); }
         catch (org.json.JSONException impossible) { throw new IllegalStateException(impossible); }
     }
-    private void stop(boolean notify) {
+    private void check() {
+        if (closed || policy.id == 0) return;
+        try { if (!policy.valid(current(), EngineService.uiForeground)) stop(true, EngineService.uiForeground ? "network" : "foreground"); }
+        catch (RuntimeException error) { stop(true); }
+    }
+    private void emit(long id, String state) { emit(id,state,"network"); }
+    private void emit(long id, String state, String reason) {
+        try { output.accept(new JSONObject().put("event", "wifi").put("id", id).put("state", state).put("reason", reason).toString()); }
+        catch (org.json.JSONException impossible) { throw new IllegalStateException(impossible); }
+    }
+    private void stop(boolean notify) { stop(notify,"network"); }
+    private void stop(boolean notify, String reason) {
         long old = policy.stop(); address = null; main.removeCallbacks(poll);
         if (lock != null) { try { if (lock.isHeld()) lock.release(); } catch (RuntimeException ignored) { } finally { lock = null; } }
         if (registered) { try { connectivity.unregisterNetworkCallback(changes); } catch (RuntimeException ignored) { } finally { registered = false; } }
-        if (notify && old != 0) emit(old, "lost");
+        if (notify && old != 0) emit(old, "lost", reason);
     }
     @Override public void close() { main.post(() -> { closed = true; stop(false); }); }
 }

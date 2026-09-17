@@ -29,9 +29,9 @@ exports.transform = (code, id) => {
     }, [boardConnected, boardPort]);
 
     // Respond to external reconnect requests.`);
-        code = replace(code, 'const portVal = connectionConfig.get("port", null);', 'const portVal = connectionConfig.get("port", null);\n            if (!force && String(portVal).startsWith("android-usb:")) return;');
+        code = replace(code, "const portVal = connectionConfig.get('port', null);", 'const portVal = connectionConfig.get("port", null);\n            if (!force && String(portVal).startsWith("android-usb:")) return;');
     } else if (id.endsWith('/app/src/features/Connection/index.tsx')) {
-        code = replace(code, 'const port = connectionConfig.get("port", null);', 'const port = connectionConfig.get("port", null);\n        if (!force && String(port).startsWith("android-usb:")) return;');
+        code = replace(code, "const port = connectionConfig.get('port', null);", 'const port = connectionConfig.get("port", null);\n        if (!force && String(port).startsWith("android-usb:")) return;');
     } else return null;
     return { code, map: null };
 };

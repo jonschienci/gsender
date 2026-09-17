@@ -12,8 +12,21 @@ html = payload / 'app/index.html'
 html.write_text(re.sub(r'(<meta[^>]*name="viewport"[^>]*content=")[^"]*', r'\g<1>width=1280, user-scalable=no', html.read_text()))
 import re
 html.write_text(re.sub(r'<link\b[^>]*href="\.?/src/application.css"[^>]*>', '', html.read_text()))
+# Read the APK's single build-number source every time the payload is packaged,
+# including releases that reuse the previously compiled frontend.
+version = re.search(r'^\s*versionCode\s+([1-9][0-9]*)\s*$',
+                    (root / 'android-port/app/build.gradle').read_text(), re.MULTILINE)
+if not version:
+    raise RuntimeError('Cannot find Android versionCode for the in-app build label')
+build_label = ('<script id="android-build-number">window.__gsenderAndroidBuildNumber='
+               + version.group(1) + ';</script>')
 for entry in (payload / 'app/index.html', payload / 'pendant/index.html'):
     page = entry.read_text()
+    page = re.sub(r'<script id="android-build-number">[^<]*</script>', '', page)
+    if '<head>' not in page:
+        raise RuntimeError(f'Cannot insert Android build label into {entry}')
+    page = page.replace('<head>', '<head>' + build_label, 1)
+    entry.write_text(page)
     if '/usb-pendant/launcher.js' not in page:
         entry.write_text(page.replace('</body>', '<script defer src="/usb-pendant/launcher.js"></script></body>'))
 native = list(payload.rglob('*.node'))

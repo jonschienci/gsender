@@ -16,5 +16,6 @@ test('launcher sends saved Precision and Rapid feeds in existing 400ms heartbeat
     assert.equal(timers.length,1);assert.equal(timers[0].ms,400);
     await timers[0].fn();
     assert.deepEqual(requests[0].body.preset,{xyStep:.5,zStep:.1,feedrate:600,rapidFeedrate:4500});
-    units='in';await timers[0].fn();assert.equal(requests[1].body.visible,false);
+    units='in';await timers[0].fn();assert.equal(requests[1].body.visible,true);
+    assert.equal(requests[1].body.preset,undefined,'inch mode has presence but supplies no motion preset');
 });

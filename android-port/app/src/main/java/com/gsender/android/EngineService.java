@@ -18,7 +18,7 @@ public final class EngineService extends Service {
     static void foreground(boolean visible) {
         uiForeground = visible;
         EngineService current = instance;
-        if (current != null) current.main.post(() -> { if (current.runtime != null) current.runtime.foregroundChanged(); });
+        if (current != null) current.main.post(() -> { if (current.runtime != null) current.runtime.foregroundChanged(visible); });
     }
     private NativeRuntime runtime;
     private PowerManager.WakeLock wakeLock;

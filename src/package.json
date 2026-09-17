@@ -15,8 +15,6 @@
     "@serialport/parser-byte-length": "^13.0.0",
     "@serialport/parser-readline": "^13.0.0",
     "@sienci/avrgirl-arduino": "^5.0.3",
-    "acorn": "^8.18.0",
-    "acorn-walk": "^8.3.5",
     "axios": "^1.2.4",
     "basic-ftp": "^5.1.0",
     "bcrypt-nodejs": "0.0.3",
@@ -123,5 +121,5 @@
     "type": "git",
     "url": "https://github.com/Sienci-Labs/gsender"
   },
-  "version": "1.7.0-Edge-2"
+  "version": "1.6.4"
 }

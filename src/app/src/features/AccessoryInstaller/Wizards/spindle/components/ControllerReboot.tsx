@@ -1,7 +1,5 @@
 export function ControllerReboot() {
-	return (
-		<div>
-			<p>I am step 2</p>
-		</div>
-	);
+    return (
+        <div><p>I am step 2</p></div>
+    )
 }

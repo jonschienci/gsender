@@ -1,5 +1,7 @@
 # Build 25 candidate: Wi-Fi knob fallback
 
+> Historical behavior for the original build. Build 28 simplifies scan/connection and adds guarded reconnection; see [current behavior](RECONNECT.md).
+
 Based on Android Build 24, commit `f27a99367ecd09a8df81596ab350be9b07d2eadd`. This candidate changes the knob connection only. The CNC stays on its existing direct USB connection. The tablet and knob stay on the existing LAN; the ESP joins its 2.4 GHz Wi-Fi. No access point, Bluetooth, network switching, process binding, or remote gSender server is added.
 
 ## Setup and operation

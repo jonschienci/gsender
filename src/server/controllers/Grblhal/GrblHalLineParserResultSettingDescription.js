@@ -13,39 +13,40 @@ Format:
 */
 
 function formatDataFormat(format) {
-	if (format.indexOf(",") > -1) {
-		return format.split(",");
-	}
-	if (format.length === 0) {
-		return null;
-	}
-	return format;
+    if (format.indexOf(',') > -1) {
+        return format.split(',');
+    }
+    if (format.length === 0) {
+        return null;
+    }
+    return format;
 }
 
 class GrblHalLineParserResultSettingDescription {
-	static parse(line) {
-		const r = line.match(/^\[SETTING:(\d+)(\|)(.+?)(?=])/);
+    static parse(line) {
+        const r = line.match(/^\[SETTING:(\d+)(\|)(.+?)(?=])/);
 
-		if (!r) {
-			return null;
-		}
+        if (!r) {
+            return null;
+        }
 
-		const data = r[3].split("|");
 
-		const payload = {
-			id: Number(r[1]),
-			group: Number(data[0]),
-			description: data[1],
-			unit: data[2],
-			dataType: Number(data[3]),
-			format: formatDataFormat(data[4]),
-		};
+        const data = r[3].split('|');
 
-		return {
-			type: GrblHalLineParserResultSettingDescription,
-			payload,
-		};
-	}
+        const payload = {
+            id: Number(r[1]),
+            group: Number(data[0]),
+            description: data[1],
+            unit: data[2],
+            dataType: Number(data[3]),
+            format: formatDataFormat(data[4])
+        };
+
+        return {
+            type: GrblHalLineParserResultSettingDescription,
+            payload
+        };
+    }
 }
 
 export default GrblHalLineParserResultSettingDescription;

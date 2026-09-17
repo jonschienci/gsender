@@ -1,347 +1,403 @@
-import { EventEmitter } from "events";
-import { includes, noop } from "lodash";
-import { WRITE_SOURCE_CLIENT } from "../controllers/constants";
-import { GRBL, GRBL_REALTIME_COMMANDS } from "../controllers/Grbl/constants";
+import { EventEmitter } from 'events';
+import SerialConnection from './SerialConnection';
 import {
-	GRBLHAL,
-	GRBLHAL_REALTIME_COMMANDS,
-} from "../controllers/Grblhal/constants";
-import logger from "./logger";
-import SerialConnection from "./SerialConnection";
+    GRBLHAL,
+    GRBLHAL_REALTIME_COMMANDS,
+} from '../controllers/Grblhal/constants';
+import { GRBL, GRBL_REALTIME_COMMANDS } from '../controllers/Grbl/constants';
+import logger from './logger';
+import { noop, includes } from 'lodash';
+import { WRITE_SOURCE_CLIENT } from '../controllers/constants';
 
-const log = logger("connection");
+const log = logger('connection');
+
+// Firmware identification: $I is sent repeatedly until the reply identifies the
+// board as grbl or grblHAL. MAX_ATTEMPTS is the total number of $I sends,
+// including the immediate first one - so detection gets roughly
+// ATTEMPTS * INTERVAL ms before we fall back to the configured default.
+const FIRMWARE_DETECT_INTERVAL = 800;
+const FIRMWARE_DETECT_MAX_ATTEMPTS = 7;
 
 class Connection extends EventEmitter {
-	sockets = {};
+    sockets = {};
 
-	controller = null;
+    controller = null;
 
-	controllerType = null;
+    controllerType = null;
 
-	options = {};
+    options = {};
 
-	connection = null;
+    connection = null;
 
-	engine = null;
+    engine = null;
 
-	timeout = null;
+    timeout = null;
 
-	count = 0;
+    count = 0;
 
-	connectionEventListener = {
-		data: (data) => {
-			this.emit("data", data);
-			log.silly(`< ${data}`);
-			if (this.controllerType === null) {
-				data = ("" + data).replace(/\s+$/, "");
-				if (!data) {
-					log.warn("Empty result parsed from Connection Class Parser");
-					return;
-				}
+    connectionEventListener = {
+        data: (data) => {
+            this.emit('data', data);
+            log.silly(`< ${data}`);
+            if (this.controllerType === null) {
+                data = ('' + data).replace(/\s+$/, '');
+                if (!data) {
+                    log.warn(
+                        'Empty result parsed from Connection Class Parser',
+                    );
+                    return;
+                }
 
-				// Note - Do we need two grblHAL clauses if we're using i insensitive flag? - ie grblHAL|GrblHAL
-				// https://regex101.com/r/oPVkkF/1
-				const grblR = data.match(/.*(grbl|fluidnc).*/i);
-				const grblHalR = data.match(/.*(grblhal).*/i);
+                // Note - Do we need two grblHAL clauses if we're using i insensitive flag? - ie grblHAL|GrblHAL
+                // https://regex101.com/r/oPVkkF/1
+                const grblR = data.match(/.*(grbl|fluidnc).*/i);
+                const grblHalR = data.match(/.*(grblhal).*/i);
 
-				if (grblHalR) {
-					this.controllerType = GRBLHAL;
-					this.emit("firmwareFound", GRBLHAL, this.options, this.callback);
-					clearInterval(this.timeout);
-				} else if (grblR) {
-					this.controllerType = GRBL;
-					this.emit("firmwareFound", GRBL, this.options, this.callback);
-					clearInterval(this.timeout);
-				}
-			} // we dont handle the runner
-		},
-		close: (err) => {
-			this.emit("close", err);
+                if (grblHalR) {
+                    this.controllerType = GRBLHAL;
+                    this.stopFirmwareDetection();
+                    this.emit(
+                        'firmwareFound',
+                        GRBLHAL,
+                        this.options,
+                        this.callback,
+                    );
+                } else if (grblR) {
+                    this.controllerType = GRBL;
+                    this.stopFirmwareDetection();
+                    this.emit(
+                        'firmwareFound',
+                        GRBL,
+                        this.options,
+                        this.callback,
+                    );
+                }
+            } // we dont handle the runner
+        },
+        close: (err) => {
+            this.emit('close', err);
 
-			if (err) {
-				log.warn(`Disconnected from serial port "${this.options.port}":`, err);
-			}
+            if (err) {
+                log.warn(
+                    `Disconnected from serial port "${this.options.port}":`,
+                    err,
+                );
+            }
 
-			this.close(err);
-		},
-		error: (err) => {
-			log.error(`Connection error: ${err}`);
-			this.emit("error", err);
-			if (this.controllerType === null) {
-				if (err) {
-					log.error(
-						`Unexpected error while reading/writing serial port "${this.options.port}":`,
-						err,
-					);
-				}
-			}
-		},
-	};
+            this.close(err);
+        },
+        error: (err) => {
+            log.error(`Connection error: ${err}`);
+            this.emit('error', err);
+            if (this.controllerType === null) {
+                if (err) {
+                    log.error(
+                        `Unexpected error while reading/writing serial port "${this.options.port}":`,
+                        err,
+                    );
+                }
+            }
+        },
+    };
 
-	constructor(engine, port, options, callback) {
-		super();
-		const { baudrate, rtscts, network, defaultFirmware, ethernetPort } = {
-			...options,
-		};
-		this.options = {
-			...this.options,
-			port: port,
-			baudrate: baudrate,
-			rtscts: !!rtscts,
-			defaultFirmware,
-			ethernetPort,
-			network,
-		};
-		this.callback = callback;
-		this.engine = engine;
+    constructor(engine, port, options, callback) {
+        super();
+        const { baudrate, rtscts, network, defaultFirmware, ethernetPort } = { ...options };
+        this.options = {
+            ...this.options,
+            port: port,
+            baudrate: baudrate,
+            rtscts: !!rtscts,
+            defaultFirmware,
+            ethernetPort,
+            network,
+        };
+        this.callback = callback;
+        this.engine = engine;
 
-		this.connection = new SerialConnection({
-			path: port,
-			baudRate: baudrate,
-			rtscts: !!rtscts,
-			ethernetPort,
-			network,
-			writeFilter: (data) => {
-				const line = data.trim();
+        this.connection = new SerialConnection({
+            path: port,
+            baudRate: baudrate,
+            rtscts: !!rtscts,
+            ethernetPort,
+            network,
+            writeFilter: (data) => {
+                const line = data.trim();
 
-				if (!line) {
-					return data;
-				}
-				return data;
-			},
-		});
-	}
+                if (!line) {
+                    return data;
+                }
+                return data;
+            },
+        });
+    }
 
-	isOpen = () => {
-		return this.connection && this.connection.isOpen;
-	};
+    isOpen = () => {
+        return this.connection && this.connection.isOpen;
+    };
 
-	isClose() {
-		return !this.isOpen();
-	}
+    isClose() {
+        return !this.isOpen();
+    }
 
-	addConnection = (socket) => {
-		if (!socket) {
-			log.error("The socket parameter is not specified");
-			return;
-		}
+    addConnection = (socket) => {
+        if (!socket) {
+            log.error('The socket parameter is not specified');
+            return;
+        }
 
-		log.debug(`Add socket connection: id=${socket.id}`);
-		this.sockets[socket.id] = socket;
-	};
+        log.debug(`Add socket connection: id=${socket.id}`);
+        this.sockets[socket.id] = socket;
+    };
 
-	removeConnection(socket) {
-		if (!socket) {
-			log.error("The socket parameter is not specified");
-			return;
-		}
+    removeConnection(socket) {
+        if (!socket) {
+            log.error('The socket parameter is not specified');
+            return;
+        }
 
-		log.debug(`Remove socket connection: id=${socket.id}`);
-		this.sockets[socket.id] = undefined;
-		delete this.sockets[socket.id];
-	}
+        log.debug(`Remove socket connection: id=${socket.id}`);
+        this.sockets[socket.id] = undefined;
+        delete this.sockets[socket.id];
+    }
 
-	open = (callback = noop) => {
-		const { port, network = false } = this.options;
+    open = (callback = noop) => {
+        const { port, network = false } = this.options;
 
-		// Assertion check
-		if (this.isOpen()) {
-			log.error(`Cannot open serial port "${port}"`);
-			return;
-		}
+        // Assertion check
+        if (this.isOpen()) {
+            log.error(`Cannot open serial port "${port}"`);
+            return;
+        }
 
-		this.connection.on("data", this.connectionEventListener.data);
-		this.connection.on("close", this.connectionEventListener.close);
-		this.connection.on("error", this.connectionEventListener.error);
+        this.connection.on('data', this.connectionEventListener.data);
+        this.connection.on('close', this.connectionEventListener.close);
+        this.connection.on('error', this.connectionEventListener.error);
 
-		this.connection.open((err) => {
-			if (err) {
-				// Remove listeners so the async 'close' from port.destroy()
-				// doesn't re-enter Connection.close() and double-fire the callback
-				/*this.connection.removeListener('data', this.connectionEventListener.data);
+        this.connection.open((err) => {
+            if (err) {
+                // Remove listeners so the async 'close' from port.destroy()
+                // doesn't re-enter Connection.close() and double-fire the callback
+                /*this.connection.removeListener('data', this.connectionEventListener.data);
                 this.connection.removeListener('close', this.connectionEventListener.close);
                 this.connection.removeListener('error', this.connectionEventListener.error);*/
-				log.error(`Error opening serial port "${port}":`, err);
-				this.emit("serialport:error", { err: err, port: port });
-				this.emit("serialport:close", {}, 1);
-				callback(err); // notify error
-				return;
-			}
+                log.error(`Error opening serial port "${port}":`, err);
+                this.emit('serialport:error', { err: err, port: port });
+                this.emit('serialport:close', {}, 1);
+                callback(err); // notify error
+                return;
+            }
 
-			// Emit a change event to all connected sockets
-			if (this.engine.io) {
-				this.engine.io.emit("serialport:change", {
-					port: port,
-					inuse: true,
-				});
-			}
+            // Emit a change event to all connected sockets
+            if (this.engine.io) {
+                this.engine.io.emit('serialport:change', {
+                    port: port,
+                    inuse: true,
+                });
+            }
 
-			log.debug(`Connected to serial port "${port}"`);
-			if (!this.controllerType) {
-				this.connection.writeImmediate("$I\n");
-				this.timeout = setInterval(() => {
-					this.connection.writeImmediate("$I\n");
-					if (this.count >= 5) {
-						this.controllerType = this.options.defaultFirmware;
-						this.emit(
-							"firmwareFound",
-							this.options.defaultFirmware,
-							this.options,
-							this.callback,
-						);
-						clearInterval(this.timeout);
-						return;
-					}
-					this.count++;
-				}, 800);
-			}
-		});
-	};
+            log.debug(`Connected to serial port "${port}"`);
+            if (!this.controllerType) {
+                this.startFirmwareDetection();
+            }
+        });
+    };
 
-	close(err) {
-		const { port } = this.options;
+    // Poll $I until the reply identifies the firmware (see the data listener),
+    // then fall back to the user's configured default.
+    startFirmwareDetection() {
+        this.stopFirmwareDetection();
+        this.count = 0;
 
-		// Assertion check
-		if (!this.connection) {
-			const err = `Serial port "${port}" is not available`;
-			log.error(err);
-			this.callback(err);
-			return;
-		}
+        this.sendFirmwareQuery();
 
-		this.emit("serialport:close", {
-			port: port,
-			inuse: false,
-		});
+        this.timeout = setInterval(() => {
+            // The port can disappear mid-detection - unplugged, or an 'error'
+            // with no matching 'close'. SerialConnection.writeImmediate has no
+            // port guard of its own, so check here rather than letting it throw
+            // from inside the timer.
+            if (this.isClose()) {
+                log.warn(
+                    `Port "${this.options.port}" closed during firmware detection`,
+                );
+                this.stopFirmwareDetection();
+                return;
+            }
 
-		// Emit a change event to all connected sockets
-		if (this.engine.io) {
-			this.engine.io.emit("serialport:change", {
-				port: port,
-				inuse: false,
-			});
-		}
+            if (this.count >= FIRMWARE_DETECT_MAX_ATTEMPTS) {
+                this.useDefaultFirmware();
+                return;
+            }
 
-		if (this.isClose()) {
-			this.destroy();
-			this.callback(err);
-			return;
-		}
+            this.sendFirmwareQuery();
+        }, FIRMWARE_DETECT_INTERVAL);
+    }
 
-		this.connection.close();
-		this.destroy();
-		this.callback(err);
-	}
+    sendFirmwareQuery() {
+        this.count++;
+        this.connection.writeImmediate('$I\n');
+    }
 
-	addController = (controller) => {
-		this.controller = controller;
+    stopFirmwareDetection() {
+        clearInterval(this.timeout);
+        this.timeout = null;
+    }
 
-		this.emit("serialport:open", {
-			port: this.options.port,
-			baudrate: this.options.baudrate,
-			controllerType: this.controllerType,
-			inuse: true,
-		});
-	};
+    useDefaultFirmware() {
+        // Stop before emitting: firmwareFound synchronously builds a controller
+        // which sends its own $I, and we do not want to race it.
+        this.stopFirmwareDetection();
 
-	write(data, context = { source: WRITE_SOURCE_CLIENT }) {
-		// Assertion check
-		if (this.isClose()) {
-			log.error(`Serial port "${this.options.port}" is not accessible`);
-			return;
-		}
-		if (!context) {
-			context = { source: WRITE_SOURCE_CLIENT };
-		}
-		this.connection.write(data, context);
-		log.silly(`> ${data}`);
-	}
+        // The app always supplies one, but never emit an undefined type.
+        const firmware = this.options.defaultFirmware || GRBL;
+        log.warn(
+            `No firmware identified after ${this.count} $I attempts; assuming ${firmware}`,
+        );
+        this.controllerType = firmware;
+        this.emit('firmwareFound', firmware, this.options, this.callback);
+    }
 
-	writeln(data, context = {}) {
-		if (
-			includes(GRBLHAL_REALTIME_COMMANDS, data) ||
-			includes(GRBL_REALTIME_COMMANDS, data)
-		) {
-			this.write(data, context);
-		} else {
-			this.write(data + "\n", context);
-		}
-	}
+    close(err) {
+        const { port } = this.options;
 
-	writeImmediate(data) {
-		this.connection.writeImmediate(data);
-	}
+        // Assertion check
+        if (!this.connection) {
+            const err = `Serial port "${port}" is not available`;
+            log.error(err);
+            this.callback(err);
+            return;
+        }
 
-	getSockets() {
-		return this.sockets;
-	}
+        this.emit('serialport:close', {
+            port: port,
+            inuse: false,
+        });
 
-	restoreListeners() {
-		this.connection.addPortListeners();
-	}
+        // Emit a change event to all connected sockets
+        if (this.engine.io) {
+            this.engine.io.emit('serialport:change', {
+                port: port,
+                inuse: false,
+            });
+        }
 
-	setWriteFilter(writeFilter) {
-		this.connection.setWriteFilter(writeFilter);
-	}
+        if (this.isClose()) {
+            this.destroy();
+            this.callback(err);
+            return;
+        }
 
-	getConnectionObject() {
-		return this.connection.port;
-	}
+        this.connection.close();
+        this.destroy();
+        this.callback(err);
+    }
 
-	emitToSockets(eventName, ...args) {
-		Object.keys(this.sockets).forEach((id) => {
-			const socket = this.sockets[id];
-			socket.emit(eventName, ...args);
-		});
-	}
+    addController = (controller) => {
+        this.controller = controller;
 
-	updateOptions(options) {
-		this.options = {
-			...this.options,
-			options,
-		};
-	}
+        this.emit('serialport:open', {
+            port: this.options.port,
+            baudrate: this.options.baudrate,
+            controllerType: this.controllerType,
+            inuse: true,
+        });
+    };
 
-	refresh() {
-		log.debug("connection refresh");
-		this.emit(
-			"firmwareFound",
-			this.controllerType,
-			this.options,
-			this.callback,
-			true,
-		);
-	}
+    write(data, context = { source: WRITE_SOURCE_CLIENT }) {
+        // Assertion check
+        if (this.isClose()) {
+            log.error(`Serial port "${this.options.port}" is not accessible`);
+            return;
+        }
+        if (!context) {
+            context = { source: WRITE_SOURCE_CLIENT };
+        }
+        this.connection.write(data, context);
+        log.silly(`> ${data}`);
+    }
 
-	destroy() {
-		clearInterval(this.timeout);
+    writeln(data, context = {}) {
+        if (
+            includes(GRBLHAL_REALTIME_COMMANDS, data) ||
+            includes(GRBL_REALTIME_COMMANDS, data)
+        ) {
+            this.write(data, context);
+        } else {
+            this.write(data + '\n', context);
+        }
+    }
 
-		if (this.controller) {
-			this.controller = null;
-		}
+    writeImmediate(data) {
+        this.connection.writeImmediate(data);
+    }
 
-		this.sockets = {};
+    getSockets() {
+        return this.sockets;
+    }
 
-		if (this.connection) {
-			this.connection = null;
-		}
+    restoreListeners() {
+        this.connection.addPortListeners();
+    }
 
-		if (this.controllerType) {
-			this.controllerType = null;
-		}
+    setWriteFilter(writeFilter) {
+        this.connection.setWriteFilter(writeFilter);
+    }
 
-		if (this.timeout) {
-			this.timeout = null;
-		}
-	}
+    getConnectionObject() {
+        return this.connection.port;
+    }
 
-	isNetwork() {
-		return this.options.network;
-	}
+    emitToSockets(eventName, ...args) {
+        Object.keys(this.sockets).forEach((id) => {
+            const socket = this.sockets[id];
+            socket.emit(eventName, ...args);
+        });
+    }
 
-	getFTPInfo() {
-		return [this.options.port, this.options.ethernetPort];
-	}
+    updateOptions(options) {
+        this.options = {
+            ...this.options,
+            options
+        };
+    }
+
+    refresh() {
+        log.debug('connection refresh');
+        this.emit('firmwareFound',
+            this.controllerType,
+            this.options,
+            this.callback,
+            true);
+    }
+
+    destroy() {
+        this.stopFirmwareDetection();
+        // Reset the attempt budget with the rest of the detection state, so a
+        // reused Connection instance would start detection from scratch.
+        this.count = 0;
+
+        if (this.controller) {
+            this.controller = null;
+        }
+
+        this.sockets = {};
+
+        if (this.connection) {
+            this.connection = null;
+        }
+
+        if (this.controllerType) {
+            this.controllerType = null;
+        }
+    }
+
+    isNetwork() {
+        return this.options.network;
+    }
+
+    getFTPInfo() {
+        return [this.options.port, this.options.ethernetPort];
+    }
 }
 
 export default Connection;

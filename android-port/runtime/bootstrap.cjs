@@ -12,10 +12,13 @@ process.chdir(process.env.GSENDER_USER_DATA);
 const native = process._linkedBinding('gsender_usb');
 const { WifiNetwork } = require('./wifi-network.cjs');
 const wifi = process.gsenderWifi = new WifiNetwork(json => native.send(json));
+const { BleNetwork } = require('./ble-network.cjs');
+const ble = process.gsenderBle = new BleNetwork(json => native.send(json));
 let serialReceive;
-native.subscribe(json => {
+native.subscribe((json, queueAgeMs = 0) => {
     const message = JSON.parse(json);
     if (message.event === 'wifi') wifi.receive(message);
+    else if (message.event === 'ble') ble.receive(message, queueAgeMs);
     else serialReceive?.(json);
 });
 const adapter = require('./android-usb/serialport.cjs').install({
@@ -24,7 +27,7 @@ const adapter = require('./android-usb/serialport.cjs').install({
 });
 const fail = err => {
     native.send(JSON.stringify({ host: 'error', message: String(err?.stack || err) }));
-    wifi.close(); adapter.dispose();
+    wifi.close(); ble.close(); adapter.dispose();
 };
 process.on('uncaughtException', fail);
 process.on('unhandledRejection', fail);

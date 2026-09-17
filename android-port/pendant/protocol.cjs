@@ -35,9 +35,25 @@ class Gate {
         this.ticket = 0; this.sequence = 0; this.tickets = new Map(); this.ready = false; this.aliveAt = -Infinity;
         this.stepUm = 500; this.selection = 0; this.dropped = 0;
         this.velocityAt=-Infinity; this.wheel=null;
+        this.inputContext=0;this.inputAt=-Infinity;this.lastInput=null;this.contextArm=false;this.inputRequested=false;
+        this.neutralTicket=0; this.neutralAt=-Infinity; this.neutralSince=null;
+        this.page=0;this.pageEpoch=0;this.pageAt=-Infinity;this.padSequence=0;this.padGesture=0;this.padClosed=0;
     }
     live() { return this.now() - this.aliveAt >= 0 && this.now() - this.aliveAt < this.leaseMs; }
     healthy() { return this.ready && this.live(); }
+    neutralClear() { return this.healthy() && this.neutralSince !== null &&
+        this.now()-this.neutralAt >= 0 && this.now()-this.neutralAt < this.leaseMs; }
+    neutralReady() { return this.neutralClear() && this.now()-this.neutralSince >= 300; }
+    neutral(line) {
+        const p=line.split(' ');
+        if(p.length!==7 || p[2]!==this.boot || p[3]!==this.session || p[5]!=='1') throw Error('Invalid neutral capability');
+        const ticket=integer(p[4],1,MAX), clear=integer(p[6],0,1), issued=this.tickets.get(ticket), now=this.now();
+        if(ticket>this.ticket || issued && now<issued.at) throw Error('Unissued neutral ticket');
+        if(!issued || now-issued.at>=this.freshMs || ticket<=this.neutralTicket)return;
+        if(!clear || now-this.neutralAt>=this.leaseMs)this.neutralSince=null;
+        if(clear && this.neutralSince===null)this.neutralSince=now;
+        this.neutralTicket=ticket;this.neutralAt=now;
+    }
     revoke() { for (const t of this.tickets.values()) t.armed = false; }
     velocityReady() { return this.healthy() && this.now()-this.velocityAt>=0 && this.now()-this.velocityAt<this.leaseMs; }
     state(xyz, valid, status, arm = false) {
@@ -45,19 +61,25 @@ class Gate {
         valid = valid && xyz.length === 3 && xyz.every(n => Number.isFinite(n) && Math.abs(n) <= 99999.999);
         for (const [id, t] of this.tickets) if (this.now() - t.at >= 2000) this.tickets.delete(id);
         const armed = !!(arm && valid && this.healthy());
-        this.tickets.set(this.ticket, { at: this.now(), armed, stepUm: this.stepUm });
+        this.tickets.set(this.ticket, { at: this.now(), armed, requestedArm:armed, stepUm: this.stepUm, page:this.page, epoch:this.pageEpoch, context:this.inputContext });
         const um = valid ? xyz.map(n => Math.round(n * 1000)) : [0, 0, 0];
         const label = String(status).toUpperCase().replace(/[^A-Z_]/g, '_').slice(0, 17) || 'UNKNOWN';
-        return `P2 STATE ${this.session} ${this.ticket} ${+!!valid} ${+armed} ${um.join(' ')} ${label} ${this.stepUm}\n`;
+        this.inputRequested=/^BV?PAD_/.test(label);
+        const pages=/^(BV?PAD|V?PAD)_/.test(label) && this.pageEpoch?` ${this.page} ${this.pageEpoch}`:'';
+        return `P2 STATE ${this.session} ${this.ticket} ${+!!valid} ${+armed} ${um.join(' ')} ${label} ${this.stepUm}${pages}\n`;
     }
     receive(line) {
         if (this.wireless && Number.isFinite(this.aliveAt) && this.now() - this.aliveAt >= this.leaseMs)
-            throw Error('Wi-Fi heartbeat lease expired; reconnect manually');
+            throw Object.assign(Error('Wi-Fi heartbeat lease expired'), { code:'WIFI_LEASE_EXPIRED' });
         if (line.startsWith('P2 HELLO ')) {
-            if (hello(line) !== this.boot) throw Error('ESP rebooted; reconnect and re-arm manually');
+            if (hello(line) !== this.boot) throw Object.assign(Error('Knob rebooted; reconnecting with fresh input checks'),{code:'PENDANT_REBOOT'});
             return;
         }
+        if (line.startsWith('P2 INPUT ')) return this.input(line);
+        if (this.inputContext && !line.startsWith('P2 PAD ')) throw Error('Mixed legacy and INPUT protocol');
+        if (line.startsWith('P2 NCAP ')) return this.neutral(line);
         if (line.startsWith('P2 VCAP ') || line.startsWith('P2 WHEEL ')) return this.velocity(line);
+        if (line.startsWith('P2 PCAP ') || line.startsWith('P2 PAD ')) return this.pad(line);
         const p = line.split(' '), alive = p[1] === 'ALIVE';
         if (p[0] !== 'P2' || (!alive && p[1] !== 'DETENT') || p.length !== 9 || p[2] !== this.boot || p[3] !== this.session)
             throw Error('Invalid USB frame/session');
@@ -80,8 +102,105 @@ class Gate {
         this.sequence = seq;
         // Turns already in USB at disarm/setting changes are discarded, never
         // replayed and never treated as a reason to close a healthy connection.
-        if (!fresh || !issued.armed || !this.healthy() || this.selection === 3 || !stepUm || stepUm !== issued.stepUm || stepUm !== this.stepUm) { this.dropped++; return; }
+        if (!fresh || !issued.armed || !this.healthy() || this.selection === 3 || !stepUm || stepUm !== issued.stepUm || stepUm !== this.stepUm ||
+            issued.epoch!==this.pageEpoch || issued.page!==this.page || this.page===2 || this.page===1 && p[6]!=='Z') { this.dropped++; return; }
         return { axis: p[6], direction: Number(p[7]), stepUm, ...(this.wireless ? { queueDeadline: issued.at + 100 } : {}) };
+    }
+    input(line) {
+        const p=line.split(' '), now=this.now();
+        if(!this.inputRequested || p.length!==19 || p[2]!==this.boot || p[3]!==this.session)throw Error('Invalid INPUT session');
+        const seq=integer(p[4],1,MAX),ticket=integer(p[5],1,MAX),context=integer(p[6],1,MAX);
+        const ready=integer(p[7],0,1),fault=integer(p[8],0,1),selection=integer(p[9],0,3),stepUm=step(p[10]);
+        const page=integer(p[11],0,2),epoch=integer(p[12],1,MAX),neutral=integer(p[13],0,1);
+        const positive=integer(p[14],0,MAX),negative=integer(p[15],0,MAX),direction=integer(p[16],-1,1);
+        const period=integer(p[17],0,65535),age=integer(p[18],0,10000),previous=this.lastInput;
+        if(seq<=(previous?.seq||0))return;
+        if(seq!==(previous?.seq||0)+1)throw Error('Missing INPUT snapshot');
+        const boundary=!previous || context!==previous.context;
+        if(previous && context<previous.context)throw Error('INPUT context reversed');
+        if(boundary && (positive||negative||direction))throw Error('INPUT context needs a zero baseline');
+        if(!boundary && (selection!==previous.selection || stepUm!==previous.stepUm || page!==previous.page || epoch!==previous.epoch))throw Error('INPUT controls changed without context');
+        const plus=boundary?0:positive-previous.positive,minus=boundary?0:negative-previous.negative;
+        if(plus<0||minus<0||plus>64||minus>64||plus+minus>64)throw Error('Invalid INPUT counter delta');
+        const count=plus+minus,mixed=plus>0&&minus>0;
+        if(mixed&&direction!==0 || count && !mixed && direction && direction!==(plus?1:-1))throw Error('Inconsistent INPUT direction');
+        if(count>1&&direction&&period===0)throw Error('INPUT burst has no finite period');
+        if(neutral&&direction)throw Error('Held INPUT cannot be neutral');
+        const issued=this.tickets.get(ticket);
+        if(ticket>this.ticket || issued&&now<issued.at)throw Error('Unissued INPUT ticket');
+        // Advance even for stale input so later snapshots cannot catch up old turns.
+        this.lastInput={seq,context,positive,negative,selection,stepUm,page,epoch,direction,period,age};
+        if(fault)throw Error('ESP fault');
+        if(!issued||now-issued.at>=100||ticket<this.aliveTicket){this.dropped+=count;this.wheel=null;return {type:'input',direction:0,isNew:false,count:0};}
+        const controlsChanged=!!this.inputContext && (selection!==this.selection||stepUm!==this.stepUm||page!==this.page||epoch!==this.pageEpoch);
+        const freshBoundary=context!==this.inputContext;
+        const expectedEnableTransition=!!(freshBoundary && !controlsChanged && this.inputContext && issued.requestedArm && !this.contextArm);
+        // A host-requested disable also starts a new firmware input context.
+        // Recognize only a fresh, ready, released baseline with unchanged controls.
+        const expectedDisableTransition=!!(freshBoundary && !controlsChanged && this.inputContext &&
+            !issued.requestedArm && this.contextArm && ready && neutral);
+        if(freshBoundary){this.revoke();this.wheel=null;this.neutralSince=null;this.neutralAt=-Infinity;this.neutralTicket=0;this.contextArm=issued.requestedArm;}
+        this.leaseMs=250;this.inputContext=context;this.inputAt=now;this.ready=!!ready;this.selection=selection;this.stepUm=stepUm;
+        this.page=page;this.pageEpoch=epoch;this.pageAt=now;this.aliveAt=now;this.aliveTicket=ticket;this.velocityAt=now;
+        // INPUT sample sequence supplies freshness even between two host tickets.
+        if(!neutral || now-this.neutralAt>=this.leaseMs)this.neutralSince=null;
+        if(neutral && this.neutralSince===null)this.neutralSince=now;
+        this.neutralAt=now;this.neutralTicket=ticket;
+        const axis='XYZS'[selection],isNew=count>0&&!mixed;
+        let expires=issued.at+180-age;
+        if(!isNew && direction){
+            if(!this.wheel)expires=-Infinity; // A stale/discarded turn cannot resume via a repeat.
+            else {
+                if(this.wheel.context!==context || this.wheel.axis!==axis || this.wheel.direction!==direction || period!==this.wheel.period || age<this.wheel.age)throw Error('Inconsistent repeated INPUT');
+                expires=Math.min(expires,this.wheel.expires);
+            }
+        }
+        this.wheel={axis,direction,period,age,expires,seq,context};
+        const allowed=!freshBoundary&&!mixed&&issued.armed&&issued.context===context&&this.healthy()&&
+            stepUm>0&&stepUm===issued.stepUm&&issued.epoch===epoch&&issued.page===page&&page!==2&&selection!==3&&
+            (page!==1||axis==='Z')&&expires>now;
+        if(!allowed)this.dropped+=count;
+        return {...this.wheel,type:'input',mixed,isNew:allowed&&isNew,count:allowed?count:0,stepUm,
+            direction:allowed?direction:0,queueDeadline:Math.min(issued.at+100,expires),
+            contextChanged:freshBoundary,controlsChanged,expectedEnableTransition,expectedDisableTransition};
+    }
+    pad(line) {
+        const p=line.split(' '), cap=p[1]==='PCAP', now=this.now();
+        if(p.length!==(cap?8:13) || p[2]!==this.boot || p[3]!==this.session)throw Error('Invalid touch/page session');
+        const ticket=integer(p[cap?4:5],1,MAX),issued=this.tickets.get(ticket);
+        if(ticket>this.ticket || issued && now<issued.at)throw Error('Unissued touch/page ticket');
+        if(cap){
+            if(p[5]!=='1')throw Error('Unknown page capability');
+            const page=integer(p[6],0,2),epoch=integer(p[7],1,MAX);
+            if(!issued || now-issued.at>=this.freshMs || epoch<this.pageEpoch)return;
+            if(epoch===this.pageEpoch && page!==this.page)throw Error('Page changed without epoch');
+            const changed=epoch!==this.pageEpoch;
+            if(changed){this.revoke();this.padClosed=this.padGesture;this.wheel=null;}
+            this.page=page;this.pageEpoch=epoch;this.pageAt=now;
+            return changed?{type:'page',page,epoch}:undefined;
+        }
+        const seq=integer(p[4],1,MAX),epoch=integer(p[6],1,MAX),gesture=integer(p[7],0,MAX);
+        const kind=p[8],x=integer(p[9],-1,1),y=integer(p[10],-1,1),age=integer(p[11],0,10000),stepUm=step(p[12]);
+        if(!/^[TBHS]$/.test(kind) || kind!=='S' && (!gesture || !x&&!y))throw Error('Invalid pad vector/event');
+        if(seq<=this.padSequence)return;
+        if(seq!==this.padSequence+1)throw Error('Missing pad event');
+        this.padSequence=seq;
+        if(kind==='S'){this.padClosed=Math.max(this.padClosed,gesture);return {type:'pad',kind:'S',gesture};}
+        if(gesture<=this.padClosed || gesture<this.padGesture)return;
+        if(gesture===this.padGesture && this.padVector && (x!==this.padVector.x || y!==this.padVector.y))throw Error('Touch changed direction without release');
+        if(gesture===this.padGesture && kind!=='H')throw Error('Touch changed mode without release');
+        this.padGesture=gesture;this.padVector={x,y};
+        // B is one bounded factory long-press, NOT a renewable source sample.
+        // Close its gesture to all further starts/H refreshes; S still stops it.
+        if(kind==='T' || kind==='B')this.padClosed=gesture;
+        const expires=issued?issued.at+(kind==='B'?1000:250)-age:-Infinity;
+        if(!issued || now-issued.at>=100 || !issued.armed || !this.healthy() ||
+           now-this.pageAt>=this.leaseMs || this.page!==1 || epoch!==this.pageEpoch ||
+           issued.epoch!==epoch || issued.page!==1 || !stepUm || stepUm!==issued.stepUm || stepUm!==this.stepUm || expires<=now ||
+           kind==='B' && age>=100) {
+            this.padClosed=gesture;this.dropped++;return {type:'pad',kind:'S',gesture};
+        }
+        return {type:'pad',kind,x,y,gesture,expires,stepUm,queueDeadline:Math.min(issued.at+100,expires)};
     }
     velocity(line) {
         const p=line.split(' '),cap=p[1]==='VCAP';
@@ -102,7 +221,8 @@ class Gate {
         const expires=(!isNew && this.wheel)?Math.min(this.wheel.expires,deadline):deadline;
         this.wheel={axis:p[6],direction,period,age,expires,seq};
         if(!issued || now-issued.at>=100 || !issued.armed || !this.velocityReady() ||
-            !stepUm || stepUm!==issued.stepUm || stepUm!==this.stepUm || this.selection===3 || p[6]==='S') {
+            !stepUm || stepUm!==issued.stepUm || stepUm!==this.stepUm || this.selection===3 || p[6]==='S' ||
+            issued.epoch!==this.pageEpoch || issued.page!==this.page || this.page===2 || this.page===1 && p[6]!=='Z') {
             this.dropped++; return {direction:0,isNew:false};
         }
         return {...this.wheel,stepUm,isNew,direction:expires>now?direction:0,

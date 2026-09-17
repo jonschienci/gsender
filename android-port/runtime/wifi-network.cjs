@@ -2,7 +2,13 @@
 // Native network/foreground lease. No network selection, process binding,
 // discovery, credentials, or automatic reconnection crosses this bridge.
 class WifiNetwork {
-    constructor(send) { this.send = send; this.sequence = 0; this.current = null; }
+    constructor(send) { this.send = send; this.sequence = 0; this.current = null; this.foreground = null; }
+    setForegroundListener(listener) {
+        this.foregroundListener = listener;
+        // Tablet touch jogging also needs native pause events without a Wi-Fi knob.
+        this.send(JSON.stringify({host:'wifi',op:'observe',id:0}));
+        if (this.foreground !== null) listener(this.foreground);
+    }
     acquire(address, lost, signal) {
         if (this.current) return Promise.reject(Error('Wi-Fi lease already held'));
         return new Promise((resolve, reject) => {
@@ -16,9 +22,13 @@ class WifiNetwork {
         });
     }
     receive(message) {
+        if (message.state === 'foreground') {
+            this.foreground = message.visible === true;
+            this.foregroundListener?.(this.foreground); return;
+        }
         const c = this.current;
         if (!c || message.id !== c.id) return;
-        if (message.state !== 'ready') return this.end(c, true);
+        if (message.state !== 'ready') return this.end(c, true, message.reason);
         if (c.ready) return;
         c.ready = true; clearTimeout(c.timer);
         c.resolve({
@@ -26,13 +36,13 @@ class WifiNetwork {
             release: () => this.end(c, false),
         });
     }
-    end(c, failed) {
+    end(c, failed, reason) {
         if (this.current !== c) return;
         this.current = null; clearTimeout(c.timer);
         c.signal?.removeEventListener('abort', c.abort);
         try { this.send(JSON.stringify({ host: 'wifi', op: 'stop', id: c.id })); } catch { /* Teardown still rejects locally. */ }
         if (!c.ready) c.reject(Error('Current Wi-Fi unavailable'));
-        else if (failed) c.lost();
+        else if (failed) c.lost(reason);
     }
     close() { if (this.current) this.end(this.current, true); }
 }

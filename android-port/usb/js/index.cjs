@@ -107,7 +107,11 @@ function createSerialPort({ send, subscribe, timeout = 15000, permissionTimeout 
             // Pendant-only finite command. Never enqueue it behind old stream data.
             if (!this.isOpen || this.writableLength !== 0 || this.writableCorked || this.nextWriteDeadline)
                 return queueMicrotask(() => callback(failure('EBUSY', 'CNC USB write queue is not empty')));
-            if (!/^\$J=G21G91 [XYZ]-?\d+\.\d{4} F\d+\.\d{3}\n$/.test(Buffer.from(bytes).toString('ascii')))
+            const line = Buffer.from(bytes).toString('utf8');
+            // One axis OR an ordered XY diagonal only: no XYZ, duplicate words,
+            // additional commands, high-bit ASCII aliases, or extra ACK lines.
+            if (line.length > 128 || line.indexOf('\n') !== line.length - 1 ||
+                !/^\$J=G21G91 (?:[XYZ]-?\d+\.\d{4}|X-?\d+\.\d{4} Y-?\d+\.\d{4}) F\d+\.\d{3}\n$/.test(line))
                 return queueMicrotask(() => callback(failure('EINVAL', 'Not a finite pendant jog')));
             this.nextWriteDeadline = 250;
             this.write(bytes, callback);

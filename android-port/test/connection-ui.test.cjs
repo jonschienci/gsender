@@ -23,6 +23,7 @@ test('pendant connection button follows automatic connection, disconnect, recove
     const filename = path.resolve(__dirname,'../../src/pendant/src/components/ConnectionWidget.tsx');
     // Compile the actual shipped component, replacing unrelated app services only.
     let code = transform(fs.readFileSync(filename,'utf8'),filename).code;
+    code=code.replace(/(from\s*)'([^']+)'/g, '$1"$2"');
     code = code.replace(/import controller from "app\/lib\/controller";/, 'const controller = globalThis.__androidConnectionUiTest.controller;')
         .replace(/import \{ useTypedSelector \} from "app\/hooks\/useTypedSelector";/, 'const useTypedSelector = select => select(globalThis.__androidConnectionUiTest.state);')
         .replace(/import store from "app\/store";/, 'const store = {get: (_key, fallback) => fallback};')

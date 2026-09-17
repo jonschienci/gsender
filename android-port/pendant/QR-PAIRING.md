@@ -1,5 +1,9 @@
 # Build 26: private QR pairing on the knob
 
+> Build 30 uses Bluetooth in the normal selector; see [current Bluetooth operation](BLE.md). Legacy Wi-Fi behavior below remains in the rollback code.
+
+> Historical behavior for the original build. Build 29 simplifies scan/connection and adds guarded reconnection; see [current behavior](RECONNECT.md).
+
 USB remains the default; this changes only Wi-Fi pairing. No ESP or knob flashing occurs in the Android app.
 
 1. Disconnect the knob in gSender and select Wi-Fi fallback. On the knob, tap **PAIR WIFI** (available when offline with an IP address).

@@ -109,3 +109,81 @@ Firmware flashing is disabled. Desktop-only shell/Electron features are not gene
 ## Build 25 Wi-Fi knob candidate
 
 See [Wi-Fi fallback](pendant/WIFI.md) for pairing, the disarmed link test, timing rules, validation, and hardware limitations. The CNC remains directly connected by USB.
+
+## Build 28 automatic Wi-Fi pairing and recovery
+
+Scan the knob QR to pair and connect automatically. Temporary Wi-Fi loss pauses jogging and can restore a previously armed setting after fresh neutral-input and CNC checks. Manual pairing and diagnostics are in Advanced. See [operation, firmware requirements, and limits](pendant/RECONNECT.md).
+
+## Build 29: QR-only pairing controls
+
+Removed manual pairing JSON, IPv4 override, Test Wi-Fi link, Use pairing and Forget pairing from the panel. Scan selects Wi-Fi and connects automatically. Visible UI heartbeats remain live when jog presets are missing/invalid or display units are inches, so those settings cannot suppress Wi-Fi reconnection. Motion still requires valid presets and explicit arming; invalid settings revoke retained arming. See [connection behavior](pendant/RECONNECT.md).
+
+## Pending next build: header build number
+
+Android desktop and pendant headers replace the gSender logo with a compact
+`Build N` label. Packaging reads `versionCode` from `app/build.gradle` and writes
+it into both HTML entries before React loads, including when frontend assets
+are reused. The pendant hold-to-quit gesture stays on the same header element.
+The first release with this change must compile both UI variants with
+`android-port/vite.config.mjs`; subsequent payload-only releases automatically
+refresh the number. This source change does not increment or rebuild Build 29.
+
+## Pending next build: concise CNC knob dialog
+
+QR scanning and pairing status appear only when Wi-Fi is selected, and start
+hidden for USB. Removed static explanatory paragraphs, mode instructions, and
+inline help from the dialog. Connection, arming, mode controls, live status,
+reconnection diagnostics, and errors remain. Source only; no new APK generated.
+
+## Pending next build: selectable tablet XY touch pad
+
+Normal and pendant jog panels gain a persistent **XY controls** selector. The
+XY touch pad blends finger distance from the center into 0–Rapid feed, with
+board axis limits, bounded motion, and release/background cancellation. Existing
+Z/rotary controls remain. See [tablet XY pad](pendant/TABLET-XY-PAD.md). Compile
+both frontend variants and backend in the next release; no new APK was made.
+
+## Build 30: Bluetooth knob and tablet XY pad
+
+Includes the pending tablet XY selector above in both interfaces. USB remains
+the default knob connection; Bluetooth replaces Wi-Fi in the regular selector.
+Scanning the matching **PAIR BT QR** pairs and connects automatically. Transient
+loss reconnects and retains the armed setting subject to fresh neutral/CNC/UI
+checks; authentication failures revoke it. Android pairing is process-memory-only.
+See [Bluetooth protocol, operation and validation](pendant/BLE.md).
+
+## Build 31: XY pad readiness and switch
+
+Fixes the XY pad's persistent “Waiting for idle CNC” state caused by testing the
+USB queue after enqueueing its own status request. Both interfaces now use a
+**Jog buttons / XY pad** switch. See [tablet pad operation](pendant/TABLET-XY-PAD.md).
+
+## Build 32: responsive knob input and automatic readiness
+
+The new compact firmware protocol replaces Bluetooth status bursts with one
+bounded input snapshot. Adaptive mode responds to fast turns without a backlog.
+Connect or scan the QR, release controls briefly, and readiness is automatic;
+Arm/Disarm buttons are removed. Reconnection requires fresh input and CNC checks,
+with no motion replay. Requires matching INPUT-v1 knob firmware. See
+[operation, protocol and validation](pendant/INPUT.md). Build 31's XY-pad fix
+and Jog buttons / XY pad switch are preserved.
+
+## Build 33: stable core, dev jogging and pendant
+
+See [Build 33 release notes](BUILD-33.md) for source pins, reconnect behavior and validation.
+
+## Build 34: tablet XY pad handover
+
+See [Build 34 release notes](BUILD-34.md) for the automatic-knob handover fix and validation.
+
+## Build 35: jog touch handling and XY position rounding
+
+See [Build 35 release notes](BUILD-35.md) for the touch cancellation, motor-resolution handling and persistent error message changes.
+
+## Build 36: smoother tablet XY jogging
+
+See [Build 36 release notes](BUILD-36.md) for acceleration-aware XY buffering, queue limits and validation. Regular jog controls remain unchanged from Build 35.
+
+## Build 37: touch recovery and Bluetooth without location access
+
+See [Build 37 release notes](BUILD-37.md) for XY touch recovery, direct QR-based Bluetooth connection and validation.

@@ -192,12 +192,12 @@ test('wireless pending motion expires with the ticket instead of entering the CN
     f.time(140);f.cnc.connection.connection.port.writableLength=0;f.status();f.s.tick();
     assert.equal(f.writes.length,0);assert.equal(f.s.machine.queue.length,0);f.s.disconnect();
 });
-test('wireless heartbeat loss cancels owned motion at250ms; no reconnect, USB failover or re-arm', async () => {
+test('wireless heartbeat loss cancels owned motion and reconnects without USB failover or unchecked re-arm', async () => {
     const f=fixture(),p=await f.ready();f.s.arm(f.body);f.time(40);f.s.tick();const g=f.s.gate;
     p.emit('data',Buffer.from(`P2 DETENT ${boot} ${g.session} 1 ${g.ticket} X 1 500\n`));f.s.tick();
     assert.equal(f.writes.length,1);f.time(250);f.status();f.s.tick();
     assert.equal(f.s.port,null);assert.equal(f.s.armed,false);assert.equal(f.commands.filter(c=>c[0]==='jog:stop').length,1);
-    f.time(1000);f.s.tick();assert.equal(f.ports.length,1);assert.equal(f.serialLists(),0);assert.equal(f.s.transport,'wifi');
+    f.time(1000);f.s.tick();assert.equal(f.ports.length,2);assert.equal(f.serialLists(),0);assert.equal(f.s.transport,'wifi');
 });
 test('wireless boot text/maintenance and a reboot are rejected; transport disconnect does not reconnect', async () => {
     for(const line of ['M1 READY','ROM boot',`P2 HELLO ${'f'.repeat(16)} 2 1 0`]) {
@@ -245,7 +245,7 @@ test('wireless delayed WHEEL subtracts ticket transit age and repeated samples c
     const late=g.receive(`P2 WHEEL ${boot} ${g.session} 2 ${g.ticket} X 1 30 161 500`);
     assert.equal(late.direction,0);assert.ok(late.expires<=150);
 });
-test('wireless fresh not-ready echoes allow bounded startup without arming', async () => {
+test('wireless fresh not-ready echoes keep the transport alive without permitting arming', async () => {
     const f=fixture();f.s.configurePairing(json);f.s.setTransport('wifi');await f.s.connect();const p=f.ports[0];
     p.emit('data',Buffer.from(`P2 HELLO ${boot} 2 0 0\n`));f.s.tick();
     for(let time=0;time<6000;time+=40){
@@ -253,7 +253,7 @@ test('wireless fresh not-ready echoes allow bounded startup without arming', asy
         p.emit('data',Buffer.from(`P2 ALIVE ${boot} ${g.session} ${g.ticket} 0 0 0 500\n`));f.s.tick();
         assert.equal(f.s.port,p);assert.equal(f.s.armed,false);
     }
-    f.time(6000);f.s.tick();assert.equal(f.s.port,null);assert.match(f.s.reason,/readiness/);
+    f.time(6000);f.s.tick();assert.equal(f.s.port,p);assert.equal(f.s.armed,false);f.s.disconnect();
 });
 
 test('wireless queue deadline does not change legacy USB event queue timing', () => {

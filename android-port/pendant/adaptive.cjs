@@ -24,9 +24,9 @@ class Adaptive {
         }
         if(!e.isNew)return;
         const same=prior && prior.axis===e.axis && prior.direction===e.direction && prior.stepUm===e.stepUm;
-        if(!same){this.count=1;this.period=null;}
+        if(!same){this.count=e.count>1&&e.period>0&&e.period<=120?Math.min(3,e.count):1;this.period=this.count>1?e.period:null;}
         else if(e.period>0){
-            this.count=e.period<=120?this.count+1:1;
+            this.count=e.period<=120?Math.min(3,this.count+(e.count||1)):1;
             this.period=this.period===null?e.period:.65*this.period+.35*e.period;
         }
         // A zero interval means two UART events arrived in one ESP tick. It

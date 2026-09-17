@@ -39,12 +39,10 @@ const RE = /\[\\x([0-9a-fA-F]{1,2})\]/g;
  * @returns {{ line: string, realtimeCmds: string[] }}
  */
 export function extractRealtimeCommands(line) {
-	const realtimeCmds = [];
-	const cleaned = line
-		.replace(RE, (_, hex) => {
-			realtimeCmds.push(String.fromCharCode(parseInt(hex, 16)));
-			return "";
-		})
-		.trim();
-	return { line: cleaned, realtimeCmds };
+    const realtimeCmds = [];
+    const cleaned = line.replace(RE, (_, hex) => {
+        realtimeCmds.push(String.fromCharCode(parseInt(hex, 16)));
+        return '';
+    }).trim();
+    return { line: cleaned, realtimeCmds };
 }

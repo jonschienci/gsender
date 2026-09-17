@@ -60,7 +60,7 @@ test('packaged Android backend: real gSender controller + two simulated USB endp
         assert.ok(messages.some(m=>m.test==='cnc-write'&&/\$J=.*F2000\.000/.test(m.data)),'Ramps to Rapid capped by axis maximum');
         assert.ok(messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).every(m=>Number(/F([\d.]+)/.exec(m.data)[1])<=2000));
         await sleep(500);
-        assert.ok(messages.some(m=>m.test==='cnc-write'&&m.data.includes('\x85')),'release cancels');
+        assert.ok(messages.some(m=>m.test==='cnc-write'&&m.hex==='85'),'release sends exactly one realtime cancel byte');
         assert.equal((await state()).adaptivePhase,'step');
         const quiet=messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length;
         await sleep(200);assert.equal(messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length,quiet,'no late replay');
@@ -81,6 +81,20 @@ test('packaged Android backend: real gSender controller + two simulated USB endp
         const s=await state();assert.equal(s.armed,false);await sleep(600);
         assert.equal(messages.filter(m=>m.test==='opened'&&m.path==='android-usb:42:0').length,1);
         assert.equal(messages.filter(m=>m.test==='opened'&&m.path==='android-usb:55:0').length,1);
+        child.send({test:'allow-stream'});await until(()=>messages.some(m=>m.test==='stream-enabled'),'stream emulator enabled');
+        const jogs=()=>messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J='));
+        const cancels=()=>messages.filter(m=>m.test==='cnc-write'&&m.hex==='85').length;
+        let baseline=jogs().length,cancelBefore=cancels();
+        socket.emit('command','android-usb:42:0','jog:start',{X:1,Y:1},1000,'mm');
+        await until(()=>jogs().length>=baseline+4,'dev diagonal jog stream');
+        assert.ok(jogs().slice(baseline).every(m=>/X[0-9.]+Y[0-9.]+F/.test(m.data)));
+        socket.emit('command','android-usb:42:0','jog:stop');
+        await until(()=>cancels()>cancelBefore,'release writes raw 0x85');
+        await sleep(180);baseline=jogs().length;await sleep(200);assert.equal(jogs().length,baseline,'no stream after release');
+        socket.emit('command','android-usb:42:0','jog:start',{X:1},1000,'mm');
+        await until(()=>jogs().length>=baseline+3,'second dev stream');cancelBefore=cancels();
+        socket.close();await until(()=>cancels()>cancelBefore,'socket loss cancels owner stream');
+        await sleep(180);baseline=jogs().length;await sleep(200);assert.equal(jogs().length,baseline,'socket loss never replays jog');
         assert.deepEqual(messages.filter(m=>m.host==='error'),[],logs);
     }catch(error){error.message+='\nBackend: '+logs.slice(-6500)+'\nMessages: '+JSON.stringify(messages.slice(-25));throw error;}
     finally{socket?.close();await new Promise(resolve=>{child.once('exit',resolve);child.kill();});fs.rmSync(dir,{recursive:true,force:true});}

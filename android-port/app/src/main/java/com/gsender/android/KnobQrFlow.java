@@ -13,7 +13,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.*;
 import java.util.function.Consumer;
 
-/** Native-only scanner/confirmation. Only fixed authenticated loopback routes are reachable. */
+/** Native-only scanner and automatic pairing. Only fixed authenticated loopback routes are reachable. */
 final class KnobQrFlow {
     static final int CAMERA_PERMISSION = 41;
     private final MainActivity activity;
@@ -32,8 +32,11 @@ final class KnobQrFlow {
     void destroy() { destroyed = true; cancel(); requests.shutdown(); }
     void request() {
         if (!resumed || destroyed || session.active() || EngineService.url == null || EngineService.token == null) return;
-        if (activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-            activity.requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_PERMISSION); return;
+        if (activity.checkSelfPermission(Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED || !BleKnobNetwork.permitted(activity)) {
+            java.util.ArrayList<String> permissions = new java.util.ArrayList<>();
+            permissions.add(Manifest.permission.CAMERA);
+            java.util.Collections.addAll(permissions, BleKnobNetwork.permissions());
+            activity.requestPermissions(permissions.toArray(new String[0]), CAMERA_PERMISSION); return;
         }
         origin = EngineService.url; engineKey = EngineService.token;
         id = session.begin(origin, engineKey); final long generation = id;
@@ -49,9 +52,9 @@ final class KnobQrFlow {
     void permissionResult(int[] grants) {
         if (destroyed) return;
         // Never start a camera from a late permission result after a lifecycle change.
-        notice(grants.length > 0 && grants[0] == PackageManager.PERMISSION_GRANTED
-            ? "Camera permission granted. Tap Scan knob QR to begin."
-            : "Camera permission denied. You can still paste pairing JSON.");
+        notice(grants.length > 0 && java.util.Arrays.stream(grants).allMatch(grant -> grant == PackageManager.PERMISSION_GRANTED)
+            ? "Permissions granted. Tap Scan knob QR to begin."
+            : "Allow camera and, on Android 12 or newer, Nearby devices permission in Android app settings.");
     }
     private boolean valid(long generation) {
         return !destroyed && !activity.isFinishing() && !activity.isDestroyed()
@@ -63,7 +66,7 @@ final class KnobQrFlow {
         LinearLayout layout = new LinearLayout(activity); layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(16,16,16,16); layout.setBackgroundColor(0xff14212b);
         TextView help = new TextView(activity); help.setTextColor(0xffffffff); help.setTextSize(18);
-        help.setText("Point the rear camera at the knob’s PAIR WIFI QR. Keep the whole white square visible. Nothing will connect or move.");
+        help.setText("Point the rear camera at the knob’s PAIR BT QR. Scanning pairs and connects automatically. Jogging becomes ready after the CNC is idle and knob controls are released.");
         layout.addView(help);
         camera = new KnobQrCamera(activity, this::found, message -> { cancel(); notice(message); });
         layout.addView(camera, new LinearLayout.LayoutParams(-1,0,1));
@@ -77,24 +80,14 @@ final class KnobQrFlow {
         KnobQrPayload parsed;
         try { parsed = KnobQrPayload.parse(value); } catch (IllegalArgumentException e) { cancel(); return; }
         closeView(); candidate = value;
-        AlertDialog confirm = new AlertDialog.Builder(activity).setTitle("Use this knob pairing?")
-            .setMessage("Device: " + parsed.device + "\nAddress: " + parsed.host + ":58596\n\n"
-                + "Confirm this is your knob. Pairing lasts until gSender closes.\n\n"
-                + "Tap the knob screen to close its QR before Test Wi-Fi link or Connect. Saving here does not connect or arm jogging.")
-            .setNegativeButton("Cancel", (d,w) -> cancel()).setPositiveButton("Use pairing", null).create();
-        dialog = confirm; confirm.setCanceledOnTouchOutside(false); confirm.setOnCancelListener(d -> cancel());
-        confirm.getWindow().addFlags(WindowManager.LayoutParams.FLAG_SECURE);
-        confirm.setOnShowListener(d -> confirm.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            if (!valid(id) || committing || candidate == null) return;
-            committing = true; confirm.getButton(AlertDialog.BUTTON_POSITIVE).setEnabled(false);
-            JSONObject body = body();
-            try { body.put("qr", candidate); } catch (Exception ignored) { cancel(); return; }
-            candidate = null;
-            call("scan-commit", body, id, response -> {
-                lease = null; cancel(); notice("Pairing saved. Tap the knob to close its QR, then test Wi-Fi while disarmed.");
-            });
-        }));
-        confirm.show();
+        if (committing) return;
+        committing = true;
+        JSONObject body = body();
+        try { body.put("qr", candidate); } catch (Exception ignored) { cancel(); return; }
+        candidate = null;
+        call("scan-commit", body, id, response -> {
+            lease = null; cancel(); notice("Knob paired. Connecting automatically…");
+        });
     }
     private JSONObject body() {
         JSONObject value = new JSONObject(); try { value.put("token",lease); } catch (Exception ignored) {} return value;
@@ -138,7 +131,7 @@ final class KnobQrFlow {
                     return;
                 }
                 if (response == null || response.has("error")) {
-                    cancel(); notice("Scanner unavailable or expired. Select Wi-Fi, disconnect the knob, then scan again."); return;
+                    cancel(); notice("Scanner unavailable or expired. Disconnect the knob, then scan again."); return;
                 }
                 success.accept(response);
             });

@@ -1,3 +1,4 @@
+import JogStreamer, { describeJogStopReason } from "../../lib/JogStreamer";
 /* eslint-disable max-lines-per-function */
 /*
  * Copyright (C) 2021 Sienci Labs Inc.
@@ -26,77 +27,75 @@ import ensureArray from "ensure-array";
 import * as parser from "gcode-parser";
 import _ from "lodash";
 import map from "lodash/map";
-import {
-	ALARM,
-	CONTROLLER_READY,
-	CYCLE_START,
-	ERROR,
-	FEED_HOLD,
-	FILE_TYPE,
-	FILE_UNLOAD,
-	HOMING,
-	MACRO_LOAD,
-	MACRO_RUN,
-	METRIC_UNITS,
-	PROGRAM_END,
-	PROGRAM_PAUSE,
-	PROGRAM_RESUME,
-	PROGRAM_START,
-	SLEEP,
-} from "../../../app/src/constants";
-import delay from "../../lib/delay";
-import EventTrigger from "../../lib/EventTrigger";
-import ensurePositiveNumber from "../../lib/ensure-positive-number";
-import evaluateAssignmentExpression from "../../lib/evaluate-assignment-expression";
-import { extractRealtimeCommands } from "../../lib/extract-realtime-commands";
-import Feeder from "../../lib/Feeder";
 import GcodeToolpath from "../../lib/GcodeToolpath";
-import {
-	GCODE_TRANSLATION_TYPE,
-	translateGcode,
-} from "../../lib/gcode-translation";
-import {
-	determineMachineZeroFlagSet,
-	determineMaxMovement,
-	getAxisMaximumLocation,
-} from "../../lib/homing";
-import logger from "../../lib/logger";
-import { PluginParserChain } from "../../lib/plugin-parsers";
-import Sender, { SP_TYPE_CHAR_COUNTING } from "../../lib/Sender";
+import EventTrigger from "../../lib/EventTrigger";
+import Feeder from "../../lib/Feeder";
 import ToolChanger from "../../lib/ToolChanger";
-import translateExpression from "../../lib/translate-expression";
+import Sender, { SP_TYPE_CHAR_COUNTING } from "../../lib/Sender";
 import Workflow, {
 	WORKFLOW_STATE_IDLE,
 	WORKFLOW_STATE_PAUSED,
 	WORKFLOW_STATE_RUNNING,
 } from "../../lib/Workflow";
+import delay from "../../lib/delay";
+import ensurePositiveNumber from "../../lib/ensure-positive-number";
+import evaluateAssignmentExpression from "../../lib/evaluate-assignment-expression";
+import logger from "../../lib/logger";
+import translateExpression from "../../lib/translate-expression";
+import { extractRealtimeCommands } from "../../lib/extract-realtime-commands";
 import config from "../../services/configstore";
 import monitor from "../../services/monitor";
-import pluginRegistry from "../../services/pluginregistry";
 import taskRunner from "../../services/taskrunner";
 import store from "../../store";
 import {
-	A_AXIS_COMMANDS,
 	GLOBAL_OBJECTS as globalObjects,
 	WRITE_SOURCE_CLIENT,
+	WRITE_SOURCE_SERVER,
 	WRITE_SOURCE_FEEDER,
+	A_AXIS_COMMANDS,
 	Y_AXIS_COMMANDS,
 } from "../constants";
-import { calcOverrides } from "../runOverride";
+import GrblRunner from "./GrblRunner";
 import {
 	GRBL,
-	GRBL_ACTIVE_STATE_ALARM,
-	GRBL_ACTIVE_STATE_HOLD,
-	GRBL_ACTIVE_STATE_HOME,
-	GRBL_ACTIVE_STATE_IDLE,
 	GRBL_ACTIVE_STATE_RUN,
+	GRBL_ACTIVE_STATE_HOME,
+	GRBL_ACTIVE_STATE_HOLD,
+	GRBL_ACTIVE_STATE_ALARM,
+	GRBL_ACTIVE_STATE_IDLE,
+	GRBL_REALTIME_COMMANDS,
 	GRBL_ALARMS,
 	GRBL_ERRORS,
-	GRBL_REALTIME_COMMANDS,
 	GRBL_SETTINGS,
 } from "./constants";
-import GrblRunner from "./GrblRunner";
-
+import {
+	METRIC_UNITS,
+	PROGRAM_PAUSE,
+	PROGRAM_RESUME,
+	PROGRAM_START,
+	PROGRAM_END,
+	CONTROLLER_READY,
+	FEED_HOLD,
+	CYCLE_START,
+	HOMING,
+	SLEEP,
+	MACRO_RUN,
+	MACRO_LOAD,
+	FILE_UNLOAD,
+	FILE_TYPE,
+	ALARM,
+	ERROR,
+} from "../../../app/src/constants";
+import {
+	determineMachineZeroFlagSet,
+	determineMaxMovement,
+	getAxisMaximumLocation,
+} from "../../lib/homing";
+import { calcOverrides } from "../runOverride";
+import {
+	GCODE_TRANSLATION_TYPE,
+	translateGcode,
+} from "../../lib/gcode-translation";
 // % commands
 const WAIT = "%wait";
 const PREHOOK_COMPLETE = "%pre_complete";
@@ -104,6 +103,22 @@ const POSTHOOK_COMPLETE = "%toolchange_complete";
 const PAUSE_START = "%pause_start";
 
 const log = logger("controller:Grbl");
+
+// Commands the jog streamer either owns or can safely coexist with. Everything
+// else aborts an active stream before it runs.
+const JOG_COMMANDS = [
+	"jog:start",
+	"jog:update",
+	"jog:feed",
+	"jog:stop",
+	"jog:cancel",
+];
+const STREAM_SAFE_COMMANDS = [
+	"statusreport",
+	"reset",
+	"reset:soft",
+	"reset:quit",
+];
 const noop = _.noop;
 
 class GrblController {
@@ -256,7 +271,7 @@ class GrblController {
 
 			{
 				// Grbl settings: $0-$255
-				const r = line.match(/^(\$\d{1,3})=([\d.]+)$/);
+				const r = line.match(/^(\$\d{1,3})=([\d\.]+)$/);
 				if (r) {
 					const name = r[1];
 					const value = Number(r[2]);
@@ -272,7 +287,7 @@ class GrblController {
 					}
 				}
 			}
-			return data.replace(/\([^)]*\)/gm, "");
+			return data.replace(/\([^\)]*\)/gm, "");
 		});
 
 		// Event Trigger
@@ -290,8 +305,8 @@ class GrblController {
 		// Feeder
 		this.feeder = new Feeder({
 			dataFilter: (line, context) => {
-				const commentMatcher = /\s*;.*/g;
-				const comment = line.match(commentMatcher);
+				let commentMatcher = /\s*;.*/g;
+				let comment = line.match(commentMatcher);
 				const commentString =
 					comment && comment[0].length > 0
 						? comment[0].trim().replace(";", "")
@@ -402,31 +417,9 @@ class GrblController {
 					}
 				}
 
-				const useAaxisForGrbl = store.get("preferences.useAaxisForGrbl", false);
-
-				// If we don't need to convert A-axis to Y-axis, return the line as is since A-axis commands are given by default
-				if (useAaxisForGrbl) {
-					return line;
-				}
-
-				const containsACommand = A_AXIS_COMMANDS.test(line);
-				const containsYCommand = Y_AXIS_COMMANDS.test(line);
-
-				if (containsACommand && !containsYCommand) {
-					const isUsingImperialUnits = context.modal.units === "G20";
-
-					line = translateGcode({
-						gcode: line,
-						from: "A",
-						to: "Y",
-						regex: A_AXIS_COMMANDS,
-						type: isUsingImperialUnits
-							? GCODE_TRANSLATION_TYPE.TO_IMPERIAL
-							: GCODE_TRANSLATION_TYPE.DEFAULT,
+				return this.applyRotaryTranslation(line, {
+					isUsingImperialUnits: context.modal.units === "G20",
 					});
-				}
-
-				return line;
 			},
 		});
 		this.feeder.on("data", (line = "", context = {}) => {
@@ -470,9 +463,9 @@ class GrblController {
 			bufferSize: 128 - 28, // The default buffer size is 128 bytes
 			dataFilter: (line, context) => {
 				// Remove comments that start with a semicolon `;`
-				const commentMatcher = /\s*;.*/g;
-				const bracketCommentLine = /\s*\(.*\)*\)/gm;
-				const toolCommand = /(T)(-?\d*\.?\d+\.?)/;
+				let commentMatcher = /\s*;.*/g;
+				let bracketCommentLine = /\s*\(.*\)*\)/gm;
+				let toolCommand = /(T)(-?\d*\.?\d+\.?)/;
 				const commentRegex = /\(([^)]*)\)|;(.*)/g;
 				const commentParts = [];
 				let m;
@@ -480,7 +473,7 @@ class GrblController {
 					const text = (m[1] !== undefined ? m[1] : m[2]).trim();
 					if (text) commentParts.push(text);
 				}
-				const commentString = commentParts.join(" ");
+				let commentString = commentParts.join(" ");
 				if (line[0] !== "%") {
 					line = line.replace(bracketCommentLine, "").trim();
 					line = line.replace(commentMatcher, "").trim();
@@ -564,7 +557,7 @@ class GrblController {
 
 					const { toolChangeOption } = this.toolChangeContext;
 
-					const tool = line.match(toolCommand);
+					let tool = line.match(toolCommand);
 					const toolLabel = tool?.[0] || null;
 					const toolNumber = tool?.[2] || null;
 
@@ -678,6 +671,7 @@ class GrblController {
 		this.workflow = new Workflow();
 		this.workflow.on("start", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
+			this.jogStreamer?.abort("workflow");
 			this.sender.rewind();
 			this.sender.resumeCountdown();
 		});
@@ -689,6 +683,7 @@ class GrblController {
 		});
 		this.workflow.on("pause", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
+			this.jogStreamer?.abort("workflow");
 
 			if (args.length > 0) {
 				const reason = { ...args[0] };
@@ -702,7 +697,7 @@ class GrblController {
 		this.workflow.on("resume", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
 
-			const pauseTime = new Date().getTime() - this.timePaused;
+			let pauseTime = new Date().getTime() - this.timePaused;
 
 			// Reset feeder prior to resume program execution
 			this.feeder.reset();
@@ -716,32 +711,75 @@ class GrblController {
 			this.sender.next({ timePaused: pauseTime });
 		});
 
-		// Grbl
-		this.runner = new GrblRunner();
-
-		// Plugin-defined parsers. Fed from "raw", which fires for every line
-		// before any built-in parsing, so a plugin can see lines that never make
-		// it to serialport:read. Observe-only: nothing here can consume a line or
-		// affect built-in parsing.
-		this.pluginParsers = new PluginParserChain({
-			emit: (eventName, payload) => this.emit(eventName, payload),
-			getWorkflowState: () => this.workflow?.state,
+		// Streams short incremental jog moves so the planner always has enough
+		// queued motion to hold a constant velocity. Owns the serial link for
+		// the duration of a jog - see the guards in command() below.
+		this.jogStreamer = new JogStreamer({
+			write: (line) =>
+				this.connection.write(line, { source: WRITE_SOURCE_CLIENT }),
+			getSettings: () => this.settings.settings || {},
+			getStatus: () => this.state.status || {},
+			getHomingFlag: () => this.homingFlagSet,
+			// The streamer consumes its own acks, so all it truly needs is that
+			// nobody else is waiting on one. Deliberately not gated on an idle
+			// workflow: jogging while a job is paused for a tool change is
+			// exactly when an operator reaches for the jog controls.
+			canStream: () =>
+				this.isOpen() &&
+				this.workflow.state !== WORKFLOW_STATE_RUNNING &&
+				!this.feeder.hasOutstanding() &&
+				this.sender.state.received >= this.sender.state.sent,
+			lineFilter: (line) => this.applyRotaryTranslation(line),
+			rxBufferSize: 128,
 			log,
 		});
+		// The jog streamer talks to the operator through the console as one
+		// message family, written as the server rather than as machine traffic.
+		const announceJog = (message) => {
+			this.emit("serialport:write", `${message}\n`, {
+				source: WRITE_SOURCE_SERVER,
+			});
+		};
+		// stop() drains and abort() can still fire mid-drain, so one jog may
+		// raise both events - only announce the end of the jog once.
+		this.jogAnnounced = false;
+		const announceJogStopped = (reason) => {
+			if (!this.jogAnnounced) {
+				return;
+			}
+			this.jogAnnounced = false;
+			const why = describeJogStopReason(reason);
+			announceJog(`Stopped jogging${why ? ` - ${why}` : ""}`);
+		};
+		// One console line for the whole jog, not one per segment.
+		this.jogStreamer.on("start", ({ summary }) => {
+			this.jogAnnounced = true;
+			announceJog(summary);
+		});
+		this.jogStreamer.on("feedrate", ({ summary }) => {
+			announceJog(summary);
+		});
+		this.jogStreamer.on("stop", () => {
+			announceJogStopped();
+		});
+		this.jogStreamer.on("abort", (reason) => {
+			announceJogStopped(reason);
+			// "cancel" and "close" already handle the machine themselves; a
+			// reset would be undone by a jog cancel arriving after it.
+			const handledElsewhere = ["cancel", "close", "destroy", "reset"];
+			if (!handledElsewhere.includes(reason) && this.isOpen()) {
+				this.write("\x85");
+			}
+		});
+
+		// Grbl
+		this.runner = new GrblRunner();
 
 		this.runner.on("raw", (data) => {
 			const { raw } = data;
 			if (raw) {
 				this.ready = true;
 				this.waitingForStatus = false;
-			}
-
-			// feed() already swallows everything; this is the second belt so a
-			// plugin can never break the serial read path.
-			try {
-				this.pluginParsers.feed(raw);
-			} catch (err) {
-				log.error(`plugin parser chain failed: ${err.message}`);
 			}
 		});
 
@@ -765,6 +803,10 @@ class GrblController {
 			}
 
 			this.actionMask.queryStatusReport = false;
+
+			// The reported position is the truth the streamer's locally
+			// decremented travel budget is only estimating.
+			this.jogStreamer.onStatus(res);
 
 			if (this.actionMask.replyStatusReport) {
 				this.actionMask.replyStatusReport = false;
@@ -824,6 +866,13 @@ class GrblController {
 				return;
 			}
 
+			// A streamed jog owns the serial link while it runs, so any ok it is
+			// still waiting on is its own. Consume it silently - letting it reach
+			// the feeder would desync the feeder's one-outstanding accounting.
+			if (this.jogStreamer.isActive() && this.jogStreamer.ack()) {
+				return;
+			}
+
 			const { hold, sent, received } = this.sender.state;
 			if (this.workflow.state === WORKFLOW_STATE_RUNNING) {
 				this.emit("serialport:read", res.raw);
@@ -863,6 +912,26 @@ class GrblController {
 		this.runner.on("error", (res) => {
 			const code = Number(res.message) || undefined;
 			const error = _.find(GRBL_ERRORS, { code: code });
+
+			// An error on a streamed jog line belongs to the jog, not to the
+			// feeder or to whatever file happens to be loaded.
+			if (this.jogStreamer.isActive()) {
+				const wasJogError = this.jogStreamer.onError(res);
+				this.jogStreamer.abort("error");
+				if (wasJogError) {
+					this.emit("serialport:read", res.raw);
+					this.emit("error", {
+						type: ERROR,
+						code: `${code}`,
+						description: error?.description ?? "",
+						line: "jog",
+						lineNumber: "",
+						origin: "Jog",
+						controller: GRBL,
+					});
+					return;
+				}
+			}
 
 			log.error(`Error occurred at ${Date.now()}`);
 
@@ -1382,6 +1451,8 @@ class GrblController {
 	}
 
 	destroy() {
+		this.jogStreamer?.abort("destroy");
+
 		if (this.queryTimer) {
 			clearInterval(this.queryTimer);
 			this.queryTimer = null;
@@ -1394,11 +1465,6 @@ class GrblController {
 		if (this.runner) {
 			this.runner.removeAllListeners();
 			this.runner = null;
-		}
-
-		if (this.pluginParsers) {
-			this.pluginParsers.destroy();
-			this.pluginParsers = null;
 		}
 
 		this.sockets = {};
@@ -1458,10 +1524,6 @@ class GrblController {
 			return;
 		}
 
-		// Manifest-declared parsers go live here, so they are watching from the
-		// moment the port opens regardless of whether any plugin UI is mounted.
-		this.reloadPluginParsers();
-
 		// log.debug(`Connected to serial port "${port}"`);
 		this.workflow.stop();
 
@@ -1495,13 +1557,11 @@ class GrblController {
 		// Stop status query
 		this.ready = false;
 
+		// A stream must never outlive the connection it is writing to.
+		this.jogStreamer.abort("close");
+
 		// Clear initialized flag
 		this.initialized = false;
-
-		// Flush any open plugin blocks with complete:false, so a subscriber that
-		// was waiting on a block the disconnect made impossible to finish gets a
-		// terminal result instead of hanging.
-		this.pluginParsers?.reset("close");
 
 		this.emit(
 			"serialport:closeController",
@@ -1526,131 +1586,6 @@ class GrblController {
 
 	isClose() {
 		return !this.isOpen();
-	}
-
-	// --- Plugin parsers -------------------------------------------------------
-
-	/**
-	 * Rebuilds the manifest-declared parser chain from the plugin registry.
-	 * Called on port open and whenever plugins are enabled, disabled, or
-	 * imported. Runtime registrations are untouched.
-	 */
-	reloadPluginParsers() {
-		if (!this.pluginParsers) {
-			return;
-		}
-		try {
-			this.pluginParsers.setManifestParsers(
-				pluginRegistry.getPluginParserSpecs(),
-			);
-		} catch (err) {
-			log.error(`Failed to load plugin parsers: ${err.message}`);
-		}
-	}
-
-	/**
-	 * @param {string} ownerId Identifies the registering plugin iframe instance,
-	 *   so its parsers can be dropped when it unmounts.
-	 */
-	registerPluginParsers(ownerId, pluginId, specs) {
-		if (!this.pluginParsers) {
-			return { registered: [], errors: [], warnings: [] };
-		}
-		return this.pluginParsers.registerRuntime(ownerId, pluginId, specs);
-	}
-
-	unregisterPluginParsers(ownerId, parserId) {
-		if (!this.pluginParsers) {
-			return { ok: true };
-		}
-		return this.pluginParsers.unregisterRuntime(ownerId, parserId);
-	}
-
-	/**
-	 * Sends a command and collects every line the firmware sends back until a
-	 * terminator, giving plugins the request/response shape the event stream
-	 * cannot express.
-	 *
-	 * @param {(err: Error|null, result?: object) => void} callback
-	 */
-	pluginQuery(cmd, opts = {}, callback = noop) {
-		if (!this.isOpen()) {
-			callback(new Error("Serial port is not open"));
-			return;
-		}
-		if (!this.pluginParsers) {
-			callback(new Error("Plugin parsers are not available"));
-			return;
-		}
-		if (typeof cmd !== "string" || cmd.trim() === "") {
-			callback(new Error("A command is required"));
-			return;
-		}
-
-		const allowDuringJob = Boolean(opts.allowDuringJob);
-
-		if (!this.workflow.isIdle() && !allowDuringJob) {
-			callback(
-				Object.assign(new Error("Machine is busy running a job"), {
-					code: "EBUSY",
-				}),
-			);
-			return;
-		}
-
-		// While a job streams, the firmware emits an `ok` per accepted line, so
-		// `ok`/`error` are indistinguishable from the sender's own responses. A
-		// query that runs then MUST bring its own terminator.
-		if (allowDuringJob && typeof opts.until !== "object") {
-			callback(
-				new Error(
-					'A query with allowDuringJob needs an explicit "until" pattern — ' +
-						"ok/error cannot be told apart from the running job's responses",
-				),
-			);
-			return;
-		}
-
-		if (this.pluginQueryInFlight) {
-			callback(
-				Object.assign(new Error("Another query is already in flight"), {
-					code: "EBUSY",
-				}),
-			);
-			return;
-		}
-
-		let until = opts.until ?? "ok-or-error";
-		if (until && typeof until === "object" && until.source) {
-			try {
-				until = new RegExp(until.source, (until.flags || "").replace(/[gy]/g, ""));
-			} catch (err) {
-				callback(new Error(`Invalid "until" pattern: ${err.message}`));
-				return;
-			}
-		}
-
-		this.pluginQueryInFlight = true;
-
-		// Open the capture window BEFORE writing. The write goes synchronously
-		// into the serial stream and feed() is driven off runner.parse(), so no
-		// response line can slip between the two.
-		this.pluginParsers.beginCapture({
-			until,
-			maxLines: opts.maxLines,
-			timeout: opts.timeout,
-			includeStatusReports: Boolean(opts.includeStatusReports),
-			onDone: (result) => {
-				this.pluginQueryInFlight = false;
-				callback(null, result);
-			},
-		});
-
-		this.writeln(cmd, {});
-		// NOTE: unlike grblHAL's, this controller's writeln() accepts an `emit`
-		// argument but never acts on it, so echo the write here instead. A
-		// plugin-issued write must not be invisible to the operator.
-		this.emit("serialport:write", `${cmd}\n`, {});
 	}
 
 	loadFile(gcode, meta, refresh = false) {
@@ -1746,7 +1681,7 @@ class GrblController {
 	command(cmd, ...args) {
 		const handler = {
 			"firmware:recievedProfiles": () => {
-				const [files] = args;
+				let [files] = args;
 				this.emit("task:finish", files);
 			},
 			"firmware:grabMachineProfile": () => {
@@ -1756,7 +1691,7 @@ class GrblController {
 			"gcode:load": () => {
 				let [meta, gcode, context = {}, callback = noop] = args;
 				const { name } = meta;
-				const bracketCommentLine = /\([^)]*\)/gm;
+				const bracketCommentLine = /\([^\)]*\)/gm;
 
 				if (typeof context === "function") {
 					callback = context;
@@ -1774,7 +1709,7 @@ class GrblController {
 				const delay = _.get(preferences, "spindleDelay", 0);
 
 				// test if there is a G4 command already
-				const delayRegex = /(G4 ?P?[0-9]+)/;
+				const delayRegex = new RegExp("(G4 ?P?[0-9]+)");
 				// only add one if there isn't
 				if (Number(delay) && !delayRegex.test(gcode)) {
 					gcode = gcode.replace(
@@ -1838,7 +1773,10 @@ class GrblController {
 				const totalLines = this.sender.state.total;
 				const startEventEnabled = this.event.hasEnabledEvent(PROGRAM_START);
 				log.info(startEventEnabled);
-				this.emit("job:start");
+				this.emit(
+					"job:start",
+					Boolean(lineToStartFrom && lineToStartFrom <= totalLines),
+				);
 
 				this.command("gcode", "%global.state.workspace=modal.wcs");
 
@@ -1850,7 +1788,7 @@ class GrblController {
 					let spindleRate = 0;
 
 					const getWordValue = (token, words) => {
-						for (const wordPair of words) {
+						for (let wordPair of words) {
 							const [word, value] = wordPair;
 							if (word === token) {
 								return value;
@@ -2112,7 +2050,7 @@ class GrblController {
 				const [value] = args;
 				const [feedOV] = this.state.status.ov;
 
-				const diff = value - feedOV;
+				let diff = value - feedOV;
 
 				if (value === 100) {
 					this.FOQueue.push(String.fromCharCode(0x90));
@@ -2249,126 +2187,23 @@ class GrblController {
 				this.command("gcode", code);
 			},
 			"jog:start": () => {
-				let [axes, feedrate = 1000, units = METRIC_UNITS] = args;
-
-				let unitModal = units === METRIC_UNITS ? "G21" : "G20";
-				let { $20, $130, $131, $132, $23, $13 } = this.settings.settings;
-
-				const jogFeedrate = unitModal === "G21" ? 3000 : 118;
-
-				if ($20 === "1") {
-					$130 = Number($130);
-					$131 = Number($131);
-					$132 = Number($132);
-
-					// Convert feedrate to metric if working in imperial - easier to convert feedrate and treat everything else as MM than opposite
-					if (units !== METRIC_UNITS) {
-						feedrate = (feedrate * 25.4).toFixed(2);
-						unitModal = "G21";
-					}
-
-					const FIXED = 2;
-
-					//If we are moving on the positive direction, we don't need to subtract
-					//the max travel by it as we are moving towards the zero position, but if
-					//we are moving in the negative direction we need to subtract the max travel
-					//by it to reach the maximum amount in that direction
-					const calculateAxisValue = ({ direction, position, maxTravel }) => {
-						const OFFSET = 1;
-
-						if (position === 0) {
-							return (maxTravel * direction).toFixed(FIXED);
-						}
-
-						if (direction === 1) {
-							return Number(position - OFFSET).toFixed(FIXED);
-						} else {
-							return Number(-1 * (maxTravel - position - OFFSET)).toFixed(
-								FIXED,
-							);
-						}
-					};
-
-					const { mpos } = this.state.status;
-					Object.keys(mpos).forEach((axis) => {
-						const val = Number(mpos[axis]);
-
-						// Need to convert to metric if machine is reporting in imperial and the UI is in a G21 metric state
-						if ($13 === "1" && unitModal === "G21") {
-							mpos[axis] = Number((val * 25.4).toFixed(FIXED));
-						} else {
-							mpos[axis] = Number(mpos[axis]);
-						}
-					});
-
-					if (this.homingFlagSet) {
-						const [xMaxLoc, yMaxLoc] = getAxisMaximumLocation($23);
-
-						if (axes.X) {
-							axes.X = determineMaxMovement(
-								Math.abs(mpos.x),
-								axes.X,
-								xMaxLoc,
-								$130,
-							);
-						}
-						if (axes.Y) {
-							axes.Y = determineMaxMovement(
-								Math.abs(mpos.y),
-								axes.Y,
-								yMaxLoc,
-								$131,
-							);
-						}
-					} else {
-						if (axes.X) {
-							axes.X = calculateAxisValue({
-								direction: Math.sign(axes.X),
-								position: Math.abs(mpos.x),
-								maxTravel: $130,
-							});
-						}
-						if (axes.Y) {
-							axes.Y = calculateAxisValue({
-								direction: Math.sign(axes.Y),
-								position: Math.abs(mpos.y),
-								maxTravel: $131,
-							});
-						}
-					}
-
-					if (axes.Z) {
-						const direction = Math.sign(axes.Z);
-						if (direction === 1) {
-							axes.Z = Math.abs(mpos.z + 1);
-						} else {
-							axes.Z = -1 * ($132 - 1) - mpos.z;
-						}
-						//axes.Z = calculateAxisValue({ direction: Math.sign(axes.Z), position: mpos.z, maxTravel: (-1 * $132) });
-					}
-				} else {
-					Object.keys(axes).forEach((axis) => {
-						axes[axis] *= jogFeedrate;
-					});
-				}
-
-				axes.F = feedrate;
-				if (axes.Z) {
-					axes.F *= 0.8;
-					axes.F = axes.F.toFixed(3);
-				}
-
-				const jogCommand =
-					`$J=${unitModal}G91 ` +
-					map(axes, (value, letter) => "" + letter.toUpperCase() + value).join(
-						" ",
-					);
-				this.command("gcode", jogCommand);
+				const [axes, feedrate = 1000, units = METRIC_UNITS] = args;
+				this.jogStreamer.start({ axes, feedrate, units });
+			},
+			"jog:update": () => {
+				const [axes, feedrate] = args;
+				this.jogStreamer.update({ axes, feedrate });
+			},
+			"jog:feed": () => {
+				const [axes, feedrate, units = METRIC_UNITS] = args;
+				this.jogStreamer.feed({ axes, feedrate, units });
 			},
 			"jog:stop": () => {
+				this.jogStreamer.stop();
 				this.write("\x85");
 			},
 			"jog:cancel": () => {
+				this.jogStreamer.abort("cancel");
 				this.write("\x85");
 			},
 			"macro:run": () => {
@@ -2484,7 +2319,45 @@ class GrblController {
 			return;
 		}
 
+		// A jog stream consumes its own acks, which is only safe while it is the
+		// sole writer of ack-producing lines. Anything else claiming the link
+		// ends the stream first.
+		if (
+			this.jogStreamer.isActive() &&
+			!JOG_COMMANDS.includes(cmd) &&
+			!STREAM_SAFE_COMMANDS.includes(cmd)
+		) {
+			this.jogStreamer.abort(`command:${cmd}`);
+		}
+
 		handler();
+	}
+
+	// Grbl has no rotary axis of its own, so unless the user has explicitly
+	// opted in, A words are re-issued as Y. Shared by the feeder and the jog
+	// streamer, which bypasses the feeder entirely.
+	applyRotaryTranslation(line, { isUsingImperialUnits = false } = {}) {
+		const useAaxisForGrbl = store.get("preferences.useAaxisForGrbl", false);
+		if (useAaxisForGrbl) {
+			return line;
+		}
+
+		const containsACommand = A_AXIS_COMMANDS.test(line);
+		const containsYCommand = Y_AXIS_COMMANDS.test(line);
+
+		if (containsACommand && !containsYCommand) {
+			return translateGcode({
+				gcode: line,
+				from: "A",
+				to: "Y",
+				regex: A_AXIS_COMMANDS,
+				type: isUsingImperialUnits
+					? GCODE_TRANSLATION_TYPE.TO_IMPERIAL
+					: GCODE_TRANSLATION_TYPE.DEFAULT,
+			});
+		}
+
+		return line;
 	}
 
 	write(data, context) {

@@ -14,6 +14,9 @@ public class KnobQrTest {
         catch (IllegalArgumentException expected) { check(!expected.getMessage().contains("A7A7")); }
     }
     public static void main(String[] args) throws Exception {
+        String ble = "GSB1:123456ABCDEF:000.000.000.000:" + "A7".repeat(32);
+        check(ble.length()==98 && KnobQrPayload.parse(ble).host.equals("Bluetooth"));
+        for(String bad:new String[]{ble+"\n",ble.toLowerCase(),ble.replace("000.000.000.000","0.0.0.0"),ble.replace("000.000.000.000","192.168.001.001")}) invalid(bad);
         KnobQrPayload p = KnobQrPayload.parse(QR);
         check(p.device.equals("wisecoco-123456abcdef") && p.host.equals("192.168.1.80"));
         check(KnobQrPayload.parse(QR.replace("192.168.1.80", "192.168.123.234")).host.equals("192.168.123.234"));
@@ -30,7 +33,7 @@ public class KnobQrTest {
         long second = session.begin("origin","key"); check(!session.valid(first,true,"origin","key"));
         check(session.valid(second,true,"origin","key")); session.cancel();
         // Real QR encode -> pixels -> detector/decoder, not a mocked decode result.
-        for (String text : new String[]{QR,QR.replace("192.168.1.80","192.168.123.234")}) {
+        for (String text : new String[]{QR,QR.replace("192.168.1.80","192.168.123.234"),ble}) {
             BitMatrix bits = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 0, 0, Map.of(EncodeHintType.MARGIN,4));
             for (int scale : new int[]{3,4,6}) for (int rotation=0; rotation<4; rotation++) {
                 int n=bits.getWidth()*scale; int[] pixels=new int[n*n];

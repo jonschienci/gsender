@@ -24,6 +24,7 @@ test('position updates move the real SVG marker without rebuilding toolpaths', a
     const compile=optimized=>{
         let source=fs.readFileSync(filename,'utf8');
         if(optimized)source=transform(source,filename).code;
+        source=source.replace(/(from\s*)'([^']+)'/g, '$1"$2"');
         source=source.replace('import { useTypedSelector } from "app/hooks/useTypedSelector";', 'const useTypedSelector = fn => fn(globalThis.__visualizerPerfState);')
             .replace('import { WORKFLOW_STATE_RUNNING } from "app/constants";', 'const WORKFLOW_STATE_RUNNING = "running";')
             .replace(/import \{\s*PENDANT_BOUNDS_COLOR,[\s\S]*?from "\.\.\/visualizerTheme";/, 'const PENDANT_BOUNDS_COLOR="#72849D", PENDANT_CUT_COLOR="#3F85C7", PENDANT_RAPID_COLOR="#059669";');

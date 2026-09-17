@@ -5,17 +5,19 @@ const tls=require('node:tls'), {io}=require('socket.io-client');
 const {Lines}=require('../pendant/protocol.cjs');
 const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
 async function until(fn,label){for(let i=0;i<500;i++){const value=await fn();if(value)return value;await sleep(10);}throw Error('Timeout: '+label);}
-test('packaged backend with real TLS: private pairing, disarmed probe, finite USB CNC jog, replay and network loss', {timeout:25000}, async()=>{
+test('packaged backend with real TLS: private pairing, disarmed probe, finite USB CNC jog, single-scan connection, neutral-gated automatic recovery, replay and network loss', {timeout:25000}, async()=>{
     const pairing={version:1,device:'wisecoco-123456abcdef',host:'192.168.1.80',port:58596,psk:'34'.repeat(32)};
     const boot='0123456789abcdef',peers=new Set();let latest,frames=[];
     const server=tls.createServer({minVersion:'TLSv1.2',maxVersion:'TLSv1.2',ciphers:'PSK-AES128-GCM-SHA256',
         pskCallback:(socket,identity)=>identity===pairing.device?Buffer.from(pairing.psk,'hex'):null},socket=>{
-        latest=socket;socket.p2=null;peers.add(socket);socket.on('error',()=>{});
+        latest=socket;socket.p2=null;const connectedAt=performance.now();peers.add(socket);socket.on('error',()=>{});
         const lines=new Lines();socket.write(`P2 HELLO ${boot} 2 1 0\n`);
         socket.on('data',bytes=>{for(const line of lines.feed(bytes)){
             const p=line.split(' ');socket.p2=p;frames.push(p);
             socket.write(`P2 ALIVE ${boot} ${p[2]} ${p[3]} 1 0 0 500\n`);
-            if(p[9].startsWith('VEL_'))socket.write(`P2 VCAP ${boot} ${p[2]} ${p[3]} 1\n`);
+            if (/^(V?PAD)_/.test(p[9]))socket.write(`P2 PCAP ${boot} ${p[2]} ${p[3]} 1 0 3\n`);
+            if (/^(V?PAD)_R_/.test(p[9]))socket.write(`P2 NCAP ${boot} ${p[2]} ${p[3]} 1 ${+(performance.now()-connectedAt>=300)}\n`);
+            if(/^(VEL|VPAD)_/.test(p[9]))socket.write(`P2 VCAP ${boot} ${p[2]} ${p[3]} 1\n`);
         }});
     });
     server.on('tlsClientError',()=>{});
@@ -25,7 +27,7 @@ test('packaged backend with real TLS: private pairing, disarmed probe, finite US
     for(const name of ['pendant-native.cjs','wifi-backend-native.cjs'])fs.copyFileSync(path.join(__dirname,name),path.join(dir,name));
     const child=fork(path.join(payload,'bootstrap.cjs'),[],{execArgv:['--no-global-search-paths','--require',path.join(dir,'wifi-backend-native.cjs')],
         env:{...process.env,NODE_PATH:'',TEST_WIFI_PORT:String(server.address().port)},stdio:['ignore','pipe','pipe','ipc']});
-    let logs='',socket;const messages=[];
+    let logs='',socket,heartbeat;const messages=[];
     child.on('message',m=>messages.push(m));child.stdout.on('data',b=>logs+=b);child.stderr.on('data',b=>logs+=b);
     try{
         const ready=await until(()=>messages.find(m=>m.host==='ready'),'backend startup');
@@ -45,9 +47,20 @@ test('packaged backend with real TLS: private pairing, disarmed probe, finite US
         socket=io(base,{transports:['websocket'],extraHeaders:key,reconnection:false});
         await new Promise((resolve,reject)=>{socket.once('connect',resolve);socket.once('connect_error',reject);});
         await new Promise((resolve,reject)=>socket.timeout(3000).emit('open','android-usb:42:0',{baudrate:115200,defaultFirmware:'GrblHAL'},(timeout,err)=>timeout||err?reject(timeout||err):resolve()));
-        await post('connect');await until(async()=>{const s=await state();return s.ready&&s.cnc.valid;},'ready Wi-Fi and USB CNC');
-        assert.equal((await state()).armed,false);
         const body={session:'a'.repeat(32),visible:true,preset:{xyStep:.5,zStep:.1,feedrate:1000,rapidFeedrate:5000}};
+        await post('heartbeat',body);heartbeat=setInterval(()=>post('heartbeat',body).catch(()=>{}),300);
+        // Pairing/reconnection must work before motion settings are available.
+        const validPreset=body.preset;delete body.preset;
+        await post('heartbeat',body);await post('transport',{transport:'wifi'});
+        const token=(await post('scan-begin')).token;
+        await post('scan-commit',{token,qr:'GSK1:123456ABCDEF:192.168.1.80:'+pairing.psk.toUpperCase()});
+        await until(async()=>{const s=await state();return s.ready&&s.controlsReleased&&s.cnc.valid;},'automatic scan connection and USB CNC');
+        assert.equal((await state()).armed,false);
+        const noPresetSession=latest.p2[2];latest.end();
+        await until(async()=> (await state()).ready && latest.p2?.[2]!==noPresetSession,'no-preset automatic reconnection');
+        assert.equal((await state()).armed,false);
+        body.preset=validPreset;await post('heartbeat',body);
+        await until(async()=> (await state()).controlsReleased,'released controls after no-preset recovery');
         await post('arm',body);await until(()=>latest.p2?.[5]==='1','armed STATE');
         const event=`P2 DETENT ${boot} ${latest.p2[2]} 1 ${latest.p2[3]} X 1 500\n`;
         latest.write(event+event);
@@ -57,6 +70,14 @@ test('packaged backend with real TLS: private pairing, disarmed probe, finite US
         await until(async()=>!(await state()).connected,'old-session rejection');
         assert.equal((await state()).armed,false);await post('connect');
         await until(async()=> (await state()).ready,'manual reconnection');assert.equal((await state()).armed,false);
+        await sleep(160); // Let the CNC confirm Idle after the rejected session's jog cancellation.
+        await until(async()=>{const s=await state();return s.ready&&s.controlsReleased&&s.cnc.valid&&s.cnc.state==='IDLE';},'CNC cancellation idle barrier');
+        await post('arm',body);await until(()=>latest.p2?.[5]==='1','second manual arm');
+        const lostSession=latest.p2[2], beforeRecovery=messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length;
+        latest.end();await until(async()=>{const s=await state();return s.armRequested&&!s.armed;},'paused armed intent');
+        await until(async()=> (await state()).armed && latest.p2?.[2]!==lostSession,'fresh neutral automatic re-arm');
+        assert.equal(messages.filter(m=>m.test==='cnc-write'&&m.data.includes('$J=')).length,beforeRecovery,'no motion replay on recovery');
+        await post('disarm');
         child.send({test:'wifi-lost'});await until(async()=>!(await state()).connected,'native network loss');
         await sleep(300);assert.equal((await state()).connected,false);
         assert.equal(messages.filter(m=>m.test==='opened'&&m.path==='android-usb:42:0').length,1);
@@ -64,7 +85,7 @@ test('packaged backend with real TLS: private pairing, disarmed probe, finite US
         assert.equal((JSON.stringify(await state())+JSON.stringify(messages)+logs).includes(pairing.psk),false);
         assert.deepEqual(messages.filter(m=>m.host==='error'),[]);
     }finally{
-        socket?.close();if(child.exitCode===null)await new Promise(resolve=>{child.once('exit',resolve);child.kill();});
+        clearInterval(heartbeat);socket?.close();if(child.exitCode===null)await new Promise(resolve=>{child.once('exit',resolve);child.kill();});
         for(const peer of peers)peer.destroy();await new Promise(resolve=>server.close(resolve));fs.rmSync(dir,{recursive:true,force:true});
     }
 });

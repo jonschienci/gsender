@@ -21,23 +21,24 @@
  *
  */
 
+
 class GrblHalErrorDescription {
-	static parse(line) {
-		const r = line.match(/^\[ERRORCODE:(\d+)\|\|(.*)]$/);
-		if (!r) {
-			return null;
-		}
+    static parse(line) {
+        const r = line.match(/^\[ERRORCODE:(\d+)\|\|(.*)]$/);
+        if (!r) {
+            return null;
+        }
 
-		const payload = {
-			code: Number(r[1]),
-			description: r[2],
-		};
+        const payload = {
+            code: Number(r[1]),
+            description: r[2]
+        };
 
-		return {
-			type: GrblHalErrorDescription,
-			payload: payload,
-		};
-	}
+        return {
+            type: GrblHalErrorDescription,
+            payload: payload
+        };
+    }
 }
 
 export default GrblHalErrorDescription;

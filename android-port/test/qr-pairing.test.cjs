@@ -20,15 +20,15 @@ test('single-use scan lease expires, ignores wrong cancels and rejects stale gen
 });
 function fixture(){let now=0;const s=new Pendant({now:()=>now,SerialPort:{list(){throw Error('No USB during pairing');}},
     getControllers(){throw Error('No CNC access during pairing');}});s.setTransport('wifi');return {s,time:n=>now=n};}
-test('native scan stages pairing only after confirmation; never opens USB/Wi-Fi or touches CNC',()=>{
+test('native scan consumes reservation, saves private pairing and requests automatic connection',()=>{
     const {s}=fixture();const token=s.beginScan();s.checkScan(token);assert.equal(s.status().pairingConfigured,false);
     s.commitScan(token,QR);assert.equal(s.status().pairedDevice,'wisecoco-123456abcdef');assert.equal(s.status().wifiHost,'192.168.1.80');
-    assert.equal(s.armed,false);assert.equal(s.port,null);assert.equal(s.connecting,false);assert.equal(s.scan.active(),false);
+    assert.equal(s.armed,false);assert.equal(s.port,null);assert.equal(s.connecting,false);assert.equal(s.reconnectWanted,true);assert.equal(s.scan.active(),false);
     assert.throws(()=>s.commitScan(token,QR));assert.equal(JSON.stringify(s.status()).includes('a7a7'),false);
 });
-test('connected/connecting/armed/probe/USB modes forbid camera reservation',()=>{
+test('connected/connecting/armed/probe modes forbid camera reservation; scan selects Bluetooth',()=>{
     for(const field of ['port','connecting','armed','probing']){const {s}=fixture();s[field]=true;assert.throws(()=>s.beginScan());}
-    const {s}=fixture();s.setTransport('usb');assert.throws(()=>s.beginScan());
+    const {s}=fixture();s.setTransport('usb');const token=s.beginScan();s.checkScan(token);assert.equal(s.transport,'ble');
 });
 test('connection and arm cannot start during scan; background/session/connection/pairing changes invalidate it',async()=>{
     const {s}=fixture();let token=s.beginScan();await assert.rejects(s.connect(),/scanner/);assert.throws(()=>s.arm({}),/scanner/);

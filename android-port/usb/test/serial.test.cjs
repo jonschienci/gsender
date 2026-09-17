@@ -48,6 +48,18 @@ test('pendant move cannot be queued behind a stalled ordinary USB write', async 
     assert.equal(r.sent.filter(m=>m.op==='write').length,1);
     finish();await pending;await close(r.port);r.dispose();
 });
+test('bounded XY diagonal is allowed but combined XYZ, duplicate axes and command injection are not',async()=>{
+    const r=rig();await open(r.port);
+    await bounded(r.port,'$J=G21G91 X-0.5000 Y0.5000 F600.000\n');
+    for(const text of ['$J=G21G91 X1.0000 Y1.0000 Z1.0000 F600.000\n',
+        '$J=G21G91 X1.0000 X1.0000 F600.000\n','$J=G21G91 Y1.0000 X1.0000 F600.000\n',
+        '$J=G21G91 X1.0000 F600.000\n\n','$J=G21G91 X1.0000 F600.000\nM3\n',
+        '$J=G90 X1.0000 F600.000\n'])await assert.rejects(bounded(r.port,text),/finite/);
+    const bad=Buffer.from('$J=G21G91 X1.0000 F600.000\n');bad[0]|=128;
+    await assert.rejects(bounded(r.port,bad),/finite/);
+    const writes=r.sent.filter(m=>m.op==='write');assert.equal(writes.length,1);assert.equal(writes[0].maxQueueMs,250);
+    await close(r.port);r.dispose();
+});
 test('expired native pendant write fails without any resend', async () => {
     const r=rig({write:()=>{throw Object.assign(Error('expired before transmission'),{code:'ETIMEDOUT'});}});await open(r.port);
     await assert.rejects(bounded(r.port,'$J=G21G91 X0.5000 F1000.000\n'),/expired/);

@@ -2,7 +2,6 @@
  * @jest-environment jsdom
  */
 
-import { render, screen } from "@testing-library/react";
 /**
  * Specifically it checks:
  * Jest can run
@@ -11,13 +10,14 @@ import { render, screen } from "@testing-library/react";
  * @testing-library/react is installed and working
  * The test pipeline itself is not broken
  */
-import React from "react";
+import React from 'react';
+import { render, screen } from '@testing-library/react';
 
 function Hello() {
-	return <div>Hello World</div>;
+  return <div>Hello World</div>;
 }
 
-test("renders hello world", () => {
-	render(<Hello />);
-	expect(screen.getByText("Hello World")).toBeInTheDocument();
+test('renders hello world', () => {
+  render(<Hello />);
+  expect(screen.getByText('Hello World')).toBeInTheDocument();
 });

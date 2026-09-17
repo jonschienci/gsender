@@ -4,6 +4,9 @@ const { host } = require('./wifi-transport.cjs');
 function decodeQr(value) {
     const fail = () => { throw Error('Not a supported knob pairing QR'); };
     if (typeof value !== 'string' || value.length > 98) return fail();
+    const ble = /^GSB1:([0-9A-F]{12}):000\.000\.000\.000:([0-9A-F]{64})$/.exec(value);
+    if(ble && ble[0].length===value.length && !/^0{64}$/.test(ble[2]))
+        return {version:1,transport:'ble',device:'wisecoco-'+ble[1].toLowerCase(),psk:ble[2].toLowerCase()};
     const match = /^GSK1:([0-9A-F]{12}):([0-9.]{7,15}):([0-9A-F]{64})$/.exec(value);
     if (!match || match[0].length !== value.length || /^0{64}$/.test(match[3])) return fail();
     let address; try { address = host(match[2]); } catch { return fail(); }

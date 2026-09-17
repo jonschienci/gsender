@@ -4,15 +4,18 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/** Strict, bounded GSK1 parsing; errors never echo the QR/key. */
+/** Strict, bounded GSB1/GSK1 parsing; errors never echo the QR/key. */
 final class KnobQrPayload {
     private static final Pattern FORMAT = Pattern.compile("GSK1:([0-9A-F]{12}):([0-9.]{7,15}):([0-9A-F]{64})");
+    private static final Pattern BLE_FORMAT = Pattern.compile("GSB1:([0-9A-F]{12}):000\\.000\\.000\\.000:([0-9A-F]{64})");
     final String device, host;
     private KnobQrPayload(String mac, String host) {
         this.device = "wisecoco-" + mac.toLowerCase(Locale.ROOT); this.host = host;
     }
     static KnobQrPayload parse(String value) {
         if (value == null || value.length() > 98) throw invalid();
+        Matcher ble = BLE_FORMAT.matcher(value);
+        if (ble.matches() && !ble.group(2).matches("0{64}")) return new KnobQrPayload(ble.group(1), "Bluetooth");
         Matcher match = FORMAT.matcher(value);
         if (!match.matches() || match.group(3).matches("0{64}")) throw invalid();
         String[] parts = match.group(2).split("\\.", -1);

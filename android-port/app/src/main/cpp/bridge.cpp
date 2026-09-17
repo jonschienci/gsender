@@ -14,7 +14,8 @@ jobject host = nullptr;
 jmethodID outbound = nullptr;
 uv_async_t asyncHandle;
 std::mutex mutex;
-std::deque<std::u16string> incoming;
+struct Incoming { std::u16string text; uint64_t at; };
+std::deque<Incoming> incoming;
 size_t queuedBytes = 0;
 bool active = false;
 v8::Isolate* isolate = nullptr;
@@ -37,16 +38,18 @@ void Send(const v8::FunctionCallbackInfo<v8::Value>& args) {
     if (attached) vm->DetachCurrentThread();
 }
 void Deliver(uv_async_t*) {
-    std::deque<std::u16string> batch;
+    std::deque<Incoming> batch;
     { std::lock_guard<std::mutex> lock(mutex); batch.swap(incoming); queuedBytes = 0; }
     v8::HandleScope handles(isolate);
     auto ctx = context.Get(isolate);
     v8::Context::Scope scope(ctx);
     if (listener.IsEmpty()) return;
     auto fn = listener.Get(isolate);
-    for (const auto& text : batch) {
-        v8::Local<v8::Value> argv[] = {v8::String::NewFromTwoByte(isolate, reinterpret_cast<const uint16_t*>(text.data()), v8::NewStringType::kNormal, text.size()).ToLocalChecked()};
-        node::MakeCallback(isolate, ctx->Global(), fn, 1, argv, {0, 0});
+    for (const auto& entry : batch) {
+        const auto& text = entry.text;
+        v8::Local<v8::Value> argv[] = {v8::String::NewFromTwoByte(isolate, reinterpret_cast<const uint16_t*>(text.data()), v8::NewStringType::kNormal, text.size()).ToLocalChecked(),
+            v8::Number::New(isolate, static_cast<double>(uv_hrtime()-entry.at)/1000000.0)};
+        node::MakeCallback(isolate, ctx->Global(), fn, 2, argv, {0, 0});
     }
 }
 void Subscribe(const v8::FunctionCallbackInfo<v8::Value>& args) {
@@ -94,7 +97,7 @@ Java_com_gsender_android_NativeRuntime_deliver(JNIEnv* env, jobject, jstring val
     std::u16string text(reinterpret_cast<const char16_t*>(data), env->GetStringLength(value)); env->ReleaseStringChars(value, data);
     std::lock_guard<std::mutex> lock(mutex);
     if (!active || queuedBytes + text.size() * 2 > 2 * 1024 * 1024) return false;
-    queuedBytes += text.size() * 2; incoming.push_back(std::move(text));
+    queuedBytes += text.size() * 2; incoming.push_back({std::move(text), uv_hrtime()});
     uv_async_send(&asyncHandle);
     return true;
 }

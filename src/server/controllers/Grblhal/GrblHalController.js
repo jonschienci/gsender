@@ -1,3 +1,4 @@
+import JogStreamer, { describeJogStopReason } from "../../lib/JogStreamer";
 /* eslint-disable max-lines-per-function */
 /*
  * Copyright (C) 2021 Sienci Labs Inc.
@@ -26,80 +27,80 @@ import ensureArray from "ensure-array";
 import * as parser from "gcode-parser";
 import _ from "lodash";
 import map from "lodash/map";
-import { YModem } from "server/lib/YModemUSB";
-import {
-	ALARM,
-	CONTROLLER_READY,
-	CYCLE_START,
-	ERROR,
-	FEED_HOLD,
-	FILE_UNLOAD,
-	HOMING,
-	MACRO_LOAD,
-	MACRO_RUN,
-	METRIC_UNITS,
-	PROGRAM_END,
-	PROGRAM_PAUSE,
-	PROGRAM_RESUME,
-	PROGRAM_START,
-	SLEEP,
-} from "../../../app/src/constants";
-import delay from "../../lib/delay";
-import EventTrigger from "../../lib/EventTrigger";
-import ensurePositiveNumber from "../../lib/ensure-positive-number";
-import evaluateAssignmentExpression from "../../lib/evaluate-assignment-expression";
-import { extractRealtimeCommands } from "../../lib/extract-realtime-commands";
-import Feeder from "../../lib/Feeder";
+
 import GcodeToolpath from "../../lib/GcodeToolpath";
-import { GrblHALFTP } from "../../lib/GrblHALFTP";
-import {
-	GCODE_TRANSLATION_TYPE,
-	translateGcode,
-} from "../../lib/gcode-translation";
-import {
-	determineHALMachineZeroFlag,
-	determineMaxMovement,
-	getAxisMaximumLocation,
-} from "../../lib/homing";
-import logger from "../../lib/logger";
-import { PluginParserChain } from "../../lib/plugin-parsers";
+import EventTrigger from "../../lib/EventTrigger";
+import Feeder from "../../lib/Feeder";
 import Sender, { SP_TYPE_CHAR_COUNTING } from "../../lib/Sender";
-import ToolChanger from "../../lib/ToolChanger";
-import translateExpression from "../../lib/translate-expression";
 import Workflow, {
 	WORKFLOW_STATE_IDLE,
 	WORKFLOW_STATE_PAUSED,
 	WORKFLOW_STATE_RUNNING,
 } from "../../lib/Workflow";
+import delay from "../../lib/delay";
+import ensurePositiveNumber from "../../lib/ensure-positive-number";
+import evaluateAssignmentExpression from "../../lib/evaluate-assignment-expression";
+import logger from "../../lib/logger";
+import translateExpression from "../../lib/translate-expression";
+import { extractRealtimeCommands } from "../../lib/extract-realtime-commands";
 import config from "../../services/configstore";
 import monitor from "../../services/monitor";
-import pluginRegistry from "../../services/pluginregistry";
 import taskRunner from "../../services/taskrunner";
 import store from "../../store";
 import {
 	A_AXIS_COMMANDS,
 	GLOBAL_OBJECTS as globalObjects,
 	WRITE_SOURCE_CLIENT,
+	WRITE_SOURCE_SERVER,
 	WRITE_SOURCE_FEEDER,
 	Y_AXIS_COMMANDS,
 } from "../constants";
-import { calcOverrides } from "../runOverride";
+import GrblHalRunner from "./GrblHalRunner";
 import {
-	ATCI_SUPPORTED_VERSION,
-	GRBL_HAL_ACTIVE_STATE_ALARM,
-	GRBL_HAL_ACTIVE_STATE_CHECK,
-	GRBL_HAL_ACTIVE_STATE_HOLD,
-	GRBL_HAL_ACTIVE_STATE_HOME,
-	GRBL_HAL_ACTIVE_STATE_IDLE,
-	GRBL_HAL_ACTIVE_STATE_RUN,
+	GRBLHAL,
+	GRBLHAL_REALTIME_COMMANDS,
 	GRBL_HAL_ALARMS,
 	GRBL_HAL_ERRORS,
 	GRBL_HAL_SETTINGS,
-	GRBLHAL,
-	GRBLHAL_REALTIME_COMMANDS,
+	GRBL_HAL_ACTIVE_STATE_HOME,
+	GRBL_HAL_ACTIVE_STATE_HOLD,
+	GRBL_HAL_ACTIVE_STATE_IDLE,
+	GRBL_HAL_ACTIVE_STATE_CHECK,
+	GRBL_HAL_ACTIVE_STATE_RUN,
+	GRBL_HAL_ACTIVE_STATE_ALARM,
+	ATCI_SUPPORTED_VERSION,
 } from "./constants";
-import GrblHalRunner from "./GrblHalRunner";
+import {
+	METRIC_UNITS,
+	PROGRAM_PAUSE,
+	PROGRAM_RESUME,
+	PROGRAM_START,
+	PROGRAM_END,
+	CONTROLLER_READY,
+	FEED_HOLD,
+	CYCLE_START,
+	HOMING,
+	SLEEP,
+	MACRO_RUN,
+	MACRO_LOAD,
+	FILE_UNLOAD,
+	ALARM,
+	ERROR,
+} from "../../../app/src/constants";
+import {
+	determineHALMachineZeroFlag,
+	determineMaxMovement,
+	getAxisMaximumLocation,
+} from "../../lib/homing";
+import { calcOverrides } from "../runOverride";
+import ToolChanger from "../../lib/ToolChanger";
+import {
+	GCODE_TRANSLATION_TYPE,
+	translateGcode,
+} from "../../lib/gcode-translation";
 
+import { YModem } from "server/lib/YModemUSB";
+import { GrblHALFTP } from "../../lib/GrblHALFTP";
 // % commands
 const WAIT = "%wait";
 const PREHOOK_COMPLETE = "%pre_complete";
@@ -107,7 +108,33 @@ const POSTHOOK_COMPLETE = "%toolchange_complete";
 const PAUSE_START = "%pause_start";
 
 const log = logger("controller:grblHAL");
+
+// Commands the jog streamer either owns or can safely coexist with. Everything
+// else aborts an active stream before it runs.
+const JOG_COMMANDS = [
+	"jog:start",
+	"jog:update",
+	"jog:feed",
+	"jog:stop",
+	"jog:cancel",
+];
+const STREAM_SAFE_COMMANDS = [
+	"statusreport",
+	"reset",
+	"reset:soft",
+	"reset:quit",
+];
 const noop = _.noop;
+
+// grblHAL only reports [AXS:] in its $I response on newer builds. When it is
+// missing we retry $I a small, bounded number of times before giving up.
+const AXS_QUERY_MAX_RETRIES = 2;
+const AXS_QUERY_RETRY_INTERVAL = 2000; // ms between retries
+const AXS_PROBE_TIMEOUT = 2000; // ms to wait for the $I reply's terminating ok
+
+const AXS_UNKNOWN = "unknown";
+const AXS_SUPPORTED = "supported";
+const AXS_UNSUPPORTED = "unsupported";
 
 class GrblHalController {
 	type = GRBLHAL;
@@ -183,7 +210,6 @@ class GrblHalController {
 		replyParserState: false, // $G
 		replyStatusReport: false, // ?
 		alarmCompleteReport: false, //0x87
-		axsReportCount: 0,
 		// Extra function queries
 		accessoryState: {
 			SD: false,
@@ -194,6 +220,20 @@ class GrblHalController {
 	alarmActive = false; // state to keep track of whether we have queried for the alarm code
 
 	parserStateEnabled = false;
+
+	// [AXS:] probe state. Deliberately NOT in actionMask: clearActionValues()
+	// runs on every startup/[VER:] message - including the ones our own probing
+	// $I provokes - so a retry budget kept there is reset by the very response it
+	// is counting, and the probe never stops. See clearActionValues().
+	axsQueryCount = 0; // $I retries spent looking for [AXS:]
+
+	axsQueryLastTime = 0; // timestamp of the last probing $I
+
+	axsProbePending = false; // a probing $I is in flight, awaiting its ok
+
+	axsProbeTimer = null; // safety net for a probe whose ok never arrives
+
+	axsSupport = AXS_UNKNOWN; // unknown | supported | unsupported
 
 	actionTime = {
 		queryParserState: 0,
@@ -285,7 +325,7 @@ class GrblHalController {
 
 			{
 				// Grbl settings: $0-$255
-				const r = line.match(/^(\$\d{1,3})=([\d.]+)$/);
+				const r = line.match(/^(\$\d{1,3})=([\d\.]+)$/);
 				if (r) {
 					const name = r[1];
 					const value = Number(r[2]);
@@ -319,8 +359,8 @@ class GrblHalController {
 		// Feeder
 		this.feeder = new Feeder({
 			dataFilter: (line, context) => {
-				const commentMatcher = /\s*;.*/g;
-				const comment = line.match(commentMatcher);
+				let commentMatcher = /\s*;.*/g;
+				let comment = line.match(commentMatcher);
 				const commentString =
 					comment && comment[0].length > 0
 						? comment[0].trim().replace(";", "")
@@ -494,9 +534,9 @@ class GrblHalController {
 			bufferSize: 1024 - 300, // TODO: Parse this out from OPT
 			dataFilter: (line, context) => {
 				// Remove comments that start with a semicolon `;`
-				const commentMatcher = /\s*;.*/g;
-				const bracketCommentLine = /\([^)]*\)/gm;
-				const toolCommand = /(T)(-?\d*\.?\d+\.?)/;
+				let commentMatcher = /\s*;.*/g;
+				let bracketCommentLine = /\([^\)]*\)/gm;
+				let toolCommand = /(T)(-?\d*\.?\d+\.?)/;
 				const commentRegex = /\(([^)]*)\)|;(.*)/g;
 				const commentParts = [];
 				let m;
@@ -504,7 +544,7 @@ class GrblHalController {
 					const text = (m[1] !== undefined ? m[1] : m[2]).trim();
 					if (text) commentParts.push(text);
 				}
-				const commentString = commentParts.join(" ");
+				let commentString = commentParts.join(" ");
 				if (line[0] !== "%") {
 					line = line.replace(bracketCommentLine, "").trim();
 					line = line.replace(commentMatcher, "").replace("/uFEFF", "").trim();
@@ -585,7 +625,7 @@ class GrblHalController {
 						return line.replace(/M0*6(?!\d)/i, "(M6)");
 					}
 
-					const tool = line.match(toolCommand);
+					let tool = line.match(toolCommand);
 					log.debug("Found tool");
 					let toolLabel = tool?.[0] || null;
 					let toolNumber = tool?.[2] || null;
@@ -708,6 +748,11 @@ class GrblHalController {
 					this.command("gcode", "[global.state.testWCS]");
 				}, 200);
 				this.emit("gcode_error_checking_file", this.sender.state, "finished");
+			} else if (this.sender.state.toolChanges > 0) {
+				// A tool change macro probes the incoming tool and stores its
+				// offset with G10 L1, so the tool table is stale once a job with
+				// tool changes finishes. Nothing is streaming now, so re-read it.
+				this.command("gcode", "$#");
 			}
 		});
 		this.sender.on("requestData", () => {
@@ -718,6 +763,7 @@ class GrblHalController {
 		this.workflow = new Workflow();
 		this.workflow.on("start", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
+			this.jogStreamer?.abort("workflow");
 			this.sender.rewind();
 			this.sender.resumeCountdown();
 		});
@@ -730,6 +776,7 @@ class GrblHalController {
 
 		this.workflow.on("pause", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
+			this.jogStreamer?.abort("workflow");
 
 			if (args.length > 0) {
 				const reason = { ...args[0] };
@@ -743,7 +790,7 @@ class GrblHalController {
 		this.workflow.on("resume", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
 
-			const pauseTime = new Date().getTime() - this.timePaused;
+			let pauseTime = new Date().getTime() - this.timePaused;
 
 			// if there was error and feeder was holding, don't reset
 			if (this.feeder.state.hold) {
@@ -762,27 +809,75 @@ class GrblHalController {
 		});
 
 		// Grbl
-		this.runner = new GrblHalRunner();
-
-		// Plugin-defined parsers. Fed from "raw", which fires for every line
-		// before any built-in parsing, so a plugin can see lines that never make
-		// it to serialport:read (status, json, descriptions). Observe-only:
-		// nothing here can consume a line or affect built-in parsing.
-		this.pluginParsers = new PluginParserChain({
-			emit: (eventName, payload) => this.emit(eventName, payload),
-			getWorkflowState: () => this.workflow?.state,
+		// Streams short incremental jog moves so the planner always has enough
+		// queued motion to hold a constant velocity. Owns the serial link for
+		// the duration of a jog - see the guards in command() below.
+		this.jogStreamer = new JogStreamer({
+			write: (line) =>
+				this.connection.write(line, { source: WRITE_SOURCE_CLIENT }),
+			getSettings: () => this.settings.settings || {},
+			getStatus: () => this.state.status || {},
+			getHomingFlag: () => this.homingFlagSet,
+			// The streamer consumes its own acks, so all it truly needs is that
+			// nobody else is waiting on one. Deliberately not gated on an idle
+			// workflow: jogging while a job is paused for a tool change is
+			// exactly when an operator reaches for the jog controls.
+			canStream: () =>
+				this.isOpen() &&
+				this.workflow.state !== WORKFLOW_STATE_RUNNING &&
+				!this.feeder.hasOutstanding() &&
+				this.sender.state.received >= this.sender.state.sent,
+			// $40 lets the firmware clamp jog targets itself, so we only work out
+			// a travel budget when it is off.
+			softLimitsEnabled: (settings) =>
+				settings.$20 === "1" && settings.$40 === "0",
+			// grblHAL handles A natively, so no rotary translation is needed.
+			lineFilter: (line) => line,
+			// A conservative floor; grblHAL reports its real buffer size in Bf:
+			// and the streamer raises this once it sees one.
+			rxBufferSize: 256,
 			log,
 		});
-
-		this.runner.on("raw", ({ raw }) => {
-			// feed() already swallows everything; this is the second belt so a
-			// plugin can never break the serial read path.
-			try {
-				this.pluginParsers.feed(raw);
-			} catch (err) {
-				log.error(`plugin parser chain failed: ${err.message}`);
+		// The jog streamer talks to the operator through the console as one
+		// message family, written as the server rather than as machine traffic.
+		const announceJog = (message) => {
+			this.emit("serialport:write", `${message}\n`, {
+				source: WRITE_SOURCE_SERVER,
+			});
+		};
+		// stop() drains and abort() can still fire mid-drain, so one jog may
+		// raise both events - only announce the end of the jog once.
+		this.jogAnnounced = false;
+		const announceJogStopped = (reason) => {
+			if (!this.jogAnnounced) {
+				return;
+			}
+			this.jogAnnounced = false;
+			const why = describeJogStopReason(reason);
+			announceJog(`Stopped jogging${why ? ` - ${why}` : ""}`);
+		};
+		// One console line for the whole jog, not one per segment.
+		this.jogStreamer.on("start", ({ summary }) => {
+			this.jogAnnounced = true;
+			announceJog(summary);
+		});
+		this.jogStreamer.on("feedrate", ({ summary }) => {
+			announceJog(summary);
+		});
+		this.jogStreamer.on("stop", () => {
+			announceJogStopped();
+		});
+		this.jogStreamer.on("abort", (reason) => {
+			announceJogStopped(reason);
+			const handledElsewhere = ["cancel", "close", "destroy", "reset"];
+			if (!handledElsewhere.includes(reason) && this.isOpen()) {
+				this.write("\x85");
 			}
 		});
+
+		this.runner = new GrblHalRunner();
+
+		this.runner.on("raw", noop);
 
 		this.runner.on("spindle", (spindle) => {
 			this.emit("spindle:add", spindle);
@@ -799,14 +894,17 @@ class GrblHalController {
 				this.ready = true;
 			}
 
-			// Make sure we also have axs parsed - at most two times or we get endless loop
+			// Make sure we also have axs parsed. This only ever *starts* a probe -
+			// resolveAxsProbe() decides what to do once the $I reply has landed.
 			if (
 				!this.runner.hasAXS() &&
+				!this.axsProbePending &&
+				this.axsSupport === AXS_UNKNOWN &&
+				this.axsQueryCount < AXS_QUERY_MAX_RETRIES &&
 				res.activeState === GRBL_HAL_ACTIVE_STATE_IDLE &&
-				this.actionMask.axsReportCount < 2
+				Date.now() - this.axsQueryLastTime >= AXS_QUERY_RETRY_INTERVAL
 			) {
-				this.writeln("$I");
-				this.actionMask.axsReportCount++;
+				this.startAxsProbe();
 			}
 
 			//
@@ -825,6 +923,10 @@ class GrblHalController {
 			}
 
 			this.actionMask.queryStatusReport = false;
+
+			// The reported position is the truth the streamer's locally
+			// decremented travel budget is only estimating.
+			this.jogStreamer.onStatus(res);
 
 			if (this.actionMask.replyStatusReport) {
 				this.actionMask.replyStatusReport = false;
@@ -858,6 +960,14 @@ class GrblHalController {
 		});
 
 		this.runner.on("ok", (res) => {
+			// The $I reply is a block ([VER:], [OPT:], [AXS:], [PLUGIN:] ...)
+			// terminated by a single ok, so by the time we get here the whole
+			// reply has been seen. Resolve before the branches below, since each
+			// of them can consume the ok and return.
+			if (this.axsProbePending) {
+				this.resolveAxsProbe();
+			}
+
 			// we only query when parser state option in $10 is disabled
 			if (this.actionMask.queryParserState.reply && !this.parserStateEnabled) {
 				if (this.actionMask.replyParserState) {
@@ -879,6 +989,13 @@ class GrblHalController {
 					this.emit("serialport:read", res.raw);
 					return;
 				}
+			}
+
+			// A streamed jog owns the serial link while it runs, so any ok it is
+			// still waiting on is its own. Consume it silently - letting it reach
+			// the feeder would desync the feeder's one-outstanding accounting.
+			if (this.jogStreamer.isActive() && this.jogStreamer.ack()) {
+				return;
 			}
 
 			const { hold, sent, received } = this.sender.state;
@@ -918,6 +1035,31 @@ class GrblHalController {
 		});
 
 		this.runner.on("error", (res) => {
+			const errCode = Number(res.message) || undefined;
+
+			// An error on a streamed jog line belongs to the jog, not to the
+			// feeder or to whatever file happens to be loaded - and it must not
+			// pause a workflow that a jog cannot have been part of.
+			if (this.jogStreamer.isActive()) {
+				const wasJogError = this.jogStreamer.onError(res);
+				this.jogStreamer.abort("error");
+				if (wasJogError) {
+					const jogError =
+						_.find(this.settings.errors, { code: errCode }) || {};
+					this.emit("serialport:read", res.raw);
+					this.emit("error", {
+						type: ERROR,
+						code: `${errCode}`,
+						description: jogError.description ?? "",
+						line: "jog",
+						lineNumber: "",
+						origin: "Jog",
+						controller: GRBLHAL,
+					});
+					return;
+				}
+			}
+
 			// Only pause on workflow error with hold + sender halt
 			const isRunning = this.workflow.isRunning();
 			const firmwareIsAlarmed = this.runner.isAlarm();
@@ -1111,6 +1253,10 @@ class GrblHalController {
 			this.emit("serialport:read", res.raw);
 		});
 
+		this.runner.on("tool", (res) => {
+			this.emit("serialport:read", res.raw);
+		});
+
 		this.runner.on("feedback", (res) => {
 			this.emit("serialport:read", res.raw);
 		});
@@ -1207,11 +1353,6 @@ class GrblHalController {
 			if (payload.subtype) {
 				this.emit("atci", payload);
 			}
-		});
-
-		this.runner.on("autoconfig", (payload) => {
-			this.emit("serialport:read", payload.raw);
-			this.emit("grblHal:autoconfig", payload);
 		});
 
 		const queryStatusReport = () => {
@@ -1347,6 +1488,7 @@ class GrblHalController {
 					"status.activeState",
 					"",
 				);
+
 				// only pause countdown once machine is idle
 				if (
 					this.workflow.isPaused() &&
@@ -1656,6 +1798,80 @@ class GrblHalController {
 		});
 	}
 
+	// Reset [AXS:] probe state. Called once per connection, from open()/close().
+	resetAxsProbe() {
+		clearTimeout(this.axsProbeTimer);
+		this.axsProbeTimer = null;
+		this.axsProbePending = false;
+		this.axsQueryCount = 0;
+		this.axsQueryLastTime = 0;
+		this.axsSupport = AXS_UNKNOWN;
+	}
+
+	// Send a $I purely to look for an [AXS:] line, and wait for its reply.
+	startAxsProbe() {
+		this.axsQueryCount++;
+		this.axsQueryLastTime = Date.now();
+		this.axsProbePending = true;
+
+		// Safety net: the terminating ok can be swallowed (an error reply
+		// instead, or a job starting between the probe and the reply so that
+		// sender.ack() consumes it). Without this the probe would stay pending
+		// forever - which does stop the $I storm, but never populates the axes.
+		clearTimeout(this.axsProbeTimer);
+		this.axsProbeTimer = setTimeout(() => {
+			if (this.axsProbePending) {
+				log.debug("AXS probe timed out waiting for ok");
+				this.resolveAxsProbe();
+			}
+		}, AXS_PROBE_TIMEOUT);
+
+		this.writeln("$I");
+	}
+
+	// Decide what the completed $I reply told us about [AXS:] support.
+	resolveAxsProbe() {
+		this.axsProbePending = false;
+		clearTimeout(this.axsProbeTimer);
+		this.axsProbeTimer = null;
+
+		if (this.runner.hasAXS()) {
+			// Firmware reported its axes - never probe again.
+			this.axsSupport = AXS_SUPPORTED;
+			return;
+		}
+
+		if (this.axsQueryCount < AXS_QUERY_MAX_RETRIES) {
+			// Budget left; the status handler will start the next probe once
+			// AXS_QUERY_RETRY_INTERVAL has elapsed.
+			return;
+		}
+
+		// A full $I reply has now completed with no usable [AXS:] line, twice.
+		// This firmware does not report it, so stop asking and fall back.
+		this.axsSupport = AXS_UNSUPPORTED;
+
+		// Read the runner's status directly, not this.state: the controller only
+		// syncs this.state from the runner inside the 250ms queryTimer, so it lags
+		// and is empty before the first tick.
+		const axes = this.runner.setInferredAxesFromStatus(
+			this.runner.state.status,
+		);
+		if (axes) {
+			log.info(
+				`No [AXS:] in $I response; inferred axes from status report: ${axes.join("")}`,
+			);
+		} else {
+			log.info("No [AXS:] in $I response and no position to infer axes from");
+		}
+	}
+
+	// NOTE: this runs on every startup/reset message, which includes the [VER:]
+	// line of any $I reply - including ones this controller sends itself. So it
+	// can fire several times a second. Retry budgets and give-up flags must NOT
+	// live in actionMask, or they get reset by the very responses they count.
+	// Keep them as controller fields reset in open()/close() instead - see the
+	// axs* fields.
 	clearActionValues() {
 		this.actionMask.queryParserState.state = false;
 		this.actionMask.queryParserState.reply = false;
@@ -1667,27 +1883,26 @@ class GrblHalController {
 		this.actionMask.accessoryState.SD = false;
 		this.actionMask.ATCI = false;
 
-		this.actionMask.axsReportCount = 0;
-		this.actionMask.queryStatusCount = 0;
 		this.actionTime.queryParserState = 0;
 		this.actionTime.queryStatusReport = 0;
 		this.actionTime.senderFinishTime = 0;
 	}
 
 	destroy() {
+		this.jogStreamer?.abort("destroy");
 		if (this.queryTimer) {
 			clearInterval(this.queryTimer);
 			this.queryTimer = null;
 		}
 
+		if (this.axsProbeTimer) {
+			clearTimeout(this.axsProbeTimer);
+			this.axsProbeTimer = null;
+		}
+
 		if (this.runner) {
 			this.runner.removeAllListeners();
 			this.runner = null;
-		}
-
-		if (this.pluginParsers) {
-			this.pluginParsers.destroy();
-			this.pluginParsers = null;
 		}
 
 		if (this.toolChanger) {
@@ -1750,24 +1965,20 @@ class GrblHalController {
 
 		callback(); // register controller
 
-		// Nothing else here matters if connecting to existing instantiated controller.
-		// Don't re-run the startup query sequence (initController) here — it writes
-		// directly to the serial line ($$, $ES, $EG, etc.) and can collide with an
-		// actively streaming job. The joining socket already gets current cached
-		// state via addConnection().
+		// Nothing else here matters if connecting to existing instantiated controller
 		if (refresh) {
 			this.initialized = true;
+			this.initController(this.runner.settings?.version?.semver);
 			return;
 		}
-
-		// Manifest-declared parsers go live here, so they are watching from the
-		// moment the port opens regardless of whether any plugin UI is mounted.
-		this.reloadPluginParsers();
 
 		this.workflow.stop();
 
 		// Clear action values
 		this.clearActionValues();
+
+		// Fresh connection: start over on looking for [AXS:]
+		this.resetAxsProbe();
 
 		// Send $I to query firmware version; the startup event handler will take it from here.
 		// Also send 0x87 before $I as a raw realtime byte — this bypasses Hold state restrictions
@@ -1793,13 +2004,14 @@ class GrblHalController {
 		// Stop status query
 		this.ready = false;
 
+		// A stream must never outlive the connection it is writing to.
+		this.jogStreamer.abort("close");
+
 		// Clear initialized flag
 		this.initialized = false;
 
-		// Flush any open plugin blocks with complete:false, so a subscriber that
-		// was waiting on a block the disconnect made impossible to finish gets a
-		// terminal result instead of hanging.
-		this.pluginParsers?.reset("close");
+		// Stop and reset any in-flight [AXS:] probe
+		this.resetAxsProbe();
 
 		// Reset homing runtime state
 		if (this.hasHomedSet) {
@@ -1839,129 +2051,6 @@ class GrblHalController {
 		}
 		log.debug(`Loading file '${name}' to controller`);
 		this.command("gcode:load", name, gcode);
-	}
-
-	// --- Plugin parsers -------------------------------------------------------
-
-	/**
-	 * Rebuilds the manifest-declared parser chain from the plugin registry.
-	 * Called on port open and whenever plugins are enabled, disabled, or
-	 * imported. Runtime registrations are untouched.
-	 */
-	reloadPluginParsers() {
-		if (!this.pluginParsers) {
-			return;
-		}
-		try {
-			this.pluginParsers.setManifestParsers(
-				pluginRegistry.getPluginParserSpecs(),
-			);
-		} catch (err) {
-			log.error(`Failed to load plugin parsers: ${err.message}`);
-		}
-	}
-
-	/**
-	 * @param {string} ownerId Identifies the registering plugin iframe instance,
-	 *   so its parsers can be dropped when it unmounts.
-	 */
-	registerPluginParsers(ownerId, pluginId, specs) {
-		if (!this.pluginParsers) {
-			return { registered: [], errors: [], warnings: [] };
-		}
-		return this.pluginParsers.registerRuntime(ownerId, pluginId, specs);
-	}
-
-	unregisterPluginParsers(ownerId, parserId) {
-		if (!this.pluginParsers) {
-			return { ok: true };
-		}
-		return this.pluginParsers.unregisterRuntime(ownerId, parserId);
-	}
-
-	/**
-	 * Sends a command and collects every line the firmware sends back until a
-	 * terminator, giving plugins the request/response shape the event stream
-	 * cannot express.
-	 *
-	 * @param {(err: Error|null, result?: object) => void} callback
-	 */
-	pluginQuery(cmd, opts = {}, callback = noop) {
-		if (!this.isOpen()) {
-			callback(new Error("Serial port is not open"));
-			return;
-		}
-		if (!this.pluginParsers) {
-			callback(new Error("Plugin parsers are not available"));
-			return;
-		}
-		if (typeof cmd !== "string" || cmd.trim() === "") {
-			callback(new Error("A command is required"));
-			return;
-		}
-
-		const allowDuringJob = Boolean(opts.allowDuringJob);
-
-		if (!this.workflow.isIdle() && !allowDuringJob) {
-			callback(
-				Object.assign(new Error("Machine is busy running a job"), {
-					code: "EBUSY",
-				}),
-			);
-			return;
-		}
-
-		// While a job streams, the firmware emits an `ok` per accepted line, so
-		// `ok`/`error` are indistinguishable from the sender's own responses. A
-		// query that runs then MUST bring its own terminator.
-		if (allowDuringJob && typeof opts.until !== "object") {
-			callback(
-				new Error(
-					'A query with allowDuringJob needs an explicit "until" pattern — ' +
-						"ok/error cannot be told apart from the running job's responses",
-				),
-			);
-			return;
-		}
-
-		if (this.pluginQueryInFlight) {
-			callback(
-				Object.assign(new Error("Another query is already in flight"), {
-					code: "EBUSY",
-				}),
-			);
-			return;
-		}
-
-		let until = opts.until ?? "ok-or-error";
-		if (until && typeof until === "object" && until.source) {
-			try {
-				until = new RegExp(until.source, (until.flags || "").replace(/[gy]/g, ""));
-			} catch (err) {
-				callback(new Error(`Invalid "until" pattern: ${err.message}`));
-				return;
-			}
-		}
-
-		this.pluginQueryInFlight = true;
-
-		// Open the capture window BEFORE writing. The write goes synchronously
-		// into the serial stream and feed() is driven off runner.parse(), so no
-		// response line can slip between the two.
-		this.pluginParsers.beginCapture({
-			until,
-			maxLines: opts.maxLines,
-			timeout: opts.timeout,
-			includeStatusReports: Boolean(opts.includeStatusReports),
-			onDone: (result) => {
-				this.pluginQueryInFlight = false;
-				callback(null, result);
-			},
-		});
-
-		// emit=true so a plugin-issued write is visible to the operator in the
-		// console rather than happening invisibly.
-		this.writeln(cmd, {}, true);
 	}
 
 	addConnection(socket) {
@@ -2044,7 +2133,7 @@ class GrblHalController {
 	command(cmd, ...args) {
 		const handler = {
 			"firmware:recievedProfiles": () => {
-				const [files] = args;
+				let [files] = args;
 				this.emit("task:finish", files);
 			},
 			"firmware:grabMachineProfile": () => {
@@ -2114,7 +2203,10 @@ class GrblHalController {
 				const [lineToStartFrom, zMax, safeHeight = 10] = args;
 				const totalLines = this.sender.state.total;
 				const startEventEnabled = this.event.hasEnabledEvent(PROGRAM_START);
-				this.emit("job:start");
+				this.emit(
+					"job:start",
+					Boolean(lineToStartFrom && lineToStartFrom <= totalLines),
+				);
 
 				const atci = _.get(this.settings, "info.NEWOPT.ATC", "0") === "1";
 
@@ -2128,7 +2220,7 @@ class GrblHalController {
 					let spindleRate = 0;
 
 					const getWordValue = (token, words) => {
-						for (const wordPair of words) {
+						for (let wordPair of words) {
 							const [word, value] = wordPair;
 							if (word === token) {
 								return value;
@@ -2456,7 +2548,7 @@ class GrblHalController {
 				const [value] = args;
 				const [feedOV] = this.state.status.ov;
 
-				const diff = value - feedOV;
+				let diff = value - feedOV;
 				if (value === 100) {
 					this.FOQueue.push(String.fromCharCode(0x90));
 				} else {
@@ -2591,132 +2683,27 @@ class GrblHalController {
 				this.command("gcode", code);
 			},
 			"jog:start": () => {
-				let [axes, feedrate = 1000, units = METRIC_UNITS] = args;
-
-				//const JOG_COMMAND_INTERVAL = 80;
-				let unitModal = units === METRIC_UNITS ? "G21" : "G20";
-				let { $20, $130, $131, $132, $23, $13, $40 } = this.settings.settings;
-
-				const jogFeedrate = unitModal === "G21" ? 3000 : 118;
-				if ($20 === "1" && $40 === "0") {
-					// if 40 enabled, can just use non-soft limit logic
-					$130 = Number($130);
-					$131 = Number($131);
-					$132 = Number($132);
-
-					// Update homing flag always, not just on homing
-					this.homingFlagSet = determineHALMachineZeroFlag({}, this.settings);
-
-					// Convert feedrate to metric if working in imperial - easier to convert feedrate and treat everything else as MM than opposite
-					if (units !== METRIC_UNITS) {
-						feedrate = (feedrate * 25.4).toFixed(2);
-						unitModal = "G21";
-					}
-
-					const FIXED = 2;
-
-					//If we are moving on the positive direction, we don't need to subtract
-					//the max travel by it as we are moving towards the zero position, but if
-					//we are moving in the negative direction we need to subtract the max travel
-					//by it to reach the maximum amount in that direction
-					const calculateAxisValue = ({ direction, position, maxTravel }) => {
-						const OFFSET = -1;
-
-						if (position === 0) {
-							return ((maxTravel + OFFSET) * direction).toFixed(FIXED);
-						}
-
-						if (direction === 1) {
-							return Number(position + OFFSET).toFixed(FIXED);
-						} else {
-							return Number(-1 * (maxTravel - position + OFFSET)).toFixed(
-								FIXED,
-							);
-						}
-					};
-
-					const { mpos } = this.state.status;
-					Object.keys(mpos).forEach((axis) => {
-						const val = Number(mpos[axis]);
-
-						// Need to convert to metric if machine is reporting in imperial and the UI is in a G21 metric state
-						if ($13 === "1" && unitModal === "G21") {
-							mpos[axis] = Number((val * 25.4).toFixed(FIXED));
-						} else {
-							mpos[axis] = Number(mpos[axis]);
-						}
-					});
-
-					if (this.homingFlagSet) {
-						const [xMaxLoc, yMaxLoc] = getAxisMaximumLocation($23);
-
-						if (axes.X) {
-							axes.X = determineMaxMovement(
-								Math.abs(mpos.x),
-								axes.X,
-								xMaxLoc,
-								$130,
-							);
-						}
-						if (axes.Y) {
-							axes.Y = determineMaxMovement(
-								Math.abs(mpos.y),
-								axes.Y,
-								yMaxLoc,
-								$131,
-							);
-						}
-					} else {
-						if (axes.X) {
-							axes.X = calculateAxisValue({
-								direction: Math.sign(axes.X),
-								position: Math.abs(mpos.x),
-								maxTravel: $130,
-							});
-						}
-						if (axes.Y) {
-							axes.Y = calculateAxisValue({
-								direction: Math.sign(axes.Y),
-								position: Math.abs(mpos.y),
-								maxTravel: $131,
-							});
-						}
-					}
-
-					if (axes.Z) {
-						axes.Z = calculateAxisValue({
-							direction: Math.sign(axes.Z),
-							position: Math.abs(mpos.z),
-							maxTravel: $132,
-						});
-					}
-					if (axes.A) {
-						axes.A *= jogFeedrate;
-					}
-				} else {
-					//jogFeedrate = 10000;
-					Object.keys(axes).forEach((axis) => {
-						axes[axis] *= jogFeedrate;
-					});
-				}
-
-				axes.F = feedrate;
-				if (axes.Z) {
-					axes.F *= 0.8;
-					axes.F = axes.F.toFixed(3);
-				}
-
-				const jogCommand =
-					`$J=${unitModal}G91 ` +
-					map(axes, (value, letter) => "" + letter.toUpperCase() + value).join(
-						" ",
-					);
-				this.writeln(jogCommand, {}, true);
+				const [axes, feedrate = 1000, units = METRIC_UNITS] = args;
+				// Keep the machine-zero flag current; the streamer reads it to work
+				// out how much travel is left.
+				this.homingFlagSet = determineHALMachineZeroFlag({}, this.settings);
+				this.jogStreamer.start({ axes, feedrate, units });
+			},
+			"jog:update": () => {
+				const [axes, feedrate] = args;
+				this.jogStreamer.update({ axes, feedrate });
+			},
+			"jog:feed": () => {
+				const [axes, feedrate, units = METRIC_UNITS] = args;
+				this.homingFlagSet = determineHALMachineZeroFlag({}, this.settings);
+				this.jogStreamer.feed({ axes, feedrate, units });
 			},
 			"jog:stop": () => {
+				this.jogStreamer.stop();
 				this.write("\x85");
 			},
 			"jog:cancel": () => {
+				this.jogStreamer.abort("cancel");
 				this.write("\x85");
 			},
 			"macro:run": () => {
@@ -2829,6 +2816,9 @@ class GrblHalController {
 				this.write("$");
 			},
 			"toolchange:acknowledge": () => {
+				this.emit("serialport:write", "Toolchange Ack sent", {
+					source: WRITE_SOURCE_FEEDER,
+				});
 				this.write(GRBLHAL_REALTIME_COMMANDS.TOOL_CHANGE_ACK);
 			},
 			virtual_stop_toggle: () => {
@@ -2966,6 +2956,17 @@ class GrblHalController {
 			return;
 		}
 
+		// A jog stream consumes its own acks, which is only safe while it is the
+		// sole writer of ack-producing lines. Anything else claiming the link
+		// ends the stream first.
+		if (
+			this.jogStreamer.isActive() &&
+			!JOG_COMMANDS.includes(cmd) &&
+			!STREAM_SAFE_COMMANDS.includes(cmd)
+		) {
+			this.jogStreamer.abort(`command:${cmd}`);
+		}
+
 		handler();
 	}
 
@@ -2983,8 +2984,11 @@ class GrblHalController {
 			cmd === GRBLHAL_REALTIME_COMMANDS.COMPLETE_REALTIME_REPORT ||
 			this.actionMask.replyStatusReport;
 
+		// GCODE_REPORT is "$G\n" - the trailing newline is what makes the firmware
+		// execute it - but cmd is trimmed, so comparing the two raw would never
+		// match and a user-typed $G would get no reply echoed to the console.
 		this.actionMask.replyParserState =
-			cmd === GRBLHAL_REALTIME_COMMANDS.GCODE_REPORT ||
+			cmd === GRBLHAL_REALTIME_COMMANDS.GCODE_REPORT.trim() ||
 			this.actionMask.replyParserState;
 
 		this.connection.write(data, {

@@ -17,7 +17,10 @@ process._linkedBinding = name => {
         subscribe(fn) { receive = fn; },
         send(json) {
             const request = JSON.parse(json);
-            if (request.host) { process.send?.(request); return; }
+            if (request.host === 'wifi' && request.op === 'observe') {
+            queueMicrotask(() => receive(JSON.stringify({event:'wifi',state:'foreground',visible:true}))); return;
+        }
+        if (request.host) { process.send?.(request); return; }
             if (request.op === 'open') session = request.session;
             if (request.op === 'write' && failWrite) {
                 failWrite = false; device++;

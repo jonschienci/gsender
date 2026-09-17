@@ -288,3 +288,16 @@ test('old UI without saved Rapid can use Step but cannot arm Precision-to-Rapid 
     const g=f.s.gate;p.emit('data',Buffer.from(`P2 VCAP ${boot} ${g.session} ${g.ticket} 1\n`));
     assert.throws(()=>f.s.arm(body),/Rapid/);assert.equal(f.s.armed,false);
 });
+
+test('dev jog stream owns motion even while the latest CNC status still says Idle',()=>{
+ const f=machine();f.c.jogStreamer={isActive:()=>true};assert.equal(f.m.canArm(),false);
+ f.m.submit({axis:'X',direction:1},preset);assert.throws(()=>f.m.tick(),/no longer permits/);assert.equal(f.writes.length,0);
+});
+test('new dev jog stream cannot take old knob receipts or start before its cancellation barrier',()=>{
+ for(const cmd of ['jog:start','jog:update','jog:feed']){
+  const f=machine();f.m.submit({axis:'X',direction:1},preset);f.m.tick();
+  assert.throws(()=>f.c.command(cmd,{X:1},1000),/still stopping/);assert.equal(f.m.owned,false);assert.equal(f.m.cancelPending,1);
+  f.c.runner.emit('ok');assert.throws(()=>f.c.command(cmd,{X:1},1000),/still stopping/);
+  f.time(120);f.status();f.c.command(cmd,{X:1},1000);assert.equal(f.commands.at(-1)[0],cmd);
+ }
+});

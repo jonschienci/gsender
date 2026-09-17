@@ -43,7 +43,7 @@ class WifiPort extends EventEmitter {
         this.openTimer = setTimeout(() => this.fail('Wi-Fi connection timed out'), 5000);
         try {
             if (!this.network) throw Error();
-            const lease = await this.network.acquire(this.#pairing.host, () => this.fail('Wi-Fi network or foreground access lost'), this.abort.signal);
+            const lease = await this.network.acquire(this.#pairing.host, reason => this.fail('Wi-Fi network or foreground access lost', reason === 'foreground' ? 'WIFI_FOREGROUND' : 'WIFI_NETWORK'), this.abort.signal);
             if (this.destroyed) { lease.release(); return; }
             this.lease = lease;
             this.socket = this.dial({
@@ -73,7 +73,7 @@ class WifiPort extends EventEmitter {
                 this.emit('data', bytes);
             });
             socket.on('error', () => this.fail('Wi-Fi connection or authentication failed'));
-            socket.once('end', () => this.fail('Wi-Fi knob disconnected; reconnect manually'));
+            socket.once('end', () => this.fail('Wi-Fi knob disconnected'));
             socket.once('close', () => this.destroy());
         } catch { this.fail('Wi-Fi connection unavailable; check pairing and the current network'); }
     }
@@ -96,9 +96,9 @@ class WifiPort extends EventEmitter {
         } catch { this.fail('Wi-Fi write failed'); }
         return !this.destroyed;
     }
-    fail(message) {
+    fail(message, code) {
         if (this.destroyed) return;
-        const error = Error(message), done = this.openCallback;
+        const error = Object.assign(Error(message), { code }), done = this.openCallback;
         this.openCallback = null;
         // Notify the service before close so it preserves the useful generic reason.
         if (this.listenerCount('error')) this.emit('error', error);
