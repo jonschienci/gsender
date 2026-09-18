@@ -1,15 +1,17 @@
-import { Settings, Wrench, Zap } from 'lucide-react';
+import { Settings, Wrench, Zap, Terminal, List, ChevronUp, ChevronDown } from 'lucide-react';
 
-type NavTab = 'carve' | 'tools' | 'config';
+type NavTab = 'carve' | 'tools' | 'config' | 'console' | 'macros';
 
 const TABS: { id: NavTab; label: string; Icon: typeof Zap }[] = [
-    { id: 'carve', label: 'Carve', Icon: Zap },
-    { id: 'tools', label: 'Tools', Icon: Wrench },
     { id: 'config', label: 'Config', Icon: Settings },
+    { id: 'console', label: 'Console', Icon: Terminal },
+    { id: 'tools', label: 'Tools', Icon: Wrench },
+    { id: 'macros', label: 'Macros', Icon: List },
+    { id: 'carve', label: 'Carve', Icon: Zap },
 ];
 
 interface BottomNavProps {
-    active: NavTab;
+    active: NavTab | null;
     onChange: (tab: NavTab) => void;
 }
 
@@ -22,6 +24,8 @@ export default function BottomNav({ active, onChange }: BottomNavProps) {
                     <button
                         key={id}
                         onClick={() => onChange(id)}
+                        aria-pressed={isActive}
+                        aria-expanded={id === 'console' || id === 'macros' ? isActive : undefined}
                         className={`flex flex-col items-center justify-center gap-1 transition-colors ${
                             isActive
                                 ? 'bg-robin-100 text-robin-700 border-t-2 border-robin-500 shadow-[inset_0_2px_4px_rgba(0,0,0,0.07)] dark:bg-robin-600/20 dark:text-robin-400 dark:border-robin-400 dark:shadow-[inset_0_2px_4px_rgba(0,0,0,0.22)]'
@@ -29,7 +33,12 @@ export default function BottomNav({ active, onChange }: BottomNavProps) {
                         }`}
                     >
                         <Icon size={22} />
-                        <span className="text-xs font-medium">{label}</span>
+                        <span className="text-xs font-medium flex items-center gap-1">
+                            {label}
+                            {(id === 'console' || id === 'macros') && (
+                                isActive ? <ChevronDown size={12} aria-hidden="true" /> : <ChevronUp size={12} aria-hidden="true" />
+                            )}
+                        </span>
                     </button>
                 );
             })}

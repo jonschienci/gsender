@@ -1,0 +1,466 @@
+/* Keep the action buttons in one compact row, including packaged launchers. */
+.android-pendant-header {
+    height: 56px !important;
+    min-height: 56px;
+    flex-shrink: 0;
+    flex-wrap: nowrap;
+    gap: 8px !important;
+    padding: 4px 8px !important;
+    z-index: 50;
+}
+.android-machine-badge { position: relative; width: 160px !important; }
+.android-header-actions > button { height: 40px; white-space: nowrap; }
+@media (orientation: portrait) {
+    .android-machine-badge { width: 140px !important; }
+}
+.android-drawer-tabs { overflow-x: auto; scrollbar-width: none; }
+.android-drawer-tabs > button { flex-shrink: 0; white-space: nowrap; }
+.android-knob-tab { flex: 1; display: flex; min-height: 0; }
+.android-knob-tab[hidden] { display: none; }
+.android-knob-tab > iframe { flex: 1; width: 100%; min-height: 0; border: 0; }
+.android-jog-fit { min-height: 0; min-width: 0; }
+.android-jog-fit > .android-jog-area { margin: 0 auto; }
+.android-header-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+.android-status-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    width: 90px;
+    min-height: 36px;
+    padding: 6px 8px;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 6px;
+    background: var(--surface-raised, #fff);
+    color: var(--content-primary, #111827);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.android-status-toggle[aria-expanded="true"] { background: #2563eb; border-color: #2563eb; color: #fff; }
+.android-status-toggle:focus-visible { outline: 2px solid #60a5fa; outline-offset: 2px; }
+.android-status-tray { flex-shrink: 0; }
+.android-status-tray[hidden] { display: none !important; }
+.android-carve-view { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
+nav.android-bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+.android-drawer-toggle {
+    cursor: pointer;
+    touch-action: manipulation;
+}
+.android-drawer-toggle:focus-visible { outline: 2px solid #689ac9; outline-offset: 2px; }
+/* Fill the space between the 56px connection bar and 64px bottom navigation. */
+.android-bottom-drawer { position: fixed; inset: 56px 0 64px; z-index: 40; }
+.android-bottom-drawer[hidden] { display: none !important; }
+.android-carve-grid {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 300px;
+    grid-template-rows: minmax(0, 1fr) auto;
+    grid-template-areas: "visualizer dro" "visualizer jog";
+    gap: 8px;
+    padding: 4px;
+    min-height: 0;
+    overflow: hidden;
+}
+.android-visualizer-dock {
+    grid-area: visualizer;
+    min-height: 0;
+    min-width: 0;
+    overflow-y: auto;
+    scrollbar-width: none;
+}
+.android-visualizer-dock::-webkit-scrollbar { display: none; }
+/* Give all spare vertical space to the drawing, instead of a fixed canvas. */
+.android-visualizer-dock .android-visualizer-card {
+    display: grid !important;
+    height: 100%;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 72px;
+    grid-template-rows: minmax(0, 1fr) auto auto;
+    grid-template-areas: "canvas jobs" "progress progress" "feed feed";
+    gap: 2px 4px !important;
+}
+.android-visualizer-card .android-visualizer-frame { grid-area: canvas; min-width: 0; min-height: 0; }
+.android-visualizer-card .android-visualizer-toolbar { flex-shrink: 0; }
+.android-visualizer-card .android-visualizer-canvas { flex: 1; height: auto !important; min-height: 0; }
+.android-job-rail { grid-area: jobs; min-height: 0; }
+.android-job-rail .android-job-controls { height: 100%; box-sizing: border-box; padding-block: 16px; flex-direction: column !important; justify-content: flex-start !important; gap: 8px !important; }
+.android-job-controls > div { flex: 0 0 104px; width: 64px; height: 104px; }
+.android-job-controls > div:last-child { margin-top: auto; }
+/* Rotate the existing button and its hit area together; keep each in its own slot. */
+.android-job-controls > div > button {
+    flex-shrink: 0;
+    width: 104px !important;
+    height: 64px !important;
+    min-width: 104px;
+    min-height: 64px;
+    margin: 0 !important;
+    font-size: 16px !important;
+    white-space: nowrap;
+    transform: rotate(90deg);
+}
+.android-job-progress { grid-area: progress; min-width: 0; }
+.android-job-progress > div { gap: 2px !important; }
+.android-job-progress > div > div:first-child { font-size: 11px !important; line-height: 14px; }
+.android-job-progress > div > div:last-child { height: auto !important; min-height: 8px; }
+.android-position-card { grid-area: dro; min-width: 0; align-self: end; }
+.android-jog-dock { grid-area: jog; display: flex; justify-content: flex-end; align-items: flex-end; min-height: 0; min-width: 0; }
+.android-jog-dock .android-jog-card {
+    position: relative;
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr);
+    width: 90%;
+    max-height: 100%;
+    overflow-y: auto;
+    padding: 8px !important;
+    gap: 8px !important;
+    border-radius: 12px !important;
+}
+.android-jog-readiness {
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    border: 1px solid #ffffff55;
+    background: #6b7280;
+    pointer-events: none;
+    z-index: 1;
+}
+.android-jog-readiness[data-state="ready"] { background: #22c55e; }
+.android-jog-readiness[data-state="calibrating"] { background: #f59e0b; }
+.android-jog-toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 0; }
+.android-jog-toolbar > label { flex-shrink: 0; justify-content: flex-start !important; min-height: 40px !important; }
+.android-jog-toolbar .android-jog-presets { flex: 1; min-width: 0; display: grid !important; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px !important; }
+.android-jog-presets > button { width: calc(100% - 8px); justify-self: center; min-width: 0; min-height: 40px; padding: 8px !important; font-size: 14px !important; }
+.android-jog-area {
+    display: grid;
+    grid-template-columns: minmax(0, 4fr) minmax(0, 1fr);
+    gap: 12px;
+    align-items: start;
+    padding: 4px 10px;
+}
+.android-jog-main { width: 100%; min-width: 0; }
+.android-jog-axes, .android-jog-axes > div > div { display: flex; flex-direction: column; gap: 12px; }
+.android-jog-card .android-jog-grid { gap: 12px; }
+.android-jog-area .jog-btn { width: 100%; height: auto; min-height: 0; padding: 0; margin: 0 !important; }
+.android-jog-area .android-jog-axes .jog-btn { width: calc(100% - 8px) !important; align-self: center; }
+/* Intrinsic squares also work on WebViews predating aspect-ratio. */
+.android-jog-area .jog-btn::before { content: ''; display: block; padding-top: 100%; }
+.android-jog-area .jog-btn > div { position: absolute; inset: 0; gap: 0 !important; }
+.android-jog-grid > [aria-hidden] { height: auto; }
+.android-jog-area .jog-btn svg { width: 28px !important; height: 28px !important; }
+.android-jog-area .jog-btn span { font-size: 20px !important; }
+.android-jog-area .android-xy-pad [role="group"] > button { font-size: 22px !important; }
+.android-jog-area .android-xy-pad [role="group"] > span { width: 36px !important; height: 36px !important; }
+.dark .android-jog-toolbar { color: #e5e7eb; }
+
+/* Compact only presentation; retain the upstream DRO actions/state. */
+.android-position-card .android-dro-card {
+    display: flex !important;
+    flex-direction: column;
+    padding: 8px !important;
+    gap: 6px !important;
+}
+.android-dro-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    height: 28px;
+    flex-shrink: 0;
+}
+.android-dro-workspace { flex-shrink: 0; }
+.android-dro-workspace [aria-haspopup="listbox"] { height: 28px; border-radius: 3px; }
+.android-dro-workspace > div > div { left: 0; right: auto; }
+.android-position-card .android-coordinate-switch {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: center;
+    flex-shrink: 0;
+    width: 160px;
+    margin-left: auto;
+    height: 28px;
+    padding: 2px;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 3px;
+    background: var(--surface-elevated, #f3f4f6);
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+}
+.android-coordinate-thumb {
+    position: absolute;
+    top: 2px;
+    bottom: 2px;
+    left: 2px;
+    width: calc((100% - 4px) / 2);
+    border-radius: 1px;
+    background: #689ac9; /* Same robin-500 blue as the selected jog preset. */
+    transition: transform 140ms ease;
+}
+.android-coordinate-switch[aria-checked="true"] .android-coordinate-thumb { transform: translateX(100%); }
+.android-coordinate-label { position: relative; text-align: center; }
+.dark .android-coordinate-switch { color: #9ca3af; }
+.android-coordinate-switch .android-coordinate-active { color: #fff; }
+.android-coordinate-switch:focus-visible { outline: 2px solid #689ac9; outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+    .android-coordinate-thumb { transition: none; }
+}
+.android-position-card .android-dro-axes { display: grid !important; grid-template-columns: minmax(0, 1fr) !important; gap: 6px !important; }
+/* Share columns and horizontal padding so footer actions align with every row. */
+.android-position-card .android-dro-axis,
+.android-position-card .android-dro-actions {
+    display: grid !important;
+    grid-template-columns: 64px minmax(0, 1fr) 64px !important;
+    justify-items: center;
+    align-items: center;
+    min-width: 0 !important;
+    padding: 2px 4px !important;
+    gap: 6px !important;
+}
+.android-position-card .android-dro-axis > button:first-child { width: 64px !important; height: 28px !important; font-size: 14px !important; }
+.android-position-card .android-dro-axis > span { font-size: 20px !important; text-align: center !important; width: 100%; }
+.android-position-card .android-dro-axis > button:last-child,
+.android-position-card .android-dro-actions > button {
+    width: 64px !important;
+    height: 28px !important;
+    min-height: 28px !important;
+    padding: 2px 6px !important;
+    font-size: 11px !important;
+    line-height: 14px !important;
+    border-width: 2px !important;
+    border-radius: 6px !important;
+    white-space: nowrap;
+}
+
+.android-position-card .android-dro-actions > button > svg { display: none; }
+.android-jog-presets > button { font-size: 10px !important; }
+
+/* Modest control padding, retaining the thicker track and thumb. */
+.android-feed-overrides { grid-area: feed; min-width: 0; margin: 0; padding: 6px 8px; }
+.android-feed-overrides > div { gap: 2px !important; }
+.android-feed-overrides .android-range-slider { gap: 2px !important; margin: 0 !important; padding: 0 !important; }
+.android-feed-overrides .android-range-label { padding: 0 4px !important; font-size: 11px !important; line-height: 14px !important; }
+.android-feed-overrides .android-range-controls { gap: 6px !important; padding: 2px 4px !important; }
+.android-feed-overrides .android-range-controls > button { min-width: 30px !important; width: 30px !important; height: 28px !important; min-height: 28px !important; padding: 4px !important; }
+.android-feed-overrides .android-range-root { height: 30px !important; }
+.android-feed-overrides .android-range-track { height: 22px !important; }
+.android-feed-overrides .android-range-thumb { width: 28px !important; height: 28px !important; border-radius: 50% !important; }
+
+@media (orientation: landscape) {
+    .android-carve-grid {
+        --landscape-control-gap: 6px;
+        --landscape-jog-gap: 12px;
+        grid-template-columns: minmax(0, 1fr) 392px;
+        grid-template-rows: minmax(236px, 47fr) minmax(208px, 53fr);
+        overflow-y: auto;
+    }
+    .android-position-card { align-self: stretch; min-height: 0; }
+    .android-position-card .android-dro-card {
+        display: grid !important;
+        grid-template-rows: 28px minmax(146px, 1fr) 32px;
+        height: 100% !important;
+        min-height: 236px;
+        gap: var(--landscape-control-gap) !important;
+    }
+    .android-position-card .android-dro-axes {
+        grid-template-rows: repeat(4, minmax(32px, 1fr));
+        gap: var(--landscape-control-gap) !important;
+    }
+    .android-jog-dock { align-items: stretch; }
+    .android-jog-dock .android-jog-card { width: 100%; height: 100%; grid-template-rows: auto minmax(0, 1fr); overflow: hidden; }
+    .android-jog-fit { overflow: auto; }
+    .android-jog-card .android-jog-grid,
+    .android-jog-axes,
+    .android-jog-axes > div > div { gap: var(--landscape-jog-gap); }
+    .android-jog-presets > button { font-size: 12px !important; }
+    /* Keep A left, XY in the center, and Z right in every landscape layout. */
+    .android-jog-area {
+        /* Reserve usable axis controls; give all remaining width to XY. */
+        grid-template-columns: 64px minmax(0, 1fr) 64px;
+        grid-template-areas: "a xy z";
+        column-gap: 8px;
+        padding: 4px 0;
+    }
+    .android-jog-main { grid-area: xy; }
+    .android-jog-axes { display: contents; }
+    .android-jog-a { grid-area: a; }
+    .android-jog-z { grid-area: z; }
+    .android-jog-area .jog-btn svg { width: 40% !important; height: 40% !important; max-width: 28px; max-height: 28px; }
+    .android-jog-area .jog-btn span { font-size: 16px !important; }
+    /* Use visualizer width on shorter screens. */
+    .android-carve-grid[data-short-landscape="true"] { grid-template-columns: minmax(0, 1fr) 464px; }
+    /* Preserve the footer even with the Status strip open on short screens. */
+    .android-carve-grid[data-tight-dro="true"] { --landscape-control-gap: 4px; grid-template-rows: minmax(214px, 47fr) minmax(208px, 53fr); }
+    .android-carve-grid[data-tight-dro="true"] .android-dro-card { min-height: 214px; grid-template-rows: 28px minmax(124px, 1fr) 32px; }
+    .android-carve-grid[data-tight-dro="true"] .android-dro-axes { grid-template-rows: repeat(4, minmax(28px, 1fr)); }
+    .android-carve-grid[data-tight-dro="true"] .android-dro-axis { padding-top: 0 !important; padding-bottom: 0 !important; }
+    /* When height is tighter still, presets occupy a side column as well. */
+    .android-carve-grid[data-compact-jog="true"] { grid-template-columns: minmax(0, 1fr) 548px; }
+    .android-carve-grid[data-compact-jog="true"] .android-jog-card { grid-template-columns: 88px minmax(0, 1fr); grid-template-rows: minmax(0, 1fr); }
+    .android-carve-grid[data-compact-jog="true"] .android-jog-toolbar { flex-direction: column; align-items: stretch; gap: 8px; }
+    .android-carve-grid[data-compact-jog="true"] .android-jog-toolbar > label { justify-content: center !important; }
+    .android-carve-grid[data-compact-jog="true"] .android-jog-presets { display: flex !important; flex-direction: column; justify-content: center; gap: 8px !important; }
+    .android-carve-grid[data-compact-jog="true"] .android-jog-presets > button { align-self: center; min-height: 36px; }
+
+}
+
+@media (orientation: portrait) {
+    .android-carve-grid {
+        grid-template-columns: minmax(0, 1fr) 432px;
+        grid-template-rows: minmax(0, 1fr) auto;
+        grid-template-areas: "visualizer visualizer" "dro jog";
+    }
+    .android-jog-dock .android-jog-card { width: 100%; }
+    .android-position-card { align-self: stretch; }
+    .android-position-card .android-dro-card { display: flex !important; height: 100% !important; gap: 10px !important; padding: 10px !important; }
+    .android-position-card .android-dro-axes { gap: 8px !important; }
+    .android-position-card .android-dro-axis { padding: 6px !important; gap: 8px !important; }
+    .android-position-card .android-dro-axis > button:first-child { width: 64px !important; height: 36px !important; font-size: 18px !important; }
+    .android-position-card .android-dro-axis > span { font-size: 26px !important; }
+    .android-position-card .android-dro-axis > button:last-child,
+    .android-position-card .android-dro-actions > button { height: 32px !important; min-height: 32px !important; font-size: 12px !important; }
+    .android-position-card .android-dro-actions { padding: 4px 6px !important; gap: 8px !important; }
+    .android-jog-presets > button { font-size: 14px !important; }
+}
+
+.android-tilt-switch { display: flex; flex-shrink: 0; align-items: center; gap: 8px; padding: 0 10px; margin-left: 8px; border-left: 1px solid var(--outline-default, #d1d5db); font-size: 12px; line-height: 16px; color: var(--content-primary, #111827); cursor: pointer; }
+.android-tilt-switch > span { min-width: 48px; }
+.android-tilt-switch small { display: block; font-size: 10px; line-height: 12px; color: #689ac9; }
+
+/* Stack feed and spindle sliders beside a compact spindle command column. */
+.android-feed-overrides .android-feed-spindle {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 84px;
+    grid-template-rows: auto auto;
+    gap: 8px 12px !important;
+    align-items: center;
+    padding: 6px 0;
+}
+.android-feed-slider { grid-column: 1; grid-row: 1; min-width: 0; }
+.android-feed-overrides .android-inline-spindle,
+.android-feed-overrides .android-spindle-controls { display: contents !important; }
+.android-spindle-controls > div:first-child {
+    grid-column: 2; grid-row: 1 / 3;
+    display: flex; flex-direction: column;
+    padding: 0 !important; gap: 6px !important;
+}
+.android-spindle-controls > div:first-child > div { width: 100%; flex: none; }
+.android-spindle-controls > div:first-child > div > div:last-child {
+    min-height: 36px !important; padding: 4px !important;
+    flex-direction: row !important; gap: 4px !important;
+}
+.android-spindle-controls > div:first-child svg { width: 16px; height: 16px; }
+.android-spindle-speed { grid-column: 1; grid-row: 2; min-width: 0; }
+.android-spindle-speed .android-range-label > span { width: auto; white-space: nowrap; }
+.android-spindle-speed .android-range-label > span:nth-child(2):not(:last-child) { display: none; }
+#pendant-spindle-settings { max-width: 560px; margin: 0 auto; }
+
+.android-bottom-drawer [data-standalone-panel="true"] { display: none !important; }
+
+.android-bottom-drawer[data-compact-panel="true"] {
+    top: clamp(56px, var(--compact-panel-top), calc(100dvh - 224px));
+}
+.android-console-size-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; border-bottom: 1px solid #94a3b8; flex-shrink: 0; font-size: 12px; }
+.android-console-size-bar > button { display: flex; align-items: center; justify-content: center; width: 40px; height: 32px; border-radius: 6px; }
+
+.android-bottom-drawer [data-panel-dismiss-backdrop] { position: fixed !important; inset: 56px 0 64px !important; }
+
+@media (orientation: landscape) {
+    .android-jog-area:has(.android-xy-pad) { column-gap: 0; }
+    .android-jog-area .android-jog-a,
+    .android-jog-area .android-jog-z,
+    .android-jog-area .android-jog-a > div,
+    .android-jog-area .android-jog-z > div { gap: 4px !important; }
+}
+@media (orientation: landscape) {
+    .android-jog-area .android-jog-axes .space-y-1\.5 > .jog-btn { margin-block: 0 !important; }
+}
+/* Jog presets share the rectangular segmented treatment of Work/Machine. */
+.android-jog-toolbar .android-jog-presets {
+    flex: 0 1 246px;
+    width: 246px;
+    max-width: calc(100% - 56px);
+    margin-left: auto;
+    padding: 2px;
+    gap: 0 !important;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 3px;
+    background: var(--surface-elevated, #f3f4f6);
+}
+.android-jog-toolbar .android-jog-presets > button {
+    width: 100%;
+    min-height: 36px;
+    padding: 6px 4px !important;
+    border: 0 !important;
+    border-radius: 1px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+.android-jog-toolbar .android-jog-presets > button.bg-robin-500 {
+    background: #689ac9 !important;
+    color: #fff !important;
+}
+@media (orientation: landscape) {
+    .android-carve-grid[data-compact-jog="true"] .android-jog-presets {
+        flex: 0 0 auto; width: 100%; max-width: 100%; margin-left: 0;
+        gap: 0 !important;
+    }
+}
+.android-jog-toolbar .android-jog-presets { margin-right: 12px; }
+@media (orientation: landscape) {
+    .android-carve-grid[data-compact-jog="true"] .android-jog-presets { margin-right: 0; }
+}
+/* Matching rounded corners for both segmented controls. */
+.android-jog-toolbar .android-jog-presets,
+.android-position-card .android-coordinate-switch { border-radius: 10px; }
+.android-jog-toolbar .android-jog-presets > button { border-radius: 7px !important; }
+.android-coordinate-thumb { border-radius: 7px; }
+.android-job-controls > div > button { border-radius: 10px !important; }
+
+@media (orientation: landscape) {
+    .android-carve-grid { row-gap: 4px; }
+}
+@media (orientation: portrait) {
+    .android-carve-grid { column-gap: 4px; }
+}
+/* Consistent rounding across connection, status, and machine actions. */
+.android-pendant-header button { border-radius: 10px !important; }
+/* Uniform header sizing while keeping labels at their natural width. */
+.android-pendant-header > div:first-child,
+.android-pendant-header > div:first-child > img { width: 40px !important; height: 40px !important; }
+.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button,
+.android-header-actions > button {
+    height: 40px !important;
+    min-height: 40px !important;
+    width: max-content !important;
+    min-width: 96px;
+    padding: 0 12px !important;
+    gap: 8px !important;
+    justify-content: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-size: 14px !important;
+}
+.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button > span:first-child {
+    width: 24px !important; height: 24px !important;
+}
+.android-pendant-header .android-machine-badge {
+    width: max-content !important;
+    min-width: 148px;
+    height: 40px !important;
+    border-radius: 10px !important;
+}
+.android-pendant-header .android-machine-badge > div:last-child {
+    padding: 0 12px !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+}

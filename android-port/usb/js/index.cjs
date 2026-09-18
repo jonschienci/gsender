@@ -108,10 +108,10 @@ function createSerialPort({ send, subscribe, timeout = 15000, permissionTimeout 
             if (!this.isOpen || this.writableLength !== 0 || this.writableCorked || this.nextWriteDeadline)
                 return queueMicrotask(() => callback(failure('EBUSY', 'CNC USB write queue is not empty')));
             const line = Buffer.from(bytes).toString('utf8');
-            // One axis OR an ordered XY diagonal only: no XYZ, duplicate words,
+            // One to three ordered XYZ axes: no duplicate words,
             // additional commands, high-bit ASCII aliases, or extra ACK lines.
             if (line.length > 128 || line.indexOf('\n') !== line.length - 1 ||
-                !/^\$J=G21G91 (?:[XYZ]-?\d+\.\d{4}|X-?\d+\.\d{4} Y-?\d+\.\d{4}) F\d+\.\d{3}\n$/.test(line))
+                !/^\$J=G21G91 (?:X-?\d+\.\d{4}(?: Y-?\d+\.\d{4})?(?: Z-?\d+\.\d{4})?|Y-?\d+\.\d{4}(?: Z-?\d+\.\d{4})?|Z-?\d+\.\d{4}) F\d+\.\d{3}\n$/.test(line))
                 return queueMicrotask(() => callback(failure('EINVAL', 'Not a finite pendant jog')));
             this.nextWriteDeadline = 250;
             this.write(bytes, callback);

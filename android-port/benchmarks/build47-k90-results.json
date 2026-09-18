@@ -1,0 +1,208 @@
+[
+  {
+    "case": "contour-128KiB.nc",
+    "start": 1789767098.4541419,
+    "end": 1789767119.9864771,
+    "frames": {
+      "run-static": {
+        "frames": 16.0,
+        "janky_percent": 100.0,
+        "p50_ms": 250.0,
+        "p95_ms": 650.0,
+        "p99_ms": 650.0,
+        "missed_deadlines": 16.0
+      },
+      "run-static-after": {
+        "frames": 14.0,
+        "janky_percent": 100.0,
+        "p50_ms": 300.0,
+        "p95_ms": 550.0,
+        "p99_ms": 550.0,
+        "missed_deadlines": 14.0
+      }
+    },
+    "completion": {
+      "time": 1789767119.701392,
+      "event": "job_completed",
+      "seconds": 7.953387833025772,
+      "acknowledged": 3978,
+      "received": 3978,
+      "achieved_lines_per_second": 500.1642172511305,
+      "command_sha256": "3d8804a18d3d09c86f037f6440f137e129fa964e9a8d65b5c7c81637785485fb",
+      "expected_match": true,
+      "expected_file": "contour-128KiB.nc",
+      "max_receive_gap_ms": 46.19266599183902,
+      "max_status_poll_gap_ms": 254.42662497516721,
+      "rx_overflows": 0
+    },
+    "peak_app_pss_mib": 348.162109375,
+    "peak_combined_pss_mib": 520.9619140625,
+    "minimum_available_mib": 5322.74609375,
+    "median_pan_commands_per_second": null,
+    "pan_gestures": 0,
+    "pan_median_gesture_p95_frame_gap_ms": null,
+    "pan_median_gesture_p95_event_dispatch_ms": null,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0
+  },
+  {
+    "case": "arcs-1024KiB.nc",
+    "start": 1789767232.6817632,
+    "end": 1789767310.398656,
+    "frames": {
+      "run-static": {
+        "frames": 147.0,
+        "janky_percent": 93.2,
+        "p50_ms": 200.0,
+        "p95_ms": 350.0,
+        "p99_ms": 650.0,
+        "missed_deadlines": 137.0
+      },
+      "run-static-after": {
+        "frames": 155.0,
+        "janky_percent": 92.26,
+        "p50_ms": 200.0,
+        "p95_ms": 250.0,
+        "p99_ms": 300.0,
+        "missed_deadlines": 143.0
+      },
+      "visualizer-run": {
+        "frames": 100.0,
+        "janky_percent": 100.0,
+        "p50_ms": 450.0,
+        "p95_ms": 500.0,
+        "p99_ms": 500.0,
+        "missed_deadlines": 100.0
+      },
+      "visualizer-idle": {
+        "frames": 167.0,
+        "janky_percent": 95.21,
+        "p50_ms": 200.0,
+        "p95_ms": 250.0,
+        "p99_ms": 250.0,
+        "missed_deadlines": 159.0
+      }
+    },
+    "completion": {
+      "time": 1789767309.916262,
+      "event": "job_completed",
+      "seconds": 51.828388417023234,
+      "acknowledged": 25898,
+      "received": 25898,
+      "achieved_lines_per_second": 499.68754173135164,
+      "command_sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+      "expected_match": true,
+      "expected_file": "arcs-1024KiB.nc",
+      "max_receive_gap_ms": 50.39683298673481,
+      "max_status_poll_gap_ms": 267.64129201183096,
+      "rx_overflows": 0
+    },
+    "peak_app_pss_mib": 361.4365234375,
+    "peak_combined_pss_mib": 558.0751953125,
+    "minimum_available_mib": 5283.4921875,
+    "median_pan_commands_per_second": 499.91184602717055,
+    "pan_gestures": 1,
+    "pan_median_gesture_p95_frame_gap_ms": 166.70000000001164,
+    "pan_median_gesture_p95_event_dispatch_ms": 163.79999999701977,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0
+  },
+  {
+    "case": "relief-30720KiB.nc",
+    "start": 1789767393.2099771,
+    "end": 1789767467.3914409,
+    "frames": {
+      "run-static": {
+        "frames": 154.0,
+        "janky_percent": 81.17,
+        "p50_ms": 109.0,
+        "p95_ms": 300.0,
+        "p99_ms": 550.0,
+        "missed_deadlines": 125.0
+      },
+      "run-static-after": {
+        "frames": 157.0,
+        "janky_percent": 82.17,
+        "p50_ms": 113.0,
+        "p95_ms": 250.0,
+        "p99_ms": 350.0,
+        "missed_deadlines": 129.0
+      },
+      "visualizer-run": {
+        "frames": 100.0,
+        "janky_percent": 100.0,
+        "p50_ms": 450.0,
+        "p95_ms": 500.0,
+        "p99_ms": 550.0,
+        "missed_deadlines": 100.0
+      },
+      "visualizer-idle": {
+        "frames": 167.0,
+        "janky_percent": 94.01,
+        "p50_ms": 200.0,
+        "p95_ms": 250.0,
+        "p99_ms": 300.0,
+        "missed_deadlines": 157.0
+      }
+    },
+    "completion": null,
+    "peak_app_pss_mib": 497.296875,
+    "peak_combined_pss_mib": 1031.6376953125,
+    "minimum_available_mib": 4829.6796875,
+    "median_pan_commands_per_second": 499.73209671447006,
+    "pan_gestures": 2,
+    "pan_median_gesture_p95_frame_gap_ms": 166.70000000001164,
+    "pan_median_gesture_p95_event_dispatch_ms": 169.5,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0
+  },
+  {
+    "case": "relief-40960KiB.nc",
+    "start": 1789767503.34323,
+    "end": 1789767577.7207959,
+    "frames": {
+      "run-static": {
+        "frames": 149.0,
+        "janky_percent": 75.84,
+        "p50_ms": 105.0,
+        "p95_ms": 450.0,
+        "p99_ms": 650.0,
+        "missed_deadlines": 113.0
+      },
+      "run-static-after": {
+        "frames": 154.0,
+        "janky_percent": 78.57,
+        "p50_ms": 101.0,
+        "p95_ms": 250.0,
+        "p99_ms": 350.0,
+        "missed_deadlines": 121.0
+      },
+      "visualizer-run": {
+        "frames": 101.0,
+        "janky_percent": 99.01,
+        "p50_ms": 450.0,
+        "p95_ms": 500.0,
+        "p99_ms": 550.0,
+        "missed_deadlines": 100.0
+      },
+      "visualizer-idle": {
+        "frames": 166.0,
+        "janky_percent": 95.78,
+        "p50_ms": 200.0,
+        "p95_ms": 250.0,
+        "p99_ms": 250.0,
+        "missed_deadlines": 159.0
+      }
+    },
+    "completion": null,
+    "peak_app_pss_mib": 615.8291015625,
+    "peak_combined_pss_mib": 1224.359375,
+    "minimum_available_mib": 4702.96875,
+    "median_pan_commands_per_second": 499.8497618108655,
+    "pan_gestures": 3,
+    "pan_median_gesture_p95_frame_gap_ms": 183.40000000002328,
+    "pan_median_gesture_p95_event_dispatch_ms": 180.79999999701977,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0
+  }
+]

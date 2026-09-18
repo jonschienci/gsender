@@ -7,7 +7,9 @@ test('XY switch transforms both real jog layouts into valid JSX without replacin
  const {transform}=require('../scripts/xy-pad-ui.cjs');
  for(const file of ['src/pendant/src/components/JoggingCard.tsx','src/app/src/features/Jogging/index.tsx']){
   const filename=path.resolve(__dirname,'../..',file),result=transform(fs.readFileSync(filename,'utf8'),filename);
-  transformSync(result.code,{loader:'tsx'});assert.match(result.code,/<XYJogModeSwitch checked=\{xyPad\}/);assert.doesNotMatch(result.code,/<select aria-label="XY controls"/);assert.match(result.code,/zPlusJog|<ZJog/);
+  transformSync(result.code,{loader:'tsx'});
+  assert.match(result.code,file.includes('/pendant/')?/<XYJogModeSwitch checked=\{showPad\} disabled=\{tiltJog.enabled\}/:/<XYJogModeSwitch checked=\{xyPad\}/);
+  assert.doesNotMatch(result.code,/<select aria-label="XY controls"/);assert.match(result.code,/zPlusJog|<ZJog/);
  }
 });
 test('real touch component stops on release/lost capture/background/multitouch and never revives a released pending begin',async()=>{

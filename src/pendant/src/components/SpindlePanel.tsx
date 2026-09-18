@@ -1,4 +1,5 @@
-import { Slider } from 'app/components/shadcn/Slider';
+import { createPortal } from 'react-dom';
+import RangeSlider from 'app/components/RangeSlider';
 import {
     GRBL,
     GRBL_ACTIVE_STATE_IDLE,
@@ -127,6 +128,14 @@ function SpindleButton({
 
 export default function SpindlePanel({ mode }: Props) {
     const dispatch = useDispatch();
+    const [settingsTarget, setSettingsTarget] = useState<HTMLElement | null>(null);
+    useEffect(() => {
+        const syncTarget = () => setSettingsTarget(document.getElementById('pendant-spindle-settings'));
+        syncTarget();
+        const observer = new MutationObserver(syncTarget);
+        observer.observe(document.body, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, []);
     const config = new WidgetConfig('spindle');
 
     const [state, setState] = useState<SpindleState>(() => ({
@@ -628,9 +637,6 @@ export default function SpindlePanel({ mode }: Props) {
     const spindleReverse = spindleModal === 'M4';
     const laserIsOn = spindleModal !== 'M5';
     const clickable = canClick();
-    const divider = (
-        <div className="mx-4 border-t border-gray-200 dark:border-outline shrink-0" />
-    );
 
     const { enableDarkMode = false } = useWorkspaceState();
     const isDark = enableDarkMode;
@@ -719,7 +725,7 @@ export default function SpindlePanel({ mode }: Props) {
     return (
         <div
             className={clsx(
-                'h-full flex flex-col min-h-0',
+                'android-spindle-controls h-full flex flex-col min-h-0',
                 mode === 'minimal' && 'justify-center',
             )}
         >
@@ -775,7 +781,7 @@ export default function SpindlePanel({ mode }: Props) {
                 )}
             </div>
 
-            {/* Selector (2/3) + Mode toggle (1/3) — always shown */}
+            {settingsTarget && createPortal(
             <div className="flex items-center gap-2 px-4 pb-3 shrink-0">
                 <div
                     className={clsx(
@@ -838,41 +844,27 @@ export default function SpindlePanel({ mode }: Props) {
                         Laser
                     </span>
                 </div>
-            </div>
+            </div>, settingsTarget)}
 
             {mode === 'expanded' && (
                 <>
-                    {divider}
-
-                    <div className="flex items-center gap-3 px-4 pt-4 pb-2 shrink-0">
-                        <span className="text-xs text-gray-500 dark:text-content-muted w-14 shrink-0">
-                            {isLaserMode ? 'Power' : 'Speed'}
-                        </span>
-                        <Slider
-                            value={[
-                                isLaserMode
-                                    ? state.laser.power
-                                    : state.spindleSpeed,
-                            ]}
+                    <div className="android-spindle-speed">
+                        <RangeSlider
+                            title={isLaserMode ? 'Laser power' : 'Spindle speed'}
+                            showText
+                            value={String(isLaserMode ? state.laser.power : state.spindleSpeed)}
+                            percentage={[isLaserMode ? state.laser.power : state.spindleSpeed]}
+                            defaultPercentage={[isLaserMode ? 0 : Math.min(state.spindleMax || 30000, Math.max(state.spindleMin || 1, 1000))]}
                             min={isLaserMode ? 0 : state.spindleMin || 1}
                             max={isLaserMode ? 100 : state.spindleMax || 30000}
-                            step={isLaserMode ? 1 : 10}
+                            step={isLaserMode ? 1 : 100}
+                            controlUnit={isLaserMode ? '%' : ' RPM'}
+                            unitString={isLaserMode ? '%' : 'RPM'}
+                            resetDescription="speed to default"
                             disabled={!clickable}
-                            onValueChange={([v]: number[]) =>
-                                isLaserMode
-                                    ? actions.handleLaserPowerChange(v)
-                                    : actions.handleSpindleSpeedChange(v)
-                            }
-                            className="relative flex items-center w-full flex-1 h-7"
-                            trackClassName="h-4 bg-gray-400 dark:bg-surface-elevated rounded-full relative flex-grow"
-                            rangeClassName="absolute h-full rounded-full bg-robin-400"
-                            thumbClassName="block w-6 h-6 rounded-xl border-gray-500 border-solid border-2 bg-white outline-none cursor-pointer disabled:bg-gray-300 disabled:cursor-not-allowed"
+                            onChange={([v]) => isLaserMode ? actions.handleLaserPowerChange(v) : actions.handleSpindleSpeedChange(v)}
+                            onButtonPress={([v]) => isLaserMode ? actions.handleLaserPowerChange(v) : actions.handleSpindleSpeedChange(v)}
                         />
-                        <span className="text-xs tabular-nums w-16 text-right shrink-0 text-gray-600 dark:text-content-secondary">
-                            {isLaserMode
-                                ? `${state.laser.power}%`
-                                : `${state.spindleSpeed} RPM`}
-                        </span>
                     </div>
 
                     {isLaserMode && (

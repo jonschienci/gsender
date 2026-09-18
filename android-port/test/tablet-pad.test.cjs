@@ -6,7 +6,7 @@ const {TabletPad}=require('../pendant/tablet-pad.cjs');
 const {padVector}=require('../ui/pad-vector.cjs');
 function fixture(){
  let now=0;const writes=[],commands=[],faults=[];
- const c={type:'GrblHAL',options:{port:'android-usb:42:0'},settings:{settings:{$13:'0',$110:'3000',$111:'2000',$120:'100',$121:'50'}},
+ const c={type:'GrblHAL',options:{port:'android-usb:42:0'},settings:{settings:{$13:'0',$110:'3000',$111:'2000',$112:'700',$122:'25',$120:'100',$121:'50'}},
   workflow:{state:'idle'},feeder:{toJSON:()=>({hold:false,pending:false,queue:0})},
   connection:new EventEmitter(),runner:new EventEmitter(),isOpen:()=>true,
   command:(...args)=>commands.push(args),writeln:line=>writes.push(line)};
@@ -16,8 +16,8 @@ function fixture(){
  const p=new TabletPad(m,()=>now);m.externalJog=p;m.sync();
  const status=(xyz,state='Idle')=>{if(xyz)c.runner.state.status.mpos={x:xyz[0],y:xyz[1],z:xyz[2]};c.runner.state.status.activeState=state;c.runner.emit('status');};
  status();let ticket;
- const begin=(rapid=5000)=>ticket=p.begin(rapid);
- const update=(x,y)=>ticket=p.update({...ticket,x,y});
+ const begin=(rapid=5000,allowZ=false)=>ticket=p.begin(rapid,allowZ);
+ const update=(x,y,extra={})=>ticket=p.update({...ticket,x,y,...extra});
  const tick=()=>{try{m.tick();}catch(e){faults.push(e.message);m.stop();}};
  return {m,p,c,writes,commands,faults,status,begin,update,tick,time:n=>now=n,now:()=>now,ack:()=>c.runner.emit('ok'),ticket:()=>({...ticket})};
 }
@@ -220,4 +220,63 @@ test('release during touch recovery invalidates its fresh challenge permanently'
  assert.throws(()=>f.p.update({...recovery,x:1,y:0}));
  assert.equal(f.p.busy(),false);assert.equal(f.writes.length,1);
  assert.deepEqual(f.commands,[['jog:stop']]);
+});
+
+test('live tilt preset replaces the planner ceiling only after cancelling queued motion',()=>{
+ const f=fixture();f.begin(2000);f.time(40);f.update(1,0);f.status();f.tick();
+ assert.ok(f.writes.length>0);const count=f.writes.length,token=f.p.active;
+ const lease=f.p.update({...f.ticket(),x:1,y:0,rapid:300});
+ assert.equal(f.p.active,token);assert.equal(f.p.rapid,300);assert.equal(f.p.waitingIdle,true);
+ assert.equal(f.p.segments.length,0);assert.equal(f.writes.length,count);
+ assert.throws(()=>f.p.update({...lease,x:1,y:0,rapid:Infinity}),/valid jog preset/);
+ assert.equal(f.p.active,null);
+});
+
+test('tilt combines XYZ in finite segments within vector feed and all three axis limits',()=>{
+ const f=fixture();f.begin(5000,true);
+ for(let n=0;n<2000;n+=40){
+  f.time(n);f.update(.7,.5,{z:1});
+  if(f.p.segments.length){while(f.p.segments.some(s=>!s.acked))f.ack();f.status(f.p.segments.at(-1).target);}else f.status();f.tick();
+ }
+ assert.ok(f.writes.length>30);assert.equal(f.faults.length,1);assert.ok(f.p.busy());
+ for(const line of f.writes){
+  assert.match(line,/X[\d.]+ Y[\d.]+ Z[\d.]+ F[\d.]+/);
+  const delta=['X','Y','Z'].map(a=>Number(new RegExp(a+'(-?[\\d.]+)').exec(line)?.[1]||0));
+  const feed=Number(/F([\d.]+)/.exec(line)[1]),norm=Math.hypot(...delta);
+  assert.ok(feed<=5000.001);
+  for(let i=0;i<3;i++)assert.ok(Math.abs(delta[i])/norm*feed<=[3000,2000,700][i]+.2);
+ }
+});
+test('finite Z tap completes exactly once while flat and while X/Y tilts',()=>{
+ for(const x of [0,.6]) {
+  const f=fixture();f.begin(600,true);
+  for(let n=0;n<1500;n+=40){
+   f.time(n);f.update(x,0,{zStep:{id:1,distance:.1}});
+   if(f.p.segments.length){while(f.p.segments.some(s=>!s.acked))f.ack();f.status(f.p.segments.at(-1).target);}else f.status();f.tick();
+  }
+  const total=f.writes.reduce((n,line)=>n+Number(/Z(-?[\d.]+)/.exec(line)?.[1]||0),0);
+  assert.ok(Math.abs(total-.1)<1e-9,`Z tap total ${total}`);
+  assert.equal(f.commands.length,0,'completion must not cancel the final step before execution');
+  if(x)assert.ok(f.writes.some(line=>line.includes('X')&&line.includes('Z')));
+  assert.ok(f.p.busy());assert.equal(f.faults.length,1);
+ }
+});
+test('Z release cancels queued Z, preserves the tilt lease and resumes only fresh XY after Idle',()=>{
+ const f=fixture();f.begin(600,true);const token=f.ticket().token;
+ f.update(.5,.5,{z:1});f.tick();f.ack();f.status(undefined,'Jog');
+ f.time(40);f.update(.5,.5,{z:0});f.tick();
+ assert.deepEqual(f.commands,[['jog:stop']]);assert.equal(f.p.active,token);assert.equal(f.writes.length,1);
+ f.time(160);f.update(.5,.5,{z:0});f.status();f.tick();
+ assert.equal(f.writes.length,2);assert.doesNotMatch(f.writes.at(-1),/ Z/);
+});
+test('Z motion rejects invalid input, stale contact and axis-setting changes; ordinary XY cannot inject Z',()=>{
+ for(const input of [{z:1.5},{zStep:{id:1,distance:Infinity}},{zStep:{id:0,distance:1}},{zStep:{id:1,distance:1001}}]){
+  const f=fixture();f.begin(600,true);assert.throws(()=>f.update(0,0,input));assert.equal(f.p.busy(),false);assert.equal(f.writes.length,0);
+ }
+ const plain=fixture();plain.begin();assert.throws(()=>plain.update(0,0,{z:1}));
+ for(const change of ['stall','settings']){
+  const f=fixture();f.begin(600,true);f.update(.5,0,{z:1});f.tick();
+  if(change==='stall'){f.time(300);f.status();}else f.c.settings.settings.$112='500';
+  f.tick();assert.ok(f.commands.some(c=>c[0]==='jog:stop'));assert.equal(f.writes.length,1);
+ }
 });

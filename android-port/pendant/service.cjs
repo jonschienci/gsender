@@ -370,7 +370,7 @@ class Pendant {
         if(body.visible!==true || this.currentNetwork()?.foreground===false)throw Error('gSender screen not active');
         this.disarm('Tablet XY pad selected; knob disarmed');
         this.machine.sync();
-        return this.tabletPad.begin(body.rapid);
+        return this.tabletPad.begin(body.rapid, body.tilt===true);
     }
     beginScan() {
         if (this.port || this.connecting || this.armed || this.probing)

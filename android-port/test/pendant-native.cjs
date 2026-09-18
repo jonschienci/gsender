@@ -45,7 +45,7 @@ process._linkedBinding = name => {
             {path:'android-usb:55:0',vendorId:'303a',productId:'1001',serialNumber:'ACEB',manufacturer:'Simulated ESP'}];
         if(r.op==='open'){
             handles.set(r.session,r.options.path);
-            if(r.options.path==='android-usb:55:0')esp=r.session;else if(r.options.path==='android-usb:42:0')cnc=r.session;else throw Error('Unexpected port');
+            if(r.options.path==='android-usb:55:0')esp=r.session;else if(r.options.path==='android-usb:42:0'){cnc=r.session;introduced=false;}else throw Error('Unexpected port');
             process.send({test:'opened',path:r.options.path});
         }
         queueMicrotask(()=>receive(JSON.stringify({id:r.id,result})));
@@ -67,7 +67,7 @@ process._linkedBinding = name => {
                     else if(data.includes('?')||data.includes('\x87'))status();
                     else if(data.includes('$J=')){
                         if(!allowStream && r.maxQueueMs!==250)throw Error('Finite CNC write lacks queue deadline');
-                        const m=(allowStream?/^\$J=G21G91((?:[XYZ]-?\d+(?:\.\d+)?)+)F(\d+(?:\.\d+)?)\s*$/:/^\$J=G21G91 ((?:[XYZ]-?\d+\.\d+ )+)F(\d+\.\d+)\s*$/).exec(data);
+                        const m=(allowStream?/^\$J=G21G91((?:[XYZ]-?\d+(?:\.\d+)?)+)F(\d+(?:\.\d+)?)\s*$/:/^\$J=G21G91 ((?:[XYZ]-?\d+\.\d+ )+)F(\d+\.\d+)\s*$/).exec(allowStream?data.replace(/\s+/g,''):data);
                         if(!m)throw Error('Not a finite jog: '+data);
                         if(holdCnc)active='Jog';
                         else for(const [,axis,distance] of m[1].matchAll(/([XYZ])(-?\d+(?:\.\d+)?)/g))xyz['XYZ'.indexOf(axis)]+=Number(distance);

@@ -1,4 +1,4 @@
-# Tablet XY touch pad (Build 37)
+# Tablet XY touch pad (Build 38)
 
 The Android normal and pendant jog panels have an **XY controls** switch:
 **Jog buttons** (default) or **XY touch pad**. The selection persists locally.
@@ -66,3 +66,15 @@ APK and simulated asynchronous USB, then verifies Build31 reaches ready, accepts
 finite diagonal XY input, cancels on release, and needs no physical knob. UI
 tests cover the actual switch and touch cancellation. Physical tablet jogging
 remains to be tested.
+
+## Build 38: Precise rim taps
+
+The enlarged pad has an intrinsic square canvas and circular rim, preserving its shape in both orientations. Tap and release in one of the eight outer sectors for exactly one finite step using the saved Precise XY distance/feed. The rim uses the same normal jog utilities and unit conversion as the regular buttons. Holding does not repeat. Movement beyond tap tolerance, another sector, leaving the rim, cancellation, another touch or lifecycle/mode changes suppress the pending step.
+
+Center-started drags retain the existing continuous pad session. Dragging over the rim and releasing never creates an additional tap. The visible center marker is larger. Z/A controls stay available beside the enlarged XY control.
+
+## Build 39: pendant placement
+
+In pendant view the unlabeled switch at the jog card's upper-left selects regular jog buttons when off and the XY pad when on. Its accessible name remains **XY touch pad**. The standard interface keeps the text labels. Changing modes still cancels jogging and saves the preference.
+
+The pendant controls sit beside the DRO in portrait and below it in landscape, with square jog buttons, a circular pad, and additional spacing around controls. Precise rim taps and continuous center dragging retain Build 38's behavior.

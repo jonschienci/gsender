@@ -1,14 +1,13 @@
 import RangeSlider from 'app/components/RangeSlider';
+import SpindlePanel from './SpindlePanel';
 import {
     METRIC_UNITS,
     OVERRIDE_VALUE_RANGES,
-    SPINDLE_MODE,
 } from 'app/constants';
 import { useTypedSelector } from 'app/hooks/useTypedSelector';
 import { useWorkspaceState } from 'app/hooks/useWorkspaceState';
 import controller from 'app/lib/controller';
 import { mapPositionToUnits } from 'app/lib/units';
-import store from 'app/store';
 import type { RootState } from 'app/store/redux';
 import debounce from 'lodash/debounce';
 import get from 'lodash/get';
@@ -18,22 +17,12 @@ const debouncedFeed = debounce(
     (v: number) => controller.command('feedOverride', v),
     750,
 );
-const debouncedSpindle = debounce(
-    (v: number) => controller.command('spindleOverride', v),
-    1000,
-);
-
 let globalOvTimestamp = 0;
 let globalLocalOvFTimestamp = 0;
-let globalLocalOvSTimestamp = 0;
 
 const debouncedOvFUpdate = debounce((ovF: number, set: (v: number) => void) => {
     if (globalOvTimestamp > globalLocalOvFTimestamp) set(ovF);
 }, 1000);
-const debouncedOvSUpdate = debounce((ovS: number, set: (v: number) => void) => {
-    if (globalOvTimestamp > globalLocalOvSTimestamp) set(ovS);
-}, 1000);
-
 export default function FeedOverrideWrapper() {
     const status = useTypedSelector((s: RootState) =>
         get(s, 'controller.state.status', {}),
@@ -41,118 +30,58 @@ export default function FeedOverrideWrapper() {
     const isConnected = useTypedSelector(
         (s: RootState) => s.connection.isConnected,
     );
-    const { units, spindleFunctions } = useWorkspaceState();
-
-    const [spindleLabel, setSpindleLabel] = useState(
-        store.get('widgets.spindle.mode') === SPINDLE_MODE
-            ? 'Spindle'
-            : 'Laser',
-    );
-
-    useEffect(() => {
-        const handler = () => {
-            setSpindleLabel(
-                store.get('widgets.spindle.mode', SPINDLE_MODE) === SPINDLE_MODE
-                    ? 'Spindle'
-                    : 'Laser',
-            );
-        };
-        store.on('change', handler);
-        return () => {
-            store.removeListener('change', handler);
-        };
-    }, []);
+    const { units } = useWorkspaceState();
 
     const ov: number[] = status.ov ?? [100, 100, 100];
     const ovF = ov[0];
-    const ovS = ov[2];
     const ovTimestamp = status.ovTimestamp ?? 0;
     let feedrate = status.feedrate ?? '0';
-    const spindle = status.spindle ?? '0';
 
     globalOvTimestamp = ovTimestamp;
 
     const [localOvF, setLocalOvF] = useState(ovF);
-    const [localOvS, setLocalOvS] = useState(ovS);
 
     useEffect(() => {
         debouncedOvFUpdate(ovF, setLocalOvF);
     }, [ovF]);
-    useEffect(() => {
-        debouncedOvSUpdate(ovS, setLocalOvS);
-    }, [ovS]);
 
     const unitString = `${units}/min`;
     if (units !== METRIC_UNITS) feedrate = mapPositionToUnits(feedrate, units);
 
     return (
-        <div
-            className={
-                spindleFunctions
-                    ? 'grid grid-cols-1 grid-rows-2 gap-4'
-                    : 'flex justify-center items-center'
-            }
-        >
-            <RangeSlider
-                id="feed-override"
-                step={10}
-                min={OVERRIDE_VALUE_RANGES.MIN}
-                max={OVERRIDE_VALUE_RANGES.MAX}
-                value={feedrate}
-                percentage={[localOvF]}
-                defaultPercentage={[100]}
-                showText
-                title="Feed"
-                unitString={unitString}
-                colour={isConnected ? 'bg-blue-400' : 'bg-gray-500'}
-                disabled={!isConnected}
-                onChange={(vals) => {
-                    setLocalOvF(vals[0]);
-                    globalLocalOvFTimestamp = Date.now();
-                }}
-                onButtonPress={(vals) => {
-                    setLocalOvF(vals[0]);
-                    globalLocalOvFTimestamp = Date.now();
-                    debouncedFeed(vals[0]);
-                }}
-                onLostPointerCapture={() => {
-                    debouncedFeed(localOvF);
-                }}
-            />
-            {spindleFunctions && (
+        <div className="android-feed-spindle">
+            <div className="android-feed-slider">
                 <RangeSlider
-                    id="spindle-override"
+                    id="feed-override"
                     step={10}
                     min={OVERRIDE_VALUE_RANGES.MIN}
                     max={OVERRIDE_VALUE_RANGES.MAX}
-                    value={spindle}
-                    percentage={[localOvS]}
+                    value={feedrate}
+                    percentage={[localOvF]}
                     defaultPercentage={[100]}
                     showText
-                    title={spindleLabel}
-                    unitString={spindleLabel === 'Laser' ? 'Power' : 'RPM'}
-                    colour={
-                        isConnected
-                            ? spindleLabel === 'Laser'
-                                ? 'bg-purple-400'
-                                : 'bg-red-400'
-                            : 'bg-gray-500'
-                    }
+                    title="Feed"
+                    unitString={unitString}
+                    colour={isConnected ? 'bg-blue-400' : 'bg-gray-500'}
                     disabled={!isConnected}
                     onChange={(vals) => {
-                        setLocalOvS(vals[0]);
-                        globalLocalOvSTimestamp = Date.now();
+                        setLocalOvF(vals[0]);
+                        globalLocalOvFTimestamp = Date.now();
                     }}
                     onButtonPress={(vals) => {
-                        setLocalOvS(vals[0]);
-                        globalLocalOvSTimestamp = Date.now();
-                        debouncedSpindle(vals[0]);
+                        setLocalOvF(vals[0]);
+                        globalLocalOvFTimestamp = Date.now();
+                        debouncedFeed(vals[0]);
                     }}
-                    onPointerUp={() => {
-                        debouncedSpindle(localOvS);
+                    onLostPointerCapture={() => {
+                        debouncedFeed(localOvF);
                     }}
                 />
-            )}
+
+            </div>
+            <div className="android-inline-spindle">
+                <SpindlePanel mode="expanded" />
+            </div>
         </div>
     );
 }

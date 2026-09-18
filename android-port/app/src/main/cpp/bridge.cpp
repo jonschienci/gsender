@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 #include <cstring>
+#include <android/log.h>
+#include "memory-budget.h"
 
 namespace {
 JavaVM* vm = nullptr;
@@ -21,6 +23,23 @@ bool active = false;
 v8::Isolate* isolate = nullptr;
 v8::Global<v8::Context> context;
 v8::Global<v8::Function> listener;
+gsender::MemoryBudget memoryBudget{};
+
+void GetMemoryBudget(const v8::FunctionCallbackInfo<v8::Value>& args) {
+    auto* current = args.GetIsolate();
+    auto ctx = current->GetCurrentContext();
+    auto result = v8::Object::New(current);
+    auto field = [&](const char* name, uint64_t value) {
+        result->Set(ctx, v8::String::NewFromUtf8(current, name).ToLocalChecked(),
+            v8::Number::New(current, static_cast<double>(value))).Check();
+    };
+    field("totalMiB", memoryBudget.totalMiB);
+    field("systemReserveMiB", memoryBudget.systemReserveMiB);
+    field("appPlanningMiB", memoryBudget.appPlanningMiB);
+    field("oldSpaceMiB", memoryBudget.oldSpaceMiB);
+    field("processBits", memoryBudget.processBits);
+    args.GetReturnValue().Set(result);
+}
 
 void Send(const v8::FunctionCallbackInfo<v8::Value>& args) {
     if (args.Length() != 1 || !args[0]->IsString()) return;
@@ -66,6 +85,7 @@ void Initialize(v8::Local<v8::Object> exports, v8::Local<v8::Value>, v8::Local<v
     { std::lock_guard<std::mutex> lock(mutex); active = true; }
     NODE_SET_METHOD(exports, "send", Send);
     NODE_SET_METHOD(exports, "subscribe", Subscribe);
+    NODE_SET_METHOD(exports, "memoryBudget", GetMemoryBudget);
     node::AddEnvironmentCleanupHook(isolate, Cleanup, nullptr);
 }
 NODE_MODULE_LINKED(gsender_usb, Initialize)
@@ -79,10 +99,13 @@ Java_com_gsender_android_NativeRuntime_start(JNIEnv* env, jobject self, jstring 
     const char* path = env->GetStringUTFChars(entry, nullptr);
     // node::Start expects argv strings in writable contiguous memory.
     std::string script(path); env->ReleaseStringUTFChars(entry, path);
-    // Double the old-generation budget for large jobs on the 2 GiB Lenovo.
-    // This is a ceiling, not a reservation; native buffers and WebView use
-    // additional memory outside this heap.
-    std::string flags = "--max-old-space-size=768";
+    memoryBudget = gsender::ChooseMemoryBudget(uv_get_total_memory() / (1024 * 1024), sizeof(void*) * 8);
+    __android_log_print(ANDROID_LOG_INFO, "gSenderMemory",
+        "RAM=%llu MiB app-planning=%llu MiB V8-old-space=%llu MiB process=%u-bit",
+        static_cast<unsigned long long>(memoryBudget.totalMiB),
+        static_cast<unsigned long long>(memoryBudget.appPlanningMiB),
+        static_cast<unsigned long long>(memoryBudget.oldSpaceMiB), memoryBudget.processBits);
+    std::string flags = "--max-old-space-size=" + std::to_string(memoryBudget.oldSpaceMiB);
     std::vector<char> storage(5 + flags.size() + 1 + script.size() + 1);
     char* argv[3]; argv[0] = storage.data(); std::strcpy(argv[0], "node");
     argv[1] = argv[0] + 5; std::strcpy(argv[1], flags.c_str());

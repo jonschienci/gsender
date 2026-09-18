@@ -1,10 +1,12 @@
 'use strict';
 
-// The SLB uses STM32 CDC USB. Restrict automatic selection to its first serial
-// interface; ESP USB knobs and other serial adapters still require manual use.
+// Known SLB-family CDC identities: STM32 SLBs and Pico-based SLB-Lite.
+// These MCU IDs are shared with other firmware; the normal GrblHAL connection
+// handshake still applies. Match only the first serial port, never an entire
+// USB vendor or a flashing/bootloader identity. Keep the Android filter in sync.
+const SLB_USB_IDS = new Set(['0483:5740', '2e8a:000a']);
 const isSlb = port => /^android-usb:\d+:0$/.test(port.path || '') &&
-    String(port.vendorId).toLowerCase() === '0483' &&
-    String(port.productId).toLowerCase() === '5740';
+    SLB_USB_IDS.has(`${String(port.vendorId).toLowerCase()}:${String(port.productId).toLowerCase()}`);
 
 class SlbAutoConnect {
     constructor({ list, getConnection, getOpener, report = () => {}, now = Date.now }) {

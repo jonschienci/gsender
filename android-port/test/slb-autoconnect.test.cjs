@@ -1,7 +1,14 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { SlbAutoConnect, isSlb } = require('../runtime/slb-autoconnect.cjs');
-const slb = id => ({ path: `android-usb:${id}:0`, vendorId: '0483', productId: '5740', usbPermission: true });
+const fs = require('node:fs'), path = require('node:path');
+const families = [
+    { name:'STM32 SLB', vendorId:'0483', productId:'5740' },
+    // K90 USB history: decimal VID 11914, PID 10; descriptor is Raspberry Pi Pico.
+    { name:'Pico SLB-Lite', vendorId:'2e8a', productId:'000a' },
+];
+const device = (family, id) => ({ path:`android-usb:${id}:0`, ...family, usbPermission:true });
+const slb = id => device(families[0], id);
 function fixture() {
     const f = { ports: [], connection: null, calls: [], ui: true, now: 0 };
     f.connector = new SlbAutoConnect({
@@ -12,15 +19,24 @@ function fixture() {
     return f;
 }
 test('SLB identity excludes ESP knobs, other adapters, desktop paths and extra interfaces', () => {
-    assert.ok(isSlb(slb(42)));
+    for (const family of families) {
+        assert.ok(isSlb(device(family,42)));
+        assert.ok(isSlb({...device(family,42),vendorId:family.vendorId.toUpperCase(),productId:family.productId.toUpperCase()}));
+    }
     for (const p of [
         { ...slb(42), vendorId: '303a', productId: '1001' },
         { ...slb(42), productId: '0000' },
+        ...['0003','000f','0005','0009','0001'].map(productId=>({...device(families[1],42),productId})),
+        { ...device(families[1],42), path:'android-usb:42:1' },
+        { ...device(families[1],42), path:'/dev/ttyACM0' },
         { ...slb(42), path: '/dev/ttyACM0' },
         { ...slb(42), path: 'android-usb:42:1' },
     ]) assert.equal(isSlb(p), false);
 });
-test('opens an attached SLB once, then reconnects using its new Android USB path', async () => {
+for (const family of families) {
+const slb = id => device(family,id);
+const familyTest = (name, fn) => test(family.name + ': ' + name, fn);
+familyTest('opens an attached SLB once, then reconnects using its new Android USB path', async () => {
     const f = fixture(); f.ports = [slb(42)];
     await f.connector.scan();
     assert.equal(f.calls.length, 1);
@@ -31,7 +47,7 @@ test('opens an attached SLB once, then reconnects using its new Android USB path
     f.connection = null; f.ports = [slb(43)];
     await f.connector.scan(); assert.equal(f.calls[1][0], 'android-usb:43:0');
 });
-test('manual disconnect and permission denial stay suppressed until detach', async () => {
+familyTest('manual disconnect and permission denial stay suppressed until detach', async () => {
     const f = fixture(); f.ports = [slb(42)];
     f.connector.suppress(slb(42).path);
     await f.connector.scan(); assert.equal(f.calls.length, 0);
@@ -44,13 +60,13 @@ test('manual disconnect and permission denial stay suppressed until detach', asy
     f.connector.open((...args) => f.calls.push(args), slb(42).path, {}, () => {});
     assert.equal(f.calls.length, 2);
 });
-test('does not replace a manual/active connection, select multiple SLBs, or open without a UI', async () => {
+familyTest('does not replace a manual/active connection, select multiple SLBs, or open without a UI', async () => {
     const f = fixture(); f.ports = [slb(42)]; f.connection = {};
     await f.connector.scan(); f.connection = null; f.ui = false;
     await f.connector.scan(); f.ui = true; f.ports.push(slb(43));
     await f.connector.scan(); assert.equal(f.calls.length, 0);
 });
-test('pending permission blocks duplicate manual opens; old close callbacks cannot unlock a new open', async () => {
+familyTest('pending permission blocks duplicate manual opens; old close callbacks cannot unlock a new open', async () => {
     const f = fixture(); f.ports = [slb(42)]; await f.connector.scan();
     let error;
     f.connector.open(() => assert.fail('duplicate open'), slb(42).path, {}, e => { error = e; });
@@ -60,7 +76,7 @@ test('pending permission blocks duplicate manual opens; old close callbacks cann
     assert.ok(f.connector.opening);
     f.calls[1][2](null); assert.equal(f.connector.opening, null);
 });
-test('failed scans preserve suppression; delayed scans do not connect after stop or UI departure', async () => {
+familyTest('failed scans preserve suppression; delayed scans do not connect after stop or UI departure', async () => {
     const f = fixture(); f.connector.suppress(slb(42).path);
     f.connector.list = async () => { throw new Error('enumeration failed'); };
     await f.connector.scan(); assert.ok(f.connector.attachments.has(slb(42).path));
@@ -72,7 +88,7 @@ test('failed scans preserve suppression; delayed scans do not connect after stop
     assert.equal(f.calls.length, 0);
 });
 
-test('unexpected disconnect retries the same attachment; failed opens back off to 30 seconds', async () => {
+familyTest('unexpected disconnect retries the same attachment; failed opens back off to 30 seconds', async () => {
     const f = fixture(); f.ports = [slb(42)];
     await f.connector.scan(); f.connection = {}; f.calls[0][2](null);
     f.now = 10000; f.connection = null; f.connector.disconnected(slb(42).path);
@@ -88,7 +104,7 @@ test('unexpected disconnect retries the same attachment; failed opens back off t
     f.now += 100000; await f.connector.scan();
     assert.equal(f.calls.length, 8, 'Successful recovery ends retries');
 });
-test('automatic scans wait silently for a grant and never request Android permission', async () => {
+familyTest('automatic scans wait silently for a grant and never request Android permission', async () => {
     const f = fixture(); f.ports = [{...slb(42), usbPermission:false}];
     for (let i=0; i<5; i++) { f.now += 30000; await f.connector.scan(); }
     assert.equal(f.calls.length, 0);
@@ -99,4 +115,23 @@ test('automatic scans wait silently for a grant and never request Android permis
     f.ports[0].usbPermission = false; f.now += 30000;
     await f.connector.scan(); assert.equal(f.calls.length, 1);
     f.ports[0].usbPermission = true; await f.connector.scan(); assert.equal(f.calls.length, 2);
+});
+
+}
+
+test('mixed STM32 and Pico boards require manual selection; a knob does not prevent a single Lite connection', async () => {
+    const f=fixture();f.ports=families.map((family,i)=>device(family,42+i));
+    await f.connector.scan();assert.equal(f.calls.length,0);
+    f.ports=[device(families[1],43),{path:'android-usb:99:0',vendorId:'303a',productId:'1001'}];
+    await f.connector.scan();assert.equal(f.calls.length,1);assert.equal(f.calls[0][0],'android-usb:43:0');
+});
+test('Android attachment filters match the supported CDC identities without vendor-wide claims', () => {
+    const xml=fs.readFileSync(path.join(__dirname,'../app/src/main/res/xml/slb_device_filter.xml'),'utf8');
+    const filters=[...xml.matchAll(/<usb-device\s+([^>]+)\/>/g)].map(match=>{
+        const attrs=Object.fromEntries([...match[1].matchAll(/([\w-]+)="([^"]+)"/g)].map(m=>[m[1],m[2]]));
+        assert.deepEqual(Object.keys(attrs).sort(),['product-id','vendor-id']);
+        return {vendorId:Number(attrs['vendor-id']).toString(16).padStart(4,'0'),productId:Number(attrs['product-id']).toString(16).padStart(4,'0')};
+    });
+    assert.deepEqual(filters,families.map(({vendorId,productId})=>({vendorId,productId})));
+    for(const filter of filters)assert.ok(isSlb({path:'android-usb:42:0',...filter}));
 });

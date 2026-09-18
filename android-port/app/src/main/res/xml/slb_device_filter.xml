@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- SLB STM32 CDC: 0483:5740. Do not claim the USB knob or unrelated devices. -->
+    <!-- Normal CDC identities: keep in sync with runtime/slb-autoconnect.cjs. -->
+    <!-- STM32 SLB family: 0483:5740. -->
     <usb-device vendor-id="1155" product-id="22336" />
+    <!-- Pico-based SLB-Lite: 2e8a:000a, confirmed in the K90 USB history. -->
+    <usb-device vendor-id="11914" product-id="10" />
 </resources>

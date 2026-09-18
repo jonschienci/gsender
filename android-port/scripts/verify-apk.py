@@ -19,7 +19,12 @@ with zipfile.ZipFile(apk) as zip:
             library = zip.read(f'lib/{abi}/libnode.so')
             assert ('v' + args.runtime_version).encode() in library, 'Runtime version not found in native library'
             # Gradle strips native debug symbols; source provenance hashes the unstripped input.
-            assert info['abi'] == abi, 'Runtime provenance architecture mismatch'
+            provenance = info.get('runtimes', {}).get(abi, info)
+            assert provenance['abi'] == abi, 'Runtime provenance architecture mismatch'
+            assert provenance['version'] == info['version'], 'Mixed Node versions'
+            elf_class, machine = {'armeabi-v7a': (1, 40), 'arm64-v8a': (2, 183)}[abi]
+            assert library[:4] == b'\x7fELF' and library[4] == elf_class and library[5] == 1
+            assert int.from_bytes(library[18:20], 'little') == machine, 'Native library architecture mismatch'
     for abi in abis:
         for library in ('libnode.so', 'libgsender_bridge.so', 'libc++_shared.so'):
             assert f'lib/{abi}/{library}' in zip.namelist(), f'Missing {abi}/{library}'

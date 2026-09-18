@@ -48,16 +48,17 @@ test('pendant move cannot be queued behind a stalled ordinary USB write', async 
     assert.equal(r.sent.filter(m=>m.op==='write').length,1);
     finish();await pending;await close(r.port);r.dispose();
 });
-test('bounded XY diagonal is allowed but combined XYZ, duplicate axes and command injection are not',async()=>{
+test('bounded ordered XYZ combinations are allowed; duplicate axes and command injection are rejected',async()=>{
     const r=rig();await open(r.port);
     await bounded(r.port,'$J=G21G91 X-0.5000 Y0.5000 F600.000\n');
-    for(const text of ['$J=G21G91 X1.0000 Y1.0000 Z1.0000 F600.000\n',
+    for (const axes of ['X1.0000 Y1.0000 Z-1.0000','X1.0000 Z1.0000','Y1.0000 Z1.0000','Z1.0000']) await bounded(r.port, '$J=G21G91 '+axes+' F600.000\n');
+    for(const text of ['$J=G21G91 Z1.0000 X1.0000 F600.000\n',
         '$J=G21G91 X1.0000 X1.0000 F600.000\n','$J=G21G91 Y1.0000 X1.0000 F600.000\n',
         '$J=G21G91 X1.0000 F600.000\n\n','$J=G21G91 X1.0000 F600.000\nM3\n',
         '$J=G90 X1.0000 F600.000\n'])await assert.rejects(bounded(r.port,text),/finite/);
     const bad=Buffer.from('$J=G21G91 X1.0000 F600.000\n');bad[0]|=128;
     await assert.rejects(bounded(r.port,bad),/finite/);
-    const writes=r.sent.filter(m=>m.op==='write');assert.equal(writes.length,1);assert.equal(writes[0].maxQueueMs,250);
+    const writes=r.sent.filter(m=>m.op==='write');assert.equal(writes.length,5);assert.ok(writes.every(w=>w.maxQueueMs===250));
     await close(r.port);r.dispose();
 });
 test('expired native pendant write fails without any resend', async () => {

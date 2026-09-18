@@ -18,7 +18,10 @@ public final class MainActivity extends Activity {
     private ValueCallback<Uri[]> fileCallback;
     private byte[] export;
     private boolean loaded;
+    private boolean visualizerBenchmark;
     private KnobQrFlow qr;
+    private TiltSensor tiltSensor;
+    private boolean resumed;
     private final Runnable poll = new Runnable() {
         public void run() {
             status.setText(EngineService.status);
@@ -36,7 +39,8 @@ public final class MainActivity extends Activity {
                     }
                     EngineService.uiStatus = "UI session initialized; waiting for connection";
                     // Bypass an index.html cached by older builds; asset caching stays enabled.
-                    web.loadUrl(address + "/" + "?launch=" + android.os.SystemClock.elapsedRealtime(),
+                    final String benchmark = visualizerBenchmark ? "&benchmark=visualizer" : "";
+                    web.loadUrl(address + "/" + "?launch=" + android.os.SystemClock.elapsedRealtime() + benchmark,
                         java.util.Collections.singletonMap("X-gSender-Key", key));
                 });
             }
@@ -46,7 +50,9 @@ public final class MainActivity extends Activity {
     };
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        visualizerBenchmark = getIntent().getBooleanExtra("visualizer_benchmark", false);
         qr = new KnobQrFlow(this);
+        tiltSensor = new TiltSensor(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         status = new TextView(this); status.setPadding(16, 12, 16, 12); layout.addView(status);
@@ -66,7 +72,7 @@ public final class MainActivity extends Activity {
         settings.setTextZoom(100); settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
-            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { if (qr != null) qr.cancel(); }
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { if (qr != null) qr.cancel(); if (tiltSensor != null) tiltSensor.stop(); }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 if (local(request.getUrl()) && "/native/knob-pair".equals(request.getUrl().getPath())) {
                     // A fixed first-party navigation from an explicit tap, not a general camera JS bridge.
@@ -89,6 +95,16 @@ public final class MainActivity extends Activity {
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
+            @Override public boolean onConsoleMessage(ConsoleMessage message) {
+                // Opt-in local telemetry, without enabling remote WebView debugging.
+                if (visualizerBenchmark
+                    && message.message().startsWith("GSENDER_VISUALIZER_BENCHMARK ")
+                    && message.message().length() <= 3500) {
+                    android.util.Log.i("gSenderBench", message.message());
+                    return true;
+                }
+                return super.onConsoleMessage(message);
+            }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
@@ -96,6 +112,17 @@ public final class MainActivity extends Activity {
                 startActivityForResult(intent, 10); return true;
             }
         });
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface public boolean available() { return tiltSensor.available(); }
+            @JavascriptInterface public String sample() { return tiltSensor.sample(); }
+            @JavascriptInterface public void start() {
+                runOnUiThread(() -> {
+                    if (resumed && !isFinishing() && !isDestroyed() && web.hasWindowFocus()
+                        && local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) tiltSensor.start();
+                });
+            }
+            @JavascriptInterface public void stop() { runOnUiThread(() -> tiltSensor.stop()); }
+        }, "AndroidTilt");
         web.addJavascriptInterface(new Object() {
             @JavascriptInterface public void jogPress() {
                 runOnUiThread(() -> {
@@ -184,7 +211,13 @@ public final class MainActivity extends Activity {
             }, "gsender-export").start();
         }
     }
+    @Override public void onWindowFocusChanged(boolean focus) {
+        super.onWindowFocusChanged(focus);
+        if (!focus && tiltSensor != null) tiltSensor.stop();
+    }
     @Override protected void onPause() {
+        resumed = false;
+        if (tiltSensor != null) tiltSensor.stop();
         if (qr != null) qr.pause();
         EngineService.foreground(false);
         // Revoke pendant arming when Android backgrounds the app or covers it
@@ -194,11 +227,13 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
+        resumed = true;
         if (qr != null) qr.resume();
         EngineService.foreground(true);
         if (web != null) web.evaluateJavascript("window.__usbKnobActive=true;window.dispatchEvent(new Event('usb-knob-visibility'));", null);
     }
     @Override protected void onDestroy() {
+        if (tiltSensor != null) tiltSensor.stop();
         if (qr != null) qr.destroy();
         handler.removeCallbacks(poll);
         if (fileCallback != null) fileCallback.onReceiveValue(null);

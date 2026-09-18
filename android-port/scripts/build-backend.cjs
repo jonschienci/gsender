@@ -12,10 +12,11 @@ const replace = (source, from, to) => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
         bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
-        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.6.4-android.37-prototype"','global.METRICS_ENDPOINT':'""'},
+        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.6.4-android.47-prototype"','global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
+                build.onResolve({filter:/^android-job-lines$/},()=>({path:path.join(runtime,'job-lines.cjs')}));
                 build.onResolve({filter:/^android-slb-autoconnect$/},()=>({path:path.join(runtime,'slb-autoconnect.cjs')}));
                 build.onResolve({filter:/^android-usb-pendant$/},()=>({path:path.join(root,'android-port/pendant/service.cjs')}));
                 build.onResolve({filter:/^(electron|electron-log)$/}, args=>({path:path.join(runtime,aliases[args.path])}));
@@ -25,6 +26,9 @@ const replace = (source, from, to) => {
                 build.onResolve({filter:/^(server|app)\//},args=>({path:require.resolve(path.join(root,'src',args.path))}));
                 build.onLoad({filter:/src\/server\/.*\.js$/},args=>{
                     let s=fs.readFileSync(args.path,'utf8');
+                    s=require('./controller-startup.cjs').transform(s,args.path);
+                    s=require('./job-memory.cjs').transform(s,args.path);
+                    s=require('./network-close.cjs').transform(s,args.path);
                     if(args.path.endsWith('lib/logger.js')) s=replace(s, 'acc[level] = function(...args) {', 'acc[level] = function(...args) { if (!logger.isLevelEnabled(level)) return;');
                     if(args.path.endsWith('lib/Connection.js')) s=replace(s, 'path: port,', 'path: port, requestPermission: options.requestPermission !== false,');
                     if(args.path.endsWith('lib/SerialConnection.js')) s=replace(s, 'this.port.write(Buffer.from(data));',

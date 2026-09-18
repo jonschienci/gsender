@@ -1,6 +1,9 @@
 plugins { id 'com.android.application' }
 def nodeRuntimeRoot = providers.gradleProperty('nodeRuntimeRoot').map { file(it) }.getOrElse(rootProject.file('vendor/node'))
-def nodeRuntimeAbis = providers.gradleProperty('nodeRuntimeAbis').getOrElse('arm64-v8a,armeabi-v7a').split(',')
+def availableNodeAbis = ['arm64-v8a', 'armeabi-v7a'].findAll { new File(nodeRuntimeRoot, "bin/${it}/libnode.so").isFile() }
+def nodeRuntimeAbis = providers.gradleProperty('nodeRuntimeAbis').getOrElse(availableNodeAbis.join(',')).split(',').collect { it.trim() }
+if (nodeRuntimeAbis.any { !availableNodeAbis.contains(it) }) throw new GradleException('Requested Node runtime ABI is missing from ' + nodeRuntimeRoot)
+if (!nodeRuntimeAbis.contains('arm64-v8a')) logger.warn('Using a 32-bit-only Node runtime. ARM64 tablets cannot use the larger 64-bit memory budget until an arm64-v8a library is provided.')
 def nodeCppStandard = providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '-std=c++20' : '-std=c++17'
 android {
     namespace 'com.gsender.android'
@@ -11,8 +14,8 @@ android {
         applicationId 'com.gsender.android'
         minSdk 26
         targetSdk 35
-        versionCode 37
-        versionName (providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '1.6.4-android.37-node24-prototype' : '1.6.4-android.37-node18')
+        versionCode 47
+        versionName (providers.gradleProperty('nodeRuntimeRoot').isPresent() ? '1.6.4-android.47-node24-prototype' : '1.6.4-android.47-node18')
         resValue 'string', 'app_name', "gSender Android Build ${versionCode}"
         ndk { abiFilters.addAll(nodeRuntimeAbis) }
         externalNativeBuild { cmake { cppFlags nodeCppStandard; arguments '-DANDROID_STL=c++_shared', "-DNODE_ROOT=${nodeRuntimeRoot.absolutePath}" } }

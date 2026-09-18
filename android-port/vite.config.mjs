@@ -5,6 +5,8 @@ import xyPadUi from './scripts/xy-pad-ui.cjs';
 import jogTouchUi from './scripts/jog-touch-ui.cjs';
 import performanceUi from './scripts/performance-ui.cjs';
 import path from 'node:path';
+import {readFileSync} from 'node:fs';
+const jogLayoutCss=readFileSync(new URL('./ui/jog-layout.css',import.meta.url),'utf8');
 import react from '@vitejs/plugin-react';
 import tailwindcss from 'tailwindcss';
 import tsconfigPaths from 'vite-tsconfig-paths';
@@ -24,17 +26,14 @@ export default defineConfig({
         if (code.split(start).length !== 2) throw new Error('Pendant jog press handler changed');
         return {code: code.replace(start, start + ' try { (window as any).AndroidHaptics?.jogPress(); } catch {}'), map:null};
     } }, { name: 'android-knob-connection-location', enforce: 'pre', transform(code, id) {
-        const marker = id.endsWith('/components/PendantTopBar.tsx') ? '<ConnectionWidget />'
-            : id.endsWith('/workspace/TopBar/index.tsx') ? '<Connection />' : null;
-        if (!marker) return;
+        // Pendant uses its own CNC knob drawer tab; retain the desktop launcher.
+        if (!id.endsWith('/workspace/TopBar/index.tsx')) return;
+        const marker = '<Connection />';
         if (!code.includes(marker)) throw new Error('Board connection component changed');
         code = code.replace(marker, '<div style={{display:"inline-flex", alignItems:"center", gap:16, flexWrap:"nowrap", flexShrink:0}}>' + marker + '<span id="android-usb-knob-anchor" style={{display:"inline-flex", flexShrink:0}} /></div>');
-        if (id.endsWith('/components/PendantTopBar.tsx')) {
-            code = code.replace('absolute left-1/2 -translate-x-1/2 pointer-events-none', 'relative pointer-events-none');
-            code = code.replace('h-14 px-3 flex items-center gap-3', 'min-h-14 py-2 px-3 flex flex-wrap items-center gap-3');
-        }
         return {code, map:null};
     } }, { name: 'android-tablet-viewport' , transformIndexHtml(html) {
+        html=html.replace('<head>','<head><style id="android-jog-layout">'+jogLayoutCss+'</style>');
         html = html.replace(/(<meta[^>]*name="viewport"[^>]*content=")[^"]*/, '$1' + (pendant ? 'width=1280, user-scalable=no' : 'width=1280, user-scalable=no'));
         if (pendant) return html.replace('<head>', `<head><script>
             (() => {
@@ -49,5 +48,5 @@ export default defineConfig({
     } }, tsconfigPaths(), react(), patchCssModules(), nodePolyfills({include:['process'],globals:{global:true,process:true}}),
         { name: 'android-local-telemetry', load(id) { if (/\/sentry-config\.[jt]s$/.test(id)) return 'export {};'; } }],
     resolve: { alias: { 'app-root': root, app: path.join(root, 'src/app/src'), '@': path.join(root, 'src/app/src') } },
-    build: { commonjsOptions: { include: [/node_modules/, /android-port\/ui\/pad-vector\.cjs$/] }, target: 'chrome87', outDir: path.join(root,'android-port/build/payload', pendant ? 'pendant' : 'app'), emptyOutDir: true, sourcemap: false },
+    build: { commonjsOptions: { include: [/node_modules/, /android-port\/ui\/(pad-vector|tilt-session)\.cjs$/] }, target: 'chrome87', outDir: path.join(root,'android-port/build/payload', pendant ? 'pendant' : 'app'), emptyOutDir: true, sourcemap: false },
 });

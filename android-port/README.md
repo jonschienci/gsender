@@ -2,6 +2,8 @@
 
 Android host for gSender's existing desktop and pendant interfaces, Node backend, and direct USB serial connection to a CNC controller. The Android-specific code lives in this directory; upstream source is adapted only at bundle time.
 
+Current build: [Build 47](BUILD-47.md), including the authorized UI update, Pico SLB-Lite automatic connection, and retained Build 46 job-performance changes.
+
 ## Target and status
 
 Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through USB OTG. The application supports arm64-v8a and armeabi-v7a, minimum Android 26. Machine control, EEPROM editing, and reconnect across app restarts have been confirmed on earlier development builds. This branch ports that work onto upstream `dev`; it is a development build, not a validated production machine-control release. Current provenance is recorded in `upstream.json`.
@@ -45,7 +47,7 @@ For each new distributed build, increment the version code and version strings a
 
 ## Use
 
-Starting with Build 20, unplug and reconnect the SLB after installation, choose **gSender Android** in Android's USB dialog, and enable its **Always** / **Use by default** choice. Android still requires this initial approval; the app cannot grant itself USB permission. Once gSender is the default handler, subsequent attachments can connect without another permission request. The existing activity is reused when Android delivers an attachment, preserving the WebView and backend. A board already attached when gSender starts also connects if Android has granted access. Automatic selection requires exactly one device with the SLB's STM32 CDC identity (`0483:5740`, first serial interface), an authenticated UI connection, and no active or pending board connection. Other serial controllers still use gSender's connection selector.
+Starting with Build 20, unplug and reconnect the SLB after installation, choose **gSender Android** in Android's USB dialog, and enable its **Always** / **Use by default** choice. Android still requires this initial approval; the app cannot grant itself USB permission. Once gSender is the default handler, subsequent attachments can connect without another permission request. The existing activity is reused when Android delivers an attachment, preserving the WebView and backend. A board already attached when gSender starts also connects if Android has granted access. Automatic selection requires exactly one supported SLB-family USB candidate on its first serial interface, an authenticated UI connection, and no active or pending board connection. Build 47 recognizes STM32 CDC (`0483:5740`) and Pico CDC (`2e8a:000a`) for SLB-Lite, and registers both in Android's USB attachment filter. These IDs identify CDC firmware families, not a unique board model, so the normal GrblHAL initialization still applies. Other USB identities use gSender's connection selector.
 
 Unexpected disconnects reconnect automatically, including transport failures where the USB device remains attached at the same address. Failed opens back off from 2 to 30 seconds. Selecting Disconnect keeps that attachment disconnected until it is unplugged and replugged; manual Connect remains available. Automatic attempts never request Android permission: they wait for an existing grant and resume when it becomes available. If the default has been cleared or access is missing, replug and choose gSender again, or select manual Connect to request access. A denied or abandoned manual permission prompt is respected until replug or another manual Connect. Autoconnect uses the existing gSender controller initialization and does not issue jog, homing, unlock, or job-start commands or automatically resume an interrupted job. The pendant connection button follows the shared connection state, including automatic connections and interface reloads.
 
@@ -187,3 +189,35 @@ See [Build 36 release notes](BUILD-36.md) for acceleration-aware XY buffering, q
 ## Build 37: touch recovery and Bluetooth without location access
 
 See [Build 37 release notes](BUILD-37.md) for XY touch recovery, direct QR-based Bluetooth connection and validation.
+
+## Build 38: circular pad with Precise rim steps
+
+See [Build 38 release notes](BUILD-38.md) for single-step rim taps, preserved center dragging and larger square pendant jog controls.
+
+## Build 39: tablet pendant layout
+
+See [Build 39 release notes](BUILD-39.md) for the landscape/portrait arrangement, spaced jog controls, DRO selectors, collapsible Status strip and bottom navigation tray toggle.
+
+## Build 40: header fit and CNC knob tray
+
+See [Build 40 release notes](BUILD-40.md) for the compact header, landscape DRO overflow fix, adaptive wider jog layout and CNC knob tab beside Console.
+
+## Build 41: tilt jogging and jog card refinement
+
+See [Build 41 release notes](BUILD-41.md) for sensor-based Tilt jog with flat neutral and selected preset speed, the narrower jog card, left-side A-axis buttons in landscape, and removal of the XY speed readout.
+
+## Build 42: lock orientation during Tilt jog
+
+See [Build 42 release notes](BUILD-42.md) for the temporary screen rotation lock that preserves the current perspective while Tilt jog is enabled.
+
+## Build 43: tilt compatibility, Z handover and startup recovery
+
+See [Build 43 release notes](BUILD-43.md) for independent sensor sampling, live speed-preset changes, Z jogging while tilt remains enabled, interrupted controller initialization recovery and the wider portrait DRO.
+
+## Build 44: simultaneous tilt and Z, compact readiness light
+
+See [Build 44 release notes](BUILD-44.md) for combined X/Y/Z jogging, Z operation during flat calibration, and the small green/amber/grey indicator in the jog container.
+
+## Build 45: tilt direction display and taller control tray
+
+See [Build 45 release notes](BUILD-45.md) for automatic XY-pad tilt feedback, a 6-degree dead zone and 40-degree full-speed angle, and the expanded tray aligned directly beneath the connection/status bar.

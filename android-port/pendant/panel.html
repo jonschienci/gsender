@@ -1,5 +1,22 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>CNC knob</title>
-<style>body{font:18px system-ui;color:#eee;background:#14212b;margin:20px}h2{margin:0 0 12px}button{font:inherit;padding:10px;margin:4px;border-radius:6px;border:1px solid #789}pre{white-space:pre-wrap;font:16px monospace}small{display:block;font-size:15px;line-height:1.4}#error{color:#ffc280}select,input{font:inherit;padding:8px;max-width:95%}#wifi-settings{border:1px solid #789;padding:12px;margin:12px 0}#wifi-settings label{display:block;margin:10px 0}</style></head><body>
+<style>body{font:18px system-ui;color:#eee;background:#14212b;margin:20px}h2{margin:0 0 12px}button{font:inherit;padding:10px;margin:4px;border-radius:6px;border:1px solid #789}pre{white-space:pre-wrap;font:16px monospace}small{display:block;font-size:15px;line-height:1.4}#error{color:#ffc280}select,input{font:inherit;padding:8px;max-width:95%}#wifi-settings{border:1px solid #789;padding:12px;margin:12px 0}#wifi-settings label{display:block;margin:10px 0}
+/* Embedded drawer theme mirrors the pendant's controls and section cards. */
+html.embedded { color-scheme:light; --panel-bg:#f3f4f6; --card-bg:#fff; --border:#d1d5db; --text:#374151; --muted:#6b7280; }
+html.embedded.dark { color-scheme:dark; --panel-bg:#202832; --card-bg:#2d3946; --border:#59687b; --text:#f4f7fa; --muted:#a0aaba; }
+.embedded body { margin:0; padding:12px; background:var(--panel-bg); color:var(--text); font:14px/1.5 system-ui; }
+.embedded h2 { font-size:14px; margin:0 0 12px; font-weight:600; }
+.embedded button, .embedded select, .embedded input, .embedded #scan-qr { font:inherit; padding:8px 12px !important; border:1px solid var(--border); border-radius:6px; background:var(--card-bg); color:var(--text); }
+.embedded button { margin:8px 8px 8px 0; min-height:36px; cursor:pointer; }
+.embedded button:disabled { opacity:.5; cursor:default; }
+.embedded #connect, .embedded #scan-qr { background:#5686b5; color:white; border-color:#5686b5; }
+.embedded #wifi-settings { border:1px solid var(--border); border-radius:8px; padding:12px; margin:12px 0; background:var(--card-bg); }
+.embedded small { font-size:12px; color:var(--muted); }
+.embedded #status { font:12px/1.65 ui-monospace,monospace; background:var(--card-bg); padding:12px; border:1px solid var(--border); border-radius:8px; overflow-wrap:anywhere; }
+.embedded section { margin-top:12px; }
+.embedded label { display:flex; align-items:center; gap:12px; flex-wrap:wrap; }
+.embedded #error { font-size:12px; color:#c2410c; }
+.embedded.dark #error { color:#fdba74; }
+</style><script>if(new URLSearchParams(location.search).get('embedded') === '1')document.documentElement.classList.add('embedded');</script></head><body>
 <h2>CNC knob</h2>
 <label>Knob connection <select id="transport"><option value="usb">USB (default)</option><option value="ble">Bluetooth</option></select></label>
 <div id="wifi-settings" hidden>

@@ -49,6 +49,7 @@
     };
     window.addEventListener('message', event => {
         if (event.origin === location.origin && event.source === parent && event.data?.type === 'usb-knob-visibility') {
+            if (typeof event.data.dark === 'boolean') document.documentElement.classList.toggle('dark', event.data.dark);
             visible = event.data.visible === true;
             if (visible) refresh();
         }

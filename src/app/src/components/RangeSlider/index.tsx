@@ -60,6 +60,8 @@ const RangeSlider = ({
     onLostPointerCapture = null,
     unitString = 'unit',
     disabled,
+    controlUnit = '%',
+    resetDescription = 'override to 100%',
     ...props
 }: RangeSliderProps): React.JSX.Element => {
     const textComponent = showText ? (
@@ -68,7 +70,7 @@ const RangeSlider = ({
             {!disabled && (
                 <span className="min-w-4 text-center text-blue-500">{`${value} ${unitString}`}</span>
             )}
-            <span className="w-12 text-right">{`${percentage[0]}%`}</span>
+            <span className="w-12 text-right">{`${percentage[0]}${controlUnit}`}</span>
         </div>
     ) : (
         <div></div>
@@ -77,14 +79,14 @@ const RangeSlider = ({
         <div className="flex flex-col items-center gap-2 max-xl:gap-1 justify-center w-full text-gray-900 dark:text-gray-300">
             {textComponent}
             <div className="flex flex-row items-center gap-2 justify-center w-full rounded-md bg-gray-200 dark:bg-dark shadow-inner">
-                <Tooltip content={`Reset override to 100%`}>
+                <Tooltip content={`Reset ${resetDescription}`}>
                     <Button
                         type="button"
                         onClick={() => onButtonPress(defaultPercentage)}
                         disabled={disabled}
                         size="sm"
                         icon={<FaUndo />}
-                        aria-label={`Reset ${title} override to 100%`}
+                        aria-label={`Reset ${title} ${resetDescription}`}
                     />
                 </Tooltip>
                 <Slider
@@ -108,7 +110,7 @@ const RangeSlider = ({
                     disabled={disabled}
                     {...props}
                 ></Slider>
-                <Tooltip content={`Decrease ${title} override by ${step}%`}>
+                <Tooltip content={`Decrease ${title} by ${step}${controlUnit}`}>
                     <Button
                         type="button"
                         onClick={() => {
@@ -124,7 +126,7 @@ const RangeSlider = ({
                         aria-label={`Decrease ${title} override`}
                     />
                 </Tooltip>
-                <Tooltip content={`Increase ${title} override by ${step}%`}>
+                <Tooltip content={`Increase ${title} by ${step}${controlUnit}`}>
                     <Button
                         type="button"
                         onClick={() => {

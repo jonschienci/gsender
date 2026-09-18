@@ -35,7 +35,6 @@ import CoolantPanel from './CoolantPanel';
 import MacrosPanel from './MacrosPanel';
 import MovePanel from './MovePanel';
 import ProbePanel from './ProbePanel';
-import SpindlePanel from './SpindlePanel';
 
 const ALL_TABS = [
     'File',
@@ -102,6 +101,33 @@ export default function BottomDrawer() {
     const DOUBLE_TAP_MS = 260;
     const [mode, setMode] = useState<DrawerMode>('closed');
     const [activeTab, setActiveTab] = useState<DrawerTab>('File');
+    const [consoleExpanded, setConsoleExpanded] = useState(false);
+    const [compactTop, setCompactTop] = useState(400);
+    useEffect(() => { setConsoleExpanded(false); }, [activeTab, mode === 'closed']);
+    useEffect(() => {
+        const visualizer = document.querySelector('.android-visualizer-frame');
+        if (!visualizer) return;
+        const update = () => setCompactTop(visualizer.getBoundingClientRect().bottom);
+        const observer = new ResizeObserver(update);
+        observer.observe(visualizer);
+        window.addEventListener('resize', update);
+        update();
+        return () => { observer.disconnect(); window.removeEventListener('resize', update); };
+    }, []);
+    const compactPanel = activeTab === 'Macros' || (activeTab === 'Console' && !consoleExpanded);
+    useEffect(() => {
+        if (mode === 'closed') return;
+        const dismissOutside = (event: PointerEvent) => {
+            const target = event.target as Element;
+            if (target.closest('.android-bottom-drawer, .android-bottom-nav')) return;
+            // The first outside touch dismisses the overlay without activating a machine control.
+            event.preventDefault();
+            event.stopPropagation();
+            setMode('closed');
+        };
+        document.addEventListener('pointerdown', dismissOutside, true);
+        return () => document.removeEventListener('pointerdown', dismissOutside, true);
+    }, [mode]);
     const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
     const [loadedAt, setLoadedAt] = useState<number | null>(null);
 
@@ -349,6 +375,8 @@ export default function BottomDrawer() {
 
     return (
         <div
+            data-compact-panel={compactPanel}
+            style={{ ['--compact-panel-top' as string]: `${compactTop}px` }}
             className={`relative shrink-0 h-14 ${mode !== 'closed' ? 'z-40' : ''}`}
         >
             <input
@@ -362,6 +390,7 @@ export default function BottomDrawer() {
             {/* Backdrop — closes drawer when tapping outside it */}
             {mode !== 'closed' && (
                 <div
+                    data-panel-dismiss-backdrop
                     className="fixed inset-0 z-20"
                     onClick={() => setMode('closed')}
                     aria-hidden="true"
@@ -374,8 +403,23 @@ export default function BottomDrawer() {
                 style={{ height: panelHeight }}
             >
                 <div className="flex flex-col h-full">
-                    {/* Header bar */}
+                    {activeTab === 'Console' && (
+                        <div className="android-console-size-bar">
+                            <span>Console</span>
+                            <button
+                                aria-label={consoleExpanded ? 'Collapse console' : 'Expand console'}
+                                aria-expanded={consoleExpanded}
+                                onClick={() => setConsoleExpanded(value => !value)}
+                            >
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: consoleExpanded ? 'rotate(180deg)' : undefined }}>
+                                    <path d="m6 14 6-6 6 6 M6 20l6-6 6 6" />
+                                </svg>
+                            </button>
+                        </div>
+                    )}
+                    {/* Header bar — standalone navigation panels omit tray tabs. */}
                     <div
+                        data-standalone-panel={activeTab === 'Console' || activeTab === 'Macros'}
                         className="w-full h-14 shrink-0 flex items-center gap-3 px-4 py-3 bg-gray-100 dark:bg-surface-raised border-b border-gray-200 dark:border-outline"
                         onClick={(e) => handleHeaderTap(e.target)}
                     >
@@ -643,15 +687,8 @@ export default function BottomDrawer() {
                         <CoolantPanel />
                     </div>
 
-                    {/* Spindle tab — always mounted */}
-                    <div
-                        className={
-                            activeTab === 'Spindle'
-                                ? 'flex-1 flex flex-col overflow-hidden min-h-0'
-                                : 'hidden'
-                        }
-                    >
-                        <SpindlePanel mode={mode} />
+                    <div className={activeTab === 'Spindle' ? 'p-4' : 'hidden'}>
+                        <div id="pendant-spindle-settings" />
                     </div>
 
                     {/* Probe tab — always mounted */}

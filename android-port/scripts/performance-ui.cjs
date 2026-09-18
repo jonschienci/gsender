@@ -5,6 +5,20 @@ const replace = (code, from, to) => {
 };
 exports.transform = (code, id) => {
     if (id.endsWith('/pendant/src/components/Visualizer.tsx')) {
+        const androidUi = id.slice(0, id.lastIndexOf('/src/pendant/')) + '/android-port/ui/';
+        code = 'import { GCodeSVGRenderer as AndroidSvgRenderer } from "@sienci/gviewer/viewer";\n'
+            + 'import { installSvgInteractions } from ' + JSON.stringify(androidUi + 'svg-interactions.mjs') + ';\n'
+            + 'import { installRasterPreview } from ' + JSON.stringify(androidUi + 'raster-preview.mjs') + ';\n'
+            + 'import { watchVisualizer } from ' + JSON.stringify(androidUi + 'visualizer-benchmark.mjs') + ';\n'
+            + 'installRasterPreview(AndroidSvgRenderer); installSvgInteractions(AndroidSvgRenderer);\n' + code;
+        code = replace(code, 'const wpos = useTypedSelector((s: RootState) => s.controller.wpos);',
+            `const wpos = useTypedSelector((s: RootState) => s.controller.wpos);
+    const benchmarkContext = useRef({workflowState, fileLoaded});
+    benchmarkContext.current = {workflowState, fileLoaded};
+    useEffect(() => {
+        const svg = svgRef.current?.getSVGElement();
+        if (svg) return watchVisualizer(svg, () => benchmarkContext.current);
+    }, []);`);
         // The gviewer React wrapper calls setOptions when this prop changes;
         // setOptions rebuilds every toolpath. Position updates need overlays only.
         const options = /options=\{\{([\s\S]*?)\}\}/;

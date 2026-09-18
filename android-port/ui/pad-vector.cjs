@@ -6,4 +6,11 @@ function padVector(x,y) {
     const speed=t*t*(3-2*t);
     return {x:radius?x/radius*speed:0,y:radius?y/radius*speed:0,speed};
 }
-module.exports={padVector};
+// Eight directional sectors in the outer 28% of the circular pad.
+function padStepDirection(x,y) {
+    const radius=Math.hypot(x,y);
+    if(!Number.isFinite(radius)||radius<.72||radius>1)return null;
+    const sector=Math.round(Math.atan2(y,x)/(Math.PI/4));
+    return {x:Math.round(Math.cos(sector*Math.PI/4))||0,y:Math.round(Math.sin(sector*Math.PI/4))||0};
+}
+module.exports={padVector,padStepDirection};

@@ -25,25 +25,27 @@ class TabletPad {
     busy() { return !!this.active; }
     settings() {
         const s=this.machine.current?.settings?.settings || {};
-        return ['$13','$100','$101','$102','$110','$111','$120','$121'].map(k=>s[k]).join('/');
+        return ['$13','$100','$101','$102','$110','$111','$120','$121',...(this.allowZ?['$112','$122']:[])].map(k=>s[k]).join('/');
     }
     limits() {
         const s=this.machine.current?.settings?.settings || {};
-        return [0,1].map(i=>{
+        return (this.allowZ?[0,1,2]:[0,1]).map(i=>{
             const feed=Number(s['$'+(110+i)]), acceleration=Number(s['$'+(120+i)]);
             if(!Number.isFinite(feed)||feed<=0||!Number.isFinite(acceleration)||acceleration<=0)
-                throw Error('XY pad needs X/Y maximum feed and acceleration settings');
+                throw Error('Jog pad needs axis maximum feed and acceleration settings');
             return {feed,acceleration};
         });
     }
-    begin(rapid) {
+    begin(rapid, allowZ=false) {
         if(this.active)throw Error('Release the current touch first');
         if(!Number.isFinite(rapid)||rapid<=0||rapid>100000)throw Error('Save a valid Rapid feedrate');
+        this.allowZ=allowZ;this.dimensions=allowZ?3:2;
         this.limits();
         if(!this.machine.canArm())throw Error('XY pad needs an idle CNC with fresh position and an empty command queue');
         this.active=randomBytes(16).toString('hex'); this.rapid=rapid;
         this.settingsKey=this.settings();this.transport=this.machine.current.connection.connection.port;
-        this.desired=[0,0];this.velocity=[0,0];this.origin=[...this.machine.snapshot().xyz];
+        this.desired=Array(this.dimensions).fill(0);this.velocity=[...this.desired];
+        this.zHold=0;this.zRemaining=0;this.zStepping=false;this.zStepId=0;this.origin=[...this.machine.snapshot().xyz];
         this.segments=[];this.waitingIdle=false;this.lastSend=-Infinity;
         this.expires=this.now()+INPUT_LEASE_MS;this.contactExpires=this.now()+CONTACT_LEASE_MS;this.machine.owned=true;
         return this.challenge();
@@ -60,6 +62,19 @@ class TabletPad {
             if(now>=this.contactExpires)throw Error('Touch connection lost; release and touch the center again');
             if(body.ticket!==this.ticket)throw Error('Touch update was already used; release and touch the center again');
             const v=padVector(body.x,body.y);
+            const z=body.z??0,step=body.zStep;
+            if (![-1,0,1].includes(z) || (!this.allowZ && (z!==0 || step!==undefined)))
+                throw Error('Z requires a tilt jog session');
+            if (step!==undefined && (!Number.isSafeInteger(step?.id) || step.id<=0 ||
+                !Number.isFinite(step.distance) || Math.abs(step.distance)<.0001 || Math.abs(step.distance)>1000))
+                throw Error('Invalid finite Z step');
+            // Tilt presets may change during an active contact. Cancel the old
+            // planner queue before applying a new ceiling, retaining ownership.
+            if (body.rapid !== undefined) {
+                if (!Number.isFinite(body.rapid) || body.rapid <= 0 || body.rapid > 100000)
+                    throw Error('Save a valid jog preset feedrate');
+                if (body.rapid !== this.rapid) { this.suspend(); this.rapid = body.rapid; }
+            }
             this.contactExpires=now+CONTACT_LEASE_MS;
             if(now-this.issuedAt>=INPUT_LEASE_MS || now>=this.expires) {
                 // Keep an existing finger contact during brief scheduling stalls,
@@ -68,16 +83,32 @@ class TabletPad {
                 this.suspend();this.expires=now+INPUT_LEASE_MS;
                 return {...this.challenge(),resync:true};
             }
-            this.desired=[v.x*this.rapid,v.y*this.rapid];this.expires=now+INPUT_LEASE_MS;
-            if(v.speed===0)this.pause();
+            // Release/reversal must cancel already queued Z travel. X/Y keeps
+            // the lease and resumes from fresh input after the idle barrier.
+            if (this.allowZ) {
+                if ((this.zHold && z!==this.zHold) || (z && this.zStepping)) this.pause();
+                this.zHold=z;
+                if (step && step.id>this.zStepId) {
+                    this.zStepId=step.id;
+                    if (!z) {
+                        const last=this.segments.at(-1),queuedZ=last?last.target[2]-last.origin[2]:0;
+                        if (this.zRemaining*step.distance<0 || queuedZ*step.distance<0) this.pause();
+                        if (Math.abs(this.zRemaining+step.distance)>1000) throw Error('Finish the current Z step first');
+                        this.zRemaining+=step.distance;this.zStepping=true;
+                    }
+                }
+            }
+            this.desired=[v.x*this.rapid,v.y*this.rapid,...(this.allowZ?[(z||Math.sign(this.zRemaining))*this.rapid]:[])];
+            this.expires=now+INPUT_LEASE_MS;
+            if(!this.desired.some(value=>value!==0) && !this.zStepping)this.pause();
             return this.challenge();
         } catch(error) { this.stop(error.message);throw error; }
     }
     end(token) { if(token===this.active)this.stop(); }
     ack() { const p=this.segments.find(p=>!p.acked);if(p){p.acked=true;p.ackSerial=this.machine.serial;} }
-    suspend() { this.desired=[0,0];this.pause(); }
+    suspend() { this.desired=Array(this.dimensions).fill(0);this.zHold=0;this.pause(); }
     pause() {
-        this.velocity=[0,0];
+        this.velocity=Array(this.dimensions).fill(0);this.zRemaining=0;this.zStepping=false;
         if(!this.segments.length)return;
         this.machine.cancelPending+=this.segments.filter(p=>!p.acked).length;
         this.segments=[];this.waitingIdle=true;
@@ -86,7 +117,7 @@ class TabletPad {
     stop(reason) {
         if(!this.active)return;
         this.lastStop={token:this.active,reason};
-        this.active=null;this.ticket=null;this.desired=[0,0];this.machine.owned=false;
+        this.active=null;this.ticket=null;this.desired=Array(this.dimensions).fill(0);this.zHold=0;this.machine.owned=false;
         this.pause();
     }
     positionTolerance() {
@@ -148,10 +179,20 @@ class TabletPad {
             } else return;
         }
         if(this.segments.some(p=>!p.acked&&now-p.at>=400 || now-p.at>=1500))throw Error('XY pad motion progress timed out');
+        if (this.allowZ) {
+            this.desired[2]=(this.zHold||Math.sign(this.zRemaining))*this.rapid;
+            if (!this.desired[2]) this.velocity[2]=0;
+        }
         const limits=this.limits(), norm=Math.hypot(...this.desired);
-        if(norm<1){this.pause();return;}
-        let scale=1;
-        for(let i=0;i<2;i++)if(this.desired[i])scale=Math.min(scale,limits[i].feed/Math.abs(this.desired[i]));
+        if(norm<1){
+            if (this.zStepping) {
+                this.progress(s);
+                if (!this.segments.length) this.zStepping=false;
+            } else this.pause();
+            return;
+        }
+        let scale=Math.min(1,this.rapid/norm);
+        for(let i=0;i<this.dimensions;i++)if(this.desired[i])scale=Math.min(scale,limits[i].feed/Math.abs(this.desired[i]));
         const target=this.desired.map(v=>v*scale);
         // Reverse only after cancellation/Idle; don't queue a U-turn over old input.
         if(this.segments.length && target.reduce((sum,v,i)=>sum+v*this.velocity[i],0)<0){this.pause();return;}
@@ -163,22 +204,29 @@ class TabletPad {
         // One interpolation fraction keeps the vector inside both the Rapid
         // circle and each axis limit, including during a change of direction.
         let blend=1;
-        for(let i=0;i<2;i++) {
+        for(let i=0;i<this.dimensions;i++) {
             const change=Math.abs(target[i]-this.velocity[i]);
             if(change)blend=Math.min(blend,Math.min(limits[i].acceleration*60,this.rapid)*dt/change);
         }
         this.velocity=this.velocity.map((v,i)=>v+(target[i]-v)*blend);
-        const feed=Math.hypot(...this.velocity);
+        let feed=Math.hypot(...this.velocity);
         if(feed<1)return;
         const delta=this.velocity.map(v=>Math.trunc(v/60*SEGMENT_SECONDS*10000)/10000);
+        if (this.allowZ && !this.zHold) {
+            delta[2]=Math.sign(this.zRemaining)*Math.min(Math.abs(delta[2]),Math.abs(this.zRemaining));
+            delta[2]=Math.round(delta[2]*10000)/10000;
+            this.zRemaining=Math.round((this.zRemaining-delta[2])*10000)/10000;
+            if (Math.abs(this.zRemaining)<.0001) this.zRemaining=0;
+        }
         if(!delta.some(v=>v!==0))return;
+        if (this.allowZ) feed=Math.hypot(...delta)*60/SEGMENT_SECONDS;
         const origin=this.segments.at(-1)?.target || this.origin;
-        const endpoint=[origin[0]+delta[0],origin[1]+delta[1],origin[2]];
+        const endpoint=origin.map((value,i)=>value+(delta[i]||0));
         if(endpoint.some(v=>!Number.isFinite(v)||Math.abs(v)>99999.999))throw Error('XY pad target outside supported range');
         const distance=Math.hypot(...delta);
         this.segments.push({origin:[...origin],target:endpoint,distance,feed,acked:false,serial:s.serial,at:now});
         this.lastSend=now;
-        const words=delta.map((v,i)=>v?`${'XY'[i]}${v.toFixed(4)}`:null).filter(Boolean).join(' ');
+        const words=delta.map((v,i)=>v?`${'XYZ'[i]}${v.toFixed(4)}`:null).filter(Boolean).join(' ');
         this.machine.current.writeln(`$J=G21G91 ${words} F${feed.toFixed(3)}`,{usbPendant:true},true);
     }
 }

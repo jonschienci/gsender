@@ -4,9 +4,10 @@ const { fork, execFileSync } = require('node:child_process');
 const fs = require('node:fs'), os = require('node:os'), path = require('node:path');
 const { io } = require('socket.io-client');
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
-const slb = id => ({path:`android-usb:${id}:0`,vendorId:'0483',productId:'5740',usbPermission:true,manufacturer:'Simulated SLB'});
+for (const [family, vendorId, productId] of [['STM32 SLB','0483','5740'], ['Pico SLB-Lite','2e8a','000a']]) {
+const slb = id => ({path:`android-usb:${id}:0`,vendorId,productId,usbPermission:true,manufacturer:family});
 const knob = {path:'android-usb:99:0',vendorId:'303a',productId:'1001',manufacturer:'Simulated USB knob'};
-test('packaged backend: SLB autoconnect, hotplug, manual disconnect, denied permission and concurrent open', {timeout:45000}, async () => {
+test(family + ': packaged backend: SLB autoconnect, hotplug, manual disconnect, denied permission and concurrent open', {timeout:45000}, async () => {
     const isolated = fs.mkdtempSync(path.join(os.tmpdir(), 'gsender-auto-'));
     execFileSync('python3', ['-m','zipfile','-e',path.resolve(__dirname,'../app/src/main/assets/payload.zip'),path.join(isolated,'runtime')]);
     fs.copyFileSync(path.join(__dirname,'fake-native-autoconnect.cjs'),path.join(isolated,'fake.cjs'));
@@ -72,3 +73,5 @@ test('packaged backend: SLB autoconnect, hotplug, manual disconnect, denied perm
         fs.rmSync(isolated,{recursive:true,force:true});
     }
 });
+
+}
