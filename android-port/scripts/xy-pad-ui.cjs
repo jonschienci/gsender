@@ -3,7 +3,7 @@ const path=require('node:path');
 exports.transform=(code,id)=>{
     if(id.endsWith('/pendant/src/PendantShell.tsx')) {
         const replacements = [
-            ["const [activeTab, setActiveTab] = useState<NavTab>('carve');", "const [activeTab, setActiveTab] = useState<NavTab>('carve');\n    const [statusOpen, setStatusOpen] = useState(false);\n    const [drawerOpen, setDrawerOpen] = useState(false);\n    const [drawerTab, setDrawerTab] = useState('File');"],
+            ["const [activeTab, setActiveTab] = useState<NavTab>('carve');", "const [activeTab, setActiveTab] = useState<NavTab>('carve');\n    const [statusOpen, setStatusOpen] = useState(false);\n    const [drawerOpen, setDrawerOpen] = useState(false);\n    const [drawerTab, setDrawerTab] = useState('Move');"],
             ['<PendantTopBar />', '<PendantTopBar statusOpen={statusOpen} onStatusToggle={() => setStatusOpen(open => !open)} />'],
             ['<InfoStrip />', `<section id="android-machine-status" className="android-status-tray" aria-label="Machine status" hidden={!statusOpen}>
                 {statusOpen && <InfoStrip />}
@@ -12,7 +12,7 @@ exports.transform=(code,id)=>{
             ['<BottomNav active={activeTab} onChange={setActiveTab} />', `<BottomNav active={drawerOpen && drawerTab === 'Console' ? 'console' : drawerOpen && drawerTab === 'Macros' ? 'macros' : drawerOpen ? null : activeTab}
                 onChange={tab => { stopTiltJog(); if (tab === 'console' || tab === 'macros') { setActiveTab('carve'); const next = tab === 'console' ? 'Console' : 'Macros'; setDrawerTab(next); setDrawerOpen(!(drawerOpen && drawerTab === next)); } else { setDrawerOpen(false); setActiveTab(tab); } }}
                 drawerOpen={drawerOpen && drawerTab !== 'Console' && drawerTab !== 'Macros'}
-                onDrawerToggle={() => { setActiveTab('carve'); if (drawerTab === 'Console' || drawerTab === 'Macros') { setDrawerTab('File'); setDrawerOpen(true); } else { setDrawerOpen(open => !open); } }} />`],
+                onDrawerToggle={() => { setActiveTab('carve'); if (drawerTab === 'Console' || drawerTab === 'Macros') { setDrawerTab('Move'); setDrawerOpen(true); } else { setDrawerOpen(open => !open); } }} />`],
         ];
         for (const [before, after] of replacements) {
             if (code.split(before).length !== 2) throw Error('Android status tray: upstream shell changed');
@@ -67,7 +67,7 @@ exports.transform=(code,id)=>{
         replaceSection('                        <div className="flex items-center gap-[8px] pl-[9px]', '                    {/* File tab — always mounted */}', '                    </div>\n\n');
         replace("setMode('minimal')", "setMode('closed')");
         replace("    'Console',", "    'Console',\n    'CNC knob',");
-        replace('                                    {t}\n                                </button>\n                            ))}', '                                    {t}\n                                </button>\n                            ))}<TiltJogSwitch />');
+
         code = 'import TiltJogSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogSwitch.tsx')) + ';\n' + code;
         replace('className="flex items-center gap-1 flex-1 min-w-0"', 'className="android-drawer-tabs flex items-center gap-1 flex-1 min-w-0"');
         replace('                    {/* Macros tab — always mounted */}', `<PendantKnobPanel visible={open && activeTab === 'CNC knob'} />
@@ -177,7 +177,7 @@ exports.transform=(code,id)=>{
         replace('<div className="flex justify-center gap-4">','</div><div className="flex justify-center gap-4">');
         return {code,map:null};
     }
-    code = 'import {useTiltJog,setTiltFeed,jogTiltZHold,jogTiltZStep,releaseTiltZ} from ' + JSON.stringify(path.resolve(__dirname, '../ui/tilt-jog.ts')) + ';\n' + code;
+    code = 'import {useTiltJog,setTiltFeed,jogTiltZHold,jogTiltZStep,releaseTiltZ,stopTiltJog} from ' + JSON.stringify(path.resolve(__dirname, '../ui/tilt-jog.ts')) + ';\n' + code;
     replace('const canJog =\n', 'const tiltJog = useTiltJog();\n    const machineCanJog =\n');
     replace('    const selectedJog = jogConfigs[stepPreset];', '    const canJog = machineCanJog && !tiltJog.enabled;\n    const showPad = xyPad || tiltJog.enabled;\n    const selectedJog = jogConfigs[stepPreset];');
     // Keep Z enabled independently of tilt and combine its input in the same planner.
@@ -200,9 +200,12 @@ exports.transform=(code,id)=>{
         setTiltFeed(getPresetFromStore(stepPreset, 'mm').feedrate);
     }, [stepPreset, jogConfigs]);
     const selectedJog = jogConfigs[stepPreset];`);
-    replace('const [stepPreset, setStepPreset]', 'const [padReady, setPadReady] = useState(false);\n    const [xyPad, setXyPad] = useState(() => store.get("android.xyJogPad", false) === true);\n\tconst [stepPreset, setStepPreset]');
+    replace('const [stepPreset, setStepPreset]', 'const [jogStep, setJogStep] = useState(1);\n    const [padReady, setPadReady] = useState(false);\n    const [xyPad, setXyPad] = useState(() => store.get("android.xyJogPad", false) === true);\n\tconst [stepPreset, setStepPreset]');
+    replace('const xyDistance = selectedJog.xyStep;', 'const xyDistance = jogStep;');
+    replace('const zDistance = selectedJog.zStep;', 'const zDistance = jogStep;');
+    replace('const aDistance = selectedJog.aStep;', 'const aDistance = jogStep;');
     replace('<div className="rounded-[20px]', '<div className="android-jog-card rounded-[20px]');
-    replace('<div className="flex items-center justify-center gap-1.5">', `<JogReadinessLight canJog={machineCanJog} tilt={tiltJog} padReady={padReady} xyPad={xyPad} /><div className="android-jog-toolbar"><XYJogModeSwitch checked={showPad} disabled={tiltJog.enabled} showLabels={false} onChange={value=>{stopContinuousJog();setXyPad(value);store.set('android.xyJogPad',value);}} />
+    replace('<div className="flex items-center justify-center gap-1.5">', `<div className="android-jog-toolbar"><div className="android-jog-tilt-slot">{showPad ? <><TiltJogSwitch /><JogReadinessLight canJog={machineCanJog} tilt={tiltJog} padReady={padReady} xyPad={xyPad} /></> : <div className="android-jog-step-switch" role="group" aria-label="Jog step size">{[0.1,1,10].map(value => <button key={value} type="button" aria-pressed={jogStep === value} onClick={() => {stopContinuousJog();setJogStep(value);}}>{value}</button>)}</div>}</div>
     <div className="android-jog-presets flex items-center justify-center gap-1.5">`);
     replace('<div className="space-y-[clamp(0.375rem,1.5vh,0.75rem)]">', '</div><JogAreaFit xyPad={showPad}>');
     replace('<div className="grid grid-cols-3 gap-2">', `<div className="android-jog-main">{tiltJog.enabled ? <TiltJogPad /> : xyPad && <XYJogPad disabled={!canJog || isRotaryMode}
@@ -215,7 +218,14 @@ exports.transform=(code,id)=>{
     code = code.replace(axisPanel, '<div className={`android-jog-z ${axisPanel}`}>');
     code = code.replace(axisPanel, '<div className={`android-jog-a ${axisPanel}`}>');
     const ending = '            </div>\n        </div>\n    );\n}';
-    replace(ending, '            </JogAreaFit>\n        </div>\n    );\n}');
+    replace(ending, `            </JogAreaFit>
+            <nav className="android-jog-page-dots" aria-label="Jog control pages">
+                {[false,true].map(value => <button key={String(value)} type="button" aria-label={value ? 'XY pad page' : 'Jog buttons page'} aria-current={showPad === value ? 'page' : undefined} onClick={() => {stopContinuousJog();stopTiltJog();setXyPad(value);store.set('android.xyJogPad',value);}}><span /></button>)}
+            </nav>
+        </div>
+    );
+}`);
+    code = 'import TiltJogSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogSwitch.tsx')) + ';\n' + code;
     code = 'import TiltJogPad from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogPad.tsx')) + ';\n' + code;
     code = 'import JogReadinessLight from ' + JSON.stringify(path.resolve(__dirname, '../ui/JogReadinessLight.tsx')) + ';\n' + code;
     code = 'import JogAreaFit from ' + JSON.stringify(path.resolve(__dirname, '../ui/JogAreaFit.tsx')) + ';\n' + code;

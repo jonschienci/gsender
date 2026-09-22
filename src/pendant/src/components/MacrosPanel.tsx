@@ -1,3 +1,4 @@
+import MacroPages from './MacroPages';
 import api from 'app/api';
 import {
     Dialog,
@@ -154,7 +155,7 @@ function MacroButton({
         <div style={{ position: 'relative' }}>
             <div
                 ref={btnRef}
-                className="mbtn"
+                className="mbtn android-macro-button"
                 style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -177,12 +178,12 @@ function MacroButton({
                 onPointerUp={handlePointerUp}
                 onPointerLeave={handlePointerLeave}
             >
-                {/* Circular play indicator */}
+                {/* Square play indicator */}
                 <div
                     style={{
-                        width: 24,
-                        height: 24,
-                        borderRadius: '50%',
+                        width: 40,
+                        height: 40,
+                        borderRadius: 6,
                         flexShrink: 0,
                         display: 'flex',
                         alignItems: 'center',
@@ -193,7 +194,7 @@ function MacroButton({
                         border: '1px solid var(--outline-subtle)',
                     }}
                 >
-                    <Play size={9} color={accent} fill={accent} />
+                    <Play size={18} color={accent} fill={accent} />
                 </div>
 
                 {/* Macro name */}
@@ -239,13 +240,16 @@ function MacroButton({
                 {/* Overflow menu trigger */}
                 <div
                     style={{
-                        width: 32,
-                        height: 32,
+                        width: 40,
+                        height: 40,
+                        borderRadius: 6,
+                        background: 'var(--surface-sunken)',
+                        border: '1px solid var(--outline-subtle)',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
                         flexShrink: 0,
-                        marginRight: -6,
+                        marginRight: 0,
                         cursor: 'pointer',
                         position: 'relative',
                         zIndex: 2,
@@ -256,7 +260,7 @@ function MacroButton({
                         onMenuOpen(isMenuOpen ? null : macro.id);
                     }}
                 >
-                    <MoreHorizontal size={13} color="var(--content-muted)" />
+                    <MoreHorizontal size={20} color="var(--content-muted)" />
                 </div>
             </div>
 
@@ -506,10 +510,10 @@ export default function MacrosPanel({ mode }: Props) {
 
     return (
         <div
-            className={`h-full flex flex-col min-h-0${isMinimal ? ' justify-center' : ''}`}
+            className={`android-macros-panel h-full flex flex-col min-h-0${isMinimal ? ' justify-center' : ''}`}
         >
             {/* Action row */}
-            <div className="flex flex-shrink-0 gap-3 px-4 py-3">
+            <div className="android-macro-actions flex flex-shrink-0 gap-3 px-4 py-3">
                 <ActionTile
                     label="Add"
                     Icon={Plus}
@@ -529,19 +533,9 @@ export default function MacrosPanel({ mode }: Props) {
 
             {mode === 'expanded' && (
                 <>
-                    {/* Divider */}
-                    <div
-                        style={{
-                            height: 1,
-                            margin: '0 10px',
-                            background: 'var(--outline-subtle)',
-                            flexShrink: 0,
-                        }}
-                    />
-
                     {/* Macro grid */}
                     <div
-                        className="flex-1 overflow-y-auto min-h-0"
+                        className="android-macro-scroll flex-1 overflow-y-auto min-h-0"
                         style={{ padding: '8px 10px' }}
                     >
                         {macros.length === 0 ? (
@@ -555,13 +549,7 @@ export default function MacrosPanel({ mode }: Props) {
                                 </span>
                             </div>
                         ) : (
-                            <div
-                                style={{
-                                    display: 'grid',
-                                    gridTemplateColumns: '1fr 1fr',
-                                    gap: 8,
-                                }}
-                            >
+                            <MacroPages>
                                 {macros.map((macro) => (
                                     <MacroButton
                                         key={macro.id}
@@ -576,7 +564,7 @@ export default function MacrosPanel({ mode }: Props) {
                                         onMenuOpen={setMenuOpenId}
                                     />
                                 ))}
-                            </div>
+                            </MacroPages>
                         )}
                     </div>
                 </>
@@ -594,6 +582,7 @@ export default function MacrosPanel({ mode }: Props) {
             {/* Add Macro modal */}
             {showAddModal && (
                 <MacroForm
+                    fullScreen
                     title="Add Macro"
                     submitLabel="Add Macro"
                     onSubmit={handleAdd}

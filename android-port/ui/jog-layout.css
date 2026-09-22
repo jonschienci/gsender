@@ -1,7 +1,10 @@
+:root { --android-header-height: 48px; --android-nav-height: 52px; }
+.android-build-badge { color: var(--content-primary, #111827); }
+.dark .android-build-badge { color: #fff; }
 /* Keep the action buttons in one compact row, including packaged launchers. */
 .android-pendant-header {
-    height: 56px !important;
-    min-height: 56px;
+    height: var(--android-header-height) !important;
+    min-height: var(--android-header-height);
     flex-shrink: 0;
     flex-wrap: nowrap;
     gap: 8px !important;
@@ -43,14 +46,15 @@
 .android-status-tray { flex-shrink: 0; }
 .android-status-tray[hidden] { display: none !important; }
 .android-carve-view { position: relative; flex: 1; display: flex; flex-direction: column; min-height: 0; }
-nav.android-bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; }
+nav.android-bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)) !important; height: var(--android-nav-height) !important; }
+nav.android-bottom-nav > button { gap: 2px !important; }
 .android-drawer-toggle {
     cursor: pointer;
     touch-action: manipulation;
 }
 .android-drawer-toggle:focus-visible { outline: 2px solid #689ac9; outline-offset: 2px; }
-/* Fill the space between the 56px connection bar and 64px bottom navigation. */
-.android-bottom-drawer { position: fixed; inset: 56px 0 64px; z-index: 40; }
+/* Keep expanded trays aligned with the shared header and navigation sizes. */
+.android-bottom-drawer { position: fixed; inset: var(--android-header-height) 0 var(--android-nav-height); z-index: 40; }
 .android-bottom-drawer[hidden] { display: none !important; }
 .android-carve-grid {
     flex: 1;
@@ -367,12 +371,12 @@ nav.android-bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)) !impor
 .android-bottom-drawer [data-standalone-panel="true"] { display: none !important; }
 
 .android-bottom-drawer[data-compact-panel="true"] {
-    top: clamp(56px, var(--compact-panel-top), calc(100dvh - 224px));
+    top: clamp(var(--android-header-height), var(--compact-panel-top), calc(100dvh - 224px));
 }
 .android-console-size-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; border-bottom: 1px solid #94a3b8; flex-shrink: 0; font-size: 12px; }
 .android-console-size-bar > button { display: flex; align-items: center; justify-content: center; width: 40px; height: 32px; border-radius: 6px; }
 
-.android-bottom-drawer [data-panel-dismiss-backdrop] { position: fixed !important; inset: 56px 0 64px !important; }
+.android-bottom-drawer [data-panel-dismiss-backdrop] { position: fixed !important; inset: var(--android-header-height) 0 var(--android-nav-height) !important; }
 
 @media (orientation: landscape) {
     .android-jog-area:has(.android-xy-pad) { column-gap: 0; }
@@ -463,4 +467,1281 @@ nav.android-bottom-nav { grid-template-columns: repeat(6, minmax(0, 1fr)) !impor
     padding: 0 12px !important;
     overflow: visible !important;
     text-overflow: clip !important;
+}
+
+/* Slim tray headers; command entry occupies its own row above console lines. */
+.android-tray-header { height: 36px !important; padding: 2px 10px !important; }
+.android-drawer-tabs > button { height: 28px !important; }
+.android-console-size-bar { height: 28px; padding: 0 10px; color: var(--content-primary, #111827); }
+.android-console-size-bar > button { height: 26px; }
+.android-console-command-row {
+    width: 50%;
+    margin-left: auto;
+    min-height: 32px;
+    padding: 3px 8px !important;
+}
+.android-console-command-row > input { height: 26px; }
+
+.android-console-command-row {
+    width: calc(50% - 12px);
+    margin: 6px 8px 6px auto;
+    padding: 4px 10px !important;
+    min-height: 36px;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 18px;
+    background: var(--surface-raised, #fff);
+    box-shadow: 0 2px 6px #0002;
+}
+.android-console-command-row > button { border-radius: 10px !important; }
+
+/* Overlay command bubble; reserve scroll space after the final console line. */
+.android-pendant-console .android-console-command-row {
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    margin: 0;
+    z-index: 2;
+}
+.android-pendant-console [data-testid="virtuoso-item-list"]::after {
+    content: '';
+    display: block;
+    height: 52px;
+}
+.android-pendant-console button[aria-label="Scroll to latest message"] {
+    bottom: 58px !important;
+}
+
+.android-macros-panel {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) 88px;
+    grid-template-rows: minmax(0, 1fr);
+    gap: 10px;
+    padding: 8px;
+}
+.android-macro-actions {
+    grid-column: 2; grid-row: 1; align-self: end;
+    flex-direction: column; gap: 6px !important; padding: 0 !important;
+}
+.android-macro-actions > button { flex: none; }
+.android-macro-actions > button > div {
+    flex-direction: row !important; min-height: 36px !important;
+    padding: 5px 6px !important; gap: 5px !important;
+}
+.android-macro-actions svg { width: 16px; height: 16px; }
+.android-macro-scroll { grid-column: 1; grid-row: 1; padding: 0 4px 8px 0 !important; }
+.android-macro-button { min-height: 64px; border-radius: 10px !important; }
+.android-macro-button > span { white-space: normal !important; overflow-wrap: anywhere; font-size: 13px !important; }
+
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions {
+    align-self: stretch;
+}
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions > button {
+    flex: 1 1 0;
+    min-height: 0;
+}
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions > button > div {
+    height: 100%;
+}
+/* Compact square cards in the pendant Tools tab. */
+.android-tools-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 192px) !important;
+    gap: 12px !important;
+    align-content: start;
+}
+.android-tools-grid > div {
+    width: 192px;
+    height: 192px !important;
+    padding: 12px !important;
+    gap: 8px !important;
+    border-radius: 10px;
+}
+.android-tools-grid h3 { font-size: 16px !important; line-height: 20px !important; }
+.android-tools-grid p { font-size: 12px !important; line-height: 16px !important; }
+.android-tools-grid svg { width: 36px !important; height: 36px !important; flex-shrink: 0; }
+
+.android-tools-pages { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.android-tools-page-space { flex: 1; min-height: 0; }
+.android-tools-page-space .android-tools-grid {
+    grid-template-columns: repeat(5, var(--tool-size)) !important;
+    grid-template-rows: repeat(3, var(--tool-size));
+    gap: 10px !important; justify-content: center;
+}
+.android-tools-page-space .android-tools-grid > div {
+    width: var(--tool-size); height: var(--tool-size) !important;
+    padding: 8px !important; gap: 4px !important;
+}
+.android-tools-page-space .android-tools-grid h3 { font-size: 14px !important; line-height: 17px !important; }
+.android-tools-page-space .android-tools-grid p { font-size: 11px !important; line-height: 14px !important; }
+.android-tools-page-space .android-tools-grid svg { width: 28px !important; height: 28px !important; }
+.android-tools-pagination { height: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.android-tools-pagination button { width: 30px; height: 30px; display: flex; align-items: center; justify-content: center; }
+.android-tools-pagination span { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; }
+.android-tools-pagination [aria-current="page"] span { background: #689ac9; }
+.android-tools-pagination button:disabled { opacity: .25; }
+@media (orientation: portrait) {
+    .android-tools-page-space .android-tools-grid { grid-template-columns: repeat(3, var(--tool-size)) !important; grid-template-rows: repeat(5, var(--tool-size)); }
+}
+
+/* Use the page width while retaining square tiles and a reserved dot strip. */
+.android-tools-page-space .android-tools-grid {
+    height: 100%;
+    justify-content: space-evenly;
+    align-content: space-between;
+}
+.android-tools-pagination { height: 36px; }
+.android-tools-page-space .android-tools-grid svg {
+    width: clamp(40px, calc(var(--tool-size) * .3), 64px) !important;
+    height: clamp(40px, calc(var(--tool-size) * .3), 64px) !important;
+}
+/* Keep identical spacing between square tool tiles in both directions. */
+.android-tools-page-space .android-tools-grid {
+    justify-content: center;
+    align-content: start;
+    column-gap: 10px !important;
+    row-gap: 10px !important;
+}
+/* Fill the available tools page with equal-gap rectangular tiles. */
+.android-tools-page-space .android-tools-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    grid-template-rows: repeat(3, minmax(0, 1fr));
+    justify-content: stretch;
+    align-content: stretch;
+}
+.android-tools-page-space .android-tools-grid > div {
+    width: 100%;
+    height: 100% !important;
+    min-width: 0;
+    min-height: 0;
+}
+@media (orientation: portrait) {
+    .android-tools-page-space .android-tools-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        grid-template-rows: repeat(5, minmax(0, 1fr));
+    }
+}
+/* Match segmented-control height and use compact label-based widths. */
+.android-position-card .android-coordinate-switch {
+    height: 36px !important;
+    width: 172px;
+    font-size: 12px;
+    line-height: 18px;
+}
+.android-jog-toolbar .android-jog-presets {
+    flex: 0 0 auto;
+    width: max-content;
+    height: 36px;
+    box-sizing: border-box;
+    grid-template-columns: repeat(3, max-content) !important;
+    align-items: stretch;
+}
+.android-jog-toolbar .android-jog-presets > button {
+    width: auto;
+    min-height: 0 !important;
+    height: 30px;
+    padding: 4px 12px !important;
+    font-size: 12px !important;
+    line-height: 18px;
+    white-space: nowrap;
+}
+@media (orientation: landscape) {
+    .android-position-card .android-dro-card { grid-template-rows: 36px minmax(146px, 1fr) 32px; }
+    .android-carve-grid[data-tight-dro="true"] .android-dro-card { grid-template-rows: 36px minmax(124px, 1fr) 32px; }
+    .android-carve-grid[data-compact-jog="true"] .android-jog-presets { height: auto; width: 100%; }
+}
+/* DRO controls occupy their row height with a small inset. */
+.android-dro-header { min-height: 36px; height: 36px; flex-shrink: 0; }
+.android-dro-workspace [aria-haspopup="listbox"] { height: 36px !important; }
+.android-position-card .android-dro-axis,
+.android-position-card .android-dro-actions {
+    align-items: stretch;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+}
+.android-position-card .android-dro-axis > button,
+.android-position-card .android-dro-actions > button {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.android-position-card .android-dro-axis > span {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+}
+@media (orientation: portrait) {
+    .android-position-card .android-dro-axes {
+        flex: 1;
+        min-height: 0;
+        grid-template-rows: repeat(4, minmax(0, 1fr));
+    }
+    .android-position-card .android-dro-actions { height: 40px; flex-shrink: 0; }
+}
+.android-position-card .android-dro-axis > button:first-child,
+.android-position-card .android-dro-axis > button:last-child {
+    height: 100% !important;
+    min-height: 0 !important;
+}
+/* Taller DRO footer actions with the same inset as the axis rows. */
+.android-position-card .android-dro-actions { height: 52px; min-height: 52px; flex-shrink: 0; }
+@media (orientation: landscape) {
+    .android-position-card .android-dro-card { grid-template-rows: 36px minmax(146px, 1fr) 52px; }
+    .android-carve-grid[data-tight-dro="true"] .android-dro-card { grid-template-rows: 36px minmax(124px, 1fr) 52px; }
+}
+
+.android-load-file { display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 8px; background: #689ac9; color: white; font-size: 12px; flex-shrink: 0; }
+#android-visualizer-files { position: absolute; inset: 0; z-index: 10; background: var(--surface-raised, #fff); color: var(--content-primary, #111827); }
+#android-visualizer-files[hidden] { display: none; }
+
+/* Give the idle visualizer the space otherwise reserved for job controls. */
+.android-visualizer-dock .android-visualizer-card[data-show-job-controls="false"] {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "canvas" "progress" "feed";
+}
+
+/* Move tray: quick actions at upper left, corner selection on the right. */
+.android-move-panel {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: start;
+    gap: 12px;
+}
+.android-move-panel > * { grid-column: 1 / -1; }
+.android-move-panel > .android-move-actions {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+.android-move-actions > button {
+    flex: none;
+    width: min(100%, 180px);
+    min-height: 48px;
+    flex-direction: row;
+    gap: 8px;
+    padding: 10px 12px;
+}
+.android-move-panel > .android-move-corners {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.android-move-corners > div:last-child {
+    margin: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 16px;
+}
+.android-move-corners > div:last-child > div:first-child {
+    flex: 1;
+    min-height: 100px;
+}
+
+/* Vertical position-mode switch beside the stacked coordinate fields. */
+.android-move-position {
+    display: grid;
+    grid-template-columns: 110px minmax(0, 1fr);
+    gap: 10px 12px;
+    align-items: start;
+}
+.android-move-position > .section-label,
+.android-move-position > button { grid-column: 1 / -1; }
+.android-move-position .android-move-mode {
+    grid-column: 1;
+    grid-row: 3;
+    flex-direction: column;
+    border-radius: 10px;
+}
+.android-move-mode > button {
+    flex: none;
+    min-height: 44px;
+    padding: 10px 12px;
+    border-radius: 7px;
+}
+.android-move-mode > button[aria-pressed="true"] {
+    background: #689ac9;
+    color: white;
+}
+.android-move-position .android-move-steps { grid-column: 2; grid-row: 2; }
+.android-move-position .android-move-fields {
+    grid-column: 2;
+    grid-row: 3;
+    grid-template-columns: minmax(0, 1fr) !important;
+}
+
+/* Compact coordinate stack with comfortably sized step selectors. */
+.android-move-position {
+    grid-template-columns: 110px minmax(0, 340px);
+    justify-content: start;
+}
+.android-move-fields > div { min-width: 0; }
+.android-move-fields > div > span:nth-child(2) {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+.android-move-fields button:disabled { opacity: 0.4; }
+.android-move-position > button {
+    grid-column: 2;
+    width: 100%;
+    height: 48px !important;
+    min-height: 48px;
+    padding: 8px 12px;
+    font-size: 13px !important;
+    margin-bottom: 0;
+}
+.android-move-position > button > svg { width: 18px; height: 18px; }
+.android-move-position .android-move-steps {
+    justify-content: stretch;
+    gap: 8px;
+    margin-bottom: 0;
+}
+.android-move-steps > button {
+    flex: 1;
+    min-height: 44px;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 8px;
+}
+
+/* Swap the grouped position controls with Corner Select. */
+.android-move-panel > .android-move-position {
+    grid-column: 2;
+    grid-row: 1;
+    min-width: 0;
+    grid-template-columns: 90px minmax(0, 340px);
+    column-gap: 10px;
+}
+.android-move-panel > .android-move-corners {
+    grid-column: 1;
+    grid-row: 2;
+    min-height: 240px;
+}
+
+/* Shared segmented control for position increments. */
+.android-move-position .android-move-steps {
+    gap: 0 !important;
+    padding: 3px;
+    border: 1px solid var(--outline, #485463);
+    border-radius: 10px;
+    background: var(--surface-raised, #eef1f5);
+}
+.android-move-steps > button {
+    border: 0 !important;
+    border-radius: 7px;
+    min-width: 0;
+    margin: 0;
+    background: transparent;
+}
+.android-move-steps > button[aria-pressed="true"] {
+    background: #689ac9 !important;
+    color: white !important;
+}
+
+/* Match the two Move switches in size and arrangement. */
+.android-move-position .android-move-steps {
+    width: 90px;
+    box-sizing: border-box;
+    flex-direction: column;
+    gap: 4px !important;
+    padding: 4px;
+    justify-self: end;
+}
+.android-move-steps > button {
+    flex: none;
+    min-height: 44px;
+    padding: 10px 12px;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* Shared switch styling, with the step values arranged horizontally. */
+.android-move-position .android-move-mode,
+.android-move-position .android-move-steps {
+    box-sizing: border-box;
+    padding: 4px;
+    gap: 4px !important;
+    border: 1px solid var(--outline, #485463);
+    border-radius: 10px;
+    background: var(--surface-raised, #eef1f5);
+}
+.android-move-position .android-move-steps {
+    flex-direction: row;
+    width: 100%;
+    justify-self: stretch;
+}
+.android-move-mode > button,
+.android-move-steps > button {
+    min-height: 44px;
+    padding: 10px 12px;
+    border: 0 !important;
+    border-radius: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    letter-spacing: 0.025em;
+}
+.android-move-steps > button { flex: 1; }
+.android-move-mode > button[aria-pressed="true"],
+.android-move-steps > button[aria-pressed="true"] {
+    background: #689ac9 !important;
+    color: white !important;
+}
+.android-move-position .android-move-mode,
+.android-move-position .android-move-steps { border-radius: 10px !important; }
+.android-move-mode > button,
+.android-move-steps > button { border-radius: 7px !important; }
+
+/* Wider position group anchored at the upper right of the Move tray. */
+.android-move-panel {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+}
+.android-move-panel > .android-move-position {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    justify-self: end;
+    align-self: start;
+    grid-template-columns: 90px minmax(0, 1fr);
+    justify-content: stretch;
+}
+
+/* Position controls start directly with the step switch, without a heading. */
+.android-move-position .android-move-steps { grid-row: 1; }
+.android-move-position .android-move-mode,
+.android-move-position .android-move-fields { grid-row: 2; }
+
+/* Compact square corner selector. */
+.android-move-panel > .android-move-corners {
+    width: min(100%, 260px);
+    min-height: 0;
+    align-self: start;
+}
+.android-move-corners > div:last-child {
+    flex: none;
+    width: 100%;
+    aspect-ratio: 1;
+    box-sizing: border-box;
+    padding: 28px !important;
+    gap: 16px;
+}
+.android-move-corners > div:last-child > div:first-child {
+    min-height: 0;
+    height: auto;
+}
+
+/* Match the quick actions to the position-mode button proportions. */
+.android-move-panel > .android-move-actions {
+    width: 90px;
+    box-sizing: border-box;
+    padding: 4px;
+    gap: 4px !important;
+    align-self: start;
+    align-items: stretch;
+}
+.android-move-actions > button {
+    width: 100%;
+    height: auto;
+    min-height: 44px !important;
+    padding: 10px 4px !important;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 11px;
+    line-height: 16px;
+    border-radius: 7px !important;
+}
+.android-move-actions > button > svg { display: none; }
+
+/* Restore quick-action icons with enough vertical room for the labels. */
+.android-move-actions > button {
+    min-height: 68px !important;
+    padding: 10px 4px !important;
+    gap: 6px;
+}
+.android-move-actions > button > svg {
+    display: block;
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+}
+
+/* Place Corner Select beside the quick actions, with position controls at right. */
+.android-move-panel {
+    grid-template-columns: 90px minmax(0, 260px) minmax(0, 1fr);
+}
+.android-move-panel > .android-move-actions {
+    grid-column: 1;
+    grid-row: 1;
+}
+.android-move-panel > .android-move-corners {
+    grid-column: 2;
+    grid-row: 1;
+}
+.android-move-panel > .android-move-position {
+    grid-column: 3;
+    grid-row: 1;
+}
+@media (orientation: portrait) {
+    .android-move-panel {
+        grid-template-columns: 90px minmax(0, 220px) minmax(0, 1fr);
+        column-gap: 10px;
+    }
+}
+.android-move-corners > div:last-child > div:last-child {
+    flex-wrap: wrap;
+    gap: 2px 6px;
+}
+
+/* Compact step selector with both switches aligned at the top. */
+.android-move-position .android-move-mode {
+    grid-row: 1 / span 2;
+    align-self: start;
+}
+.android-move-position .android-move-steps {
+    width: max-content;
+    max-width: 100%;
+    justify-self: start;
+    padding: 3px;
+    gap: 3px !important;
+}
+.android-move-position .android-move-steps > button {
+    flex: 0 1 auto;
+    min-height: 32px;
+    padding: 6px 12px;
+    font-size: 12px;
+    line-height: 16px;
+}
+
+/* Right-align the step selector without an outline. */
+.android-move-position .android-move-steps {
+    justify-self: end;
+    border: 0 !important;
+}
+
+/* Keep clear separation between corners and the compact position fields. */
+.android-move-panel > .android-move-position {
+    width: calc(100% - 24px);
+    max-width: 450px;
+    justify-self: end;
+    grid-template-columns: 90px minmax(0, 1fr);
+    column-gap: 16px;
+}
+
+/* Balance corner-to-position spacing independently for each orientation. */
+@media (orientation: landscape) {
+    .android-move-panel > .android-move-position {
+        width: min(100%, 450px);
+        justify-self: start;
+        margin-left: 12px;
+    }
+}
+@media (orientation: portrait) {
+    .android-move-panel > .android-move-position {
+        width: calc(100% - 48px);
+        max-width: none;
+        justify-self: end;
+        margin-left: 0;
+    }
+}
+
+/* Keep position controls anchored to the right without excess landscape gap. */
+@media (orientation: landscape) {
+    .android-move-panel > .android-move-position {
+        width: calc(100% - 12px);
+        max-width: none;
+        justify-self: end;
+        margin-left: 0;
+    }
+}
+@media (orientation: landscape) {
+    .android-move-panel {
+        grid-template-columns: 90px minmax(260px, 1fr) 450px;
+        column-gap: 20px;
+    }
+    .android-move-panel > .android-move-corners { justify-self: end; }
+    .android-move-panel > .android-move-position { width: 100%; }
+}
+
+/* Matching horizontal switches above the position fields. */
+.android-move-panel > .android-move-position {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    column-gap: 10px;
+}
+.android-move-position .android-move-mode {
+    grid-column: 1;
+    grid-row: 1;
+    flex-direction: row;
+    width: max-content;
+    max-width: 100%;
+    padding: 3px;
+    gap: 3px !important;
+    border: 0 !important;
+}
+.android-move-position .android-move-mode > button {
+    flex: 0 1 auto;
+    min-width: 0;
+    min-height: 32px;
+    padding: 6px 8px;
+    font-size: 12px;
+    line-height: 16px;
+}
+.android-move-position .android-move-steps {
+    grid-column: 2;
+    grid-row: 1;
+}
+.android-move-position .android-move-fields {
+    grid-column: 1 / -1;
+    grid-row: 2;
+}
+.android-move-position > button { grid-column: 1 / -1; }
+.android-move-position .android-move-mode,
+.android-move-position .android-move-steps {
+    height: 40px !important;
+    align-items: center;
+}
+.android-move-position .android-move-mode > button,
+.android-move-position .android-move-steps > button {
+    height: 32px !important;
+    box-sizing: border-box;
+}
+
+/* Size both segmented switches to their labels and shared padding. */
+.android-move-position .android-move-mode,
+.android-move-position .android-move-steps {
+    width: max-content;
+    height: auto !important;
+    min-height: 0;
+    padding: 3px !important;
+    gap: 3px !important;
+    align-items: stretch;
+}
+.android-move-position .android-move-mode > button,
+.android-move-position .android-move-steps > button {
+    flex: none;
+    width: auto;
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 6px 10px !important;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+/* Keep the corner selector beside the left quick actions. */
+.android-move-panel > .android-move-corners { justify-self: start; }
+
+/* Reserve space for corner buttons extending beyond the dashed diagram. */
+.android-move-corners > div:last-child {
+    aspect-ratio: auto;
+    min-height: 300px;
+    padding: 42px 40px 16px !important;
+    gap: 42px;
+}
+.android-move-corners > div:last-child > div:first-child {
+    min-height: 140px;
+    flex: 1 0 140px;
+}
+.android-move-corners > div:last-child > div:last-child {
+    flex-shrink: 0;
+    white-space: normal;
+}
+@media (orientation: portrait) {
+    .android-move-panel {
+        grid-template-columns: 90px 260px minmax(0, 1fr);
+    }
+}
+
+/* Keep the title inside the corner box below its movement caption. */
+.android-move-corners > div:last-child { gap: 0; }
+.android-move-corners > div:last-child > div:nth-child(2) {
+    margin-top: 42px !important;
+    flex: none;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    white-space: normal;
+}
+.android-move-corners .android-corner-label {
+    margin-top: 10px;
+    text-align: center;
+    flex: none;
+}
+
+/* Framed spindle commands on the Carve page. */
+.android-feed-overrides .android-feed-spindle {
+    grid-template-columns: minmax(0, 1fr) 112px;
+}
+.android-feed-overrides .android-spindle-controls > div:first-child {
+    border: 1px solid var(--outline-default, #64748b);
+    border-radius: 10px;
+    padding: 7px !important;
+    gap: 6px !important;
+}
+.android-feed-overrides .android-spindle-controls > div:first-child::before {
+    content: 'Spindle';
+    display: block;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    color: var(--content-primary, #111827);
+}
+.android-feed-overrides .android-spindle-controls > div:first-child > div > div:last-child {
+    min-height: 42px !important;
+    padding: 6px !important;
+    gap: 6px !important;
+}
+.android-feed-overrides .android-spindle-controls > div:first-child svg {
+    width: 18px;
+    height: 18px;
+}
+
+/* More separation from spindle commands and clearer slider labels. */
+.android-feed-overrides .android-feed-spindle {
+    column-gap: 24px !important;
+}
+.android-feed-overrides .android-range-label {
+    font-size: 14px !important;
+    line-height: 20px !important;
+}
+
+/* Keep spindle RPM at the right edge of its slider label row. */
+.android-spindle-speed .android-range-label {
+    width: 100% !important;
+    justify-content: space-between !important;
+}
+.android-spindle-speed .android-range-label > span:last-child {
+    margin-left: auto;
+    text-align: right;
+}
+
+.android-visualizer-toolbar .android-load-file + .android-load-file { margin-left: 8px; }
+.android-load-file:disabled { opacity: .45; cursor: default; }
+.android-visualizer-editor, .android-job-summary {
+    position: absolute; inset: 0; z-index: 12;
+    background: var(--surface-raised, #fff); color: var(--content-primary, #111827);
+    overflow: auto;
+}
+.android-job-summary { z-index: 14; padding: 16px; }
+.android-job-summary header { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.android-job-summary header button { background: #689ac9; color: white; padding: 6px 12px; border-radius: 8px; }
+.android-job-summary dl { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px 20px; margin-top: 16px; }
+.android-job-summary dd { overflow-wrap: anywhere; }
+
+/* Slimmer visualizer toolbar buttons. */
+.android-visualizer-toolbar .android-load-file {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
+
+/* Slightly taller visualizer toolbar buttons. */
+.android-visualizer-toolbar .android-load-file {
+    padding-top: 3px !important;
+    padding-bottom: 3px !important;
+}
+
+/* Let the RPM value occupy its full text width inside the slider box. */
+.android-spindle-speed .android-range-label > span:last-child {
+    width: max-content !important;
+    flex: 0 0 auto;
+    text-align: right !important;
+    margin-left: auto;
+}
+
+/* Connection action and live machine status share one compact control. */
+.android-replaced-status { display: none !important; }
+.android-connection-status {
+    display: block;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    white-space: nowrap;
+}
+
+/* Icon identifies the connection; border and prominent status identify the machine. */
+.android-connection-pill {
+    background: var(--surface-raised, #f8fafc) !important;
+    width: max-content !important;
+    min-width: 178px !important;
+}
+.android-connection-title {
+    display: block;
+    font-size: 10px !important;
+    line-height: 12px !important;
+    font-weight: 500;
+    color: var(--content-muted, #64748b) !important;
+}
+.android-connection-status {
+    font-size: 16px !important;
+    line-height: 20px !important;
+    font-weight: 600;
+    font-family: inherit;
+}
+
+/* Pendant macro creation uses the entire tablet viewport. */
+.android-macro-fullscreen {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100vw !important;
+    height: 100dvh !important;
+    max-width: none !important;
+    max-height: none !important;
+    transform: none !important;
+    border-radius: 0 !important;
+    margin: 0 !important;
+    overflow-y: auto;
+    padding: 24px !important;
+}
+
+/* Inset macro editor with side-by-side metadata and a full-height code area. */
+.android-macro-fullscreen {
+    inset: 16px !important;
+    width: calc(100vw - 32px) !important;
+    height: calc(100dvh - 32px) !important;
+    padding: 20px !important;
+    border-radius: 12px !important;
+    display: block !important;
+}
+.android-macro-fullscreen > form {
+    height: 100%; min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(160px, 1fr) auto;
+    gap: 10px 16px;
+}
+.android-macro-fullscreen form > :first-child,
+.android-macro-fullscreen form > p,
+.android-macro-fullscreen form > :last-child { grid-column: 1 / -1; }
+.android-macro-fullscreen form > p { margin: 0 !important; }
+.android-macro-fullscreen .macro-name { grid-column: 1; grid-row: 3; margin: 0 !important; }
+.android-macro-fullscreen .macro-description { grid-column: 2; grid-row: 3; margin: 0 !important; }
+.android-macro-fullscreen .macro-description textarea { height: 40px; min-height: 40px; resize: none; padding: 8px; }
+.android-macro-fullscreen .macro-code {
+    grid-column: 1 / -1; grid-row: 4;
+    min-height: 0; margin: 0 !important;
+}
+.macro-code-editor {
+    position: relative; flex: 1; min-height: 0;
+    overflow: hidden; border: 1px solid #64748b; border-radius: 8px;
+    background: var(--surface-sunken, #f8fafc);
+}
+.macro-code-highlight { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.macro-code-editor > textarea {
+    position: absolute; inset: 0; width: 100%; height: 100%; resize: none;
+    margin: 0; border: 0; padding: 12px 12px 12px 52px;
+    font: 14px/24px monospace; letter-spacing: normal; tab-size: 8;
+    background: transparent; color: transparent; caret-color: #689ac9;
+    white-space: pre; overflow: auto;
+}
+.macro-code-editor > textarea::selection { background: #689ac955; }
+.macro-code-editor textarea,
+.macro-code-editor pre,
+.macro-code-editor code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+    font-size: 14px !important;
+    line-height: 24px !important;
+}
+
+/* Compact heading/name row, with a wider description beneath it. */
+.android-macro-fullscreen > form {
+    grid-template-columns: max-content minmax(0, 1fr);
+    grid-template-rows: auto auto auto minmax(160px, 1fr) auto;
+    gap: 8px 20px;
+}
+.android-macro-fullscreen form > :first-child {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: center;
+}
+.android-macro-fullscreen .macro-name {
+    grid-column: 2;
+    grid-row: 1;
+    flex-direction: row;
+    align-items: center;
+    padding-right: 28px;
+}
+.android-macro-fullscreen .macro-name > label { flex: none; }
+.android-macro-fullscreen .macro-name > input { flex: 1; min-width: 0; }
+.android-macro-fullscreen form > p {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    font-size: 12px;
+    line-height: 16px;
+}
+.android-macro-fullscreen .macro-description {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    gap: 4px;
+}
+.android-macro-fullscreen .macro-description textarea {
+    height: 64px;
+    min-height: 64px;
+}
+.android-macro-fullscreen .macro-name { flex-direction: row !important; }
+
+/* Clear title above fields with in-field placeholder labels. */
+.android-macro-fullscreen > form {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto minmax(160px, 1fr) auto;
+}
+.android-macro-fullscreen form > :first-child { grid-column: 1; grid-row: 1; }
+.android-macro-fullscreen form > p { grid-column: 1; grid-row: 2; }
+.android-macro-fullscreen .macro-name { grid-column: 1; grid-row: 3; padding-right: 0; }
+.android-macro-fullscreen .macro-description { grid-column: 1; grid-row: 4; }
+.android-macro-fullscreen .macro-code { grid-column: 1; grid-row: 5; }
+.android-macro-fullscreen .macro-name input::placeholder,
+.android-macro-fullscreen .macro-description textarea::placeholder {
+    color: #94a3b8;
+    opacity: 1;
+}
+
+/* Macro actions share the title row at the upper right. */
+.android-macro-fullscreen > form {
+    grid-template-columns: minmax(0, 1fr) max-content;
+    grid-template-rows: auto auto auto auto minmax(160px, 1fr);
+}
+.android-macro-fullscreen form > :first-child { grid-column: 1; grid-row: 1; }
+.android-macro-fullscreen form > :last-child {
+    grid-column: 2;
+    grid-row: 1;
+    padding-right: 28px;
+    align-self: center;
+    flex-direction: row !important;
+}
+.android-macro-fullscreen form > p,
+.android-macro-fullscreen .macro-name,
+.android-macro-fullscreen .macro-description,
+.android-macro-fullscreen .macro-code { grid-column: 1 / -1; }
+
+/* Explicit action colors prevent white labels on white buttons. */
+.android-macro-fullscreen form > :last-child button {
+    background: #e2e8f0 !important;
+    color: #1e293b !important;
+    border: 1px solid #94a3b8 !important;
+}
+.android-macro-fullscreen form > :last-child button[data-testid="add-macro-button"] {
+    background: #3978b3 !important;
+    color: #fff !important;
+    border-color: #3978b3 !important;
+}
+
+/* Cancel replaces the corner close icon in macro creation. */
+.android-macro-fullscreen > button { display: none !important; }
+.android-macro-fullscreen form > :last-child { padding-right: 0; }
+
+/* Compact name field between the macro title and actions. */
+.android-macro-fullscreen > form {
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    grid-template-rows: auto auto auto minmax(160px, 1fr);
+    column-gap: 16px;
+}
+.android-macro-fullscreen form > :first-child { grid-column: 1; grid-row: 1; }
+.android-macro-fullscreen .macro-name {
+    grid-column: 2;
+    grid-row: 1;
+    width: 100%;
+    max-width: 320px;
+    align-self: center;
+}
+.android-macro-fullscreen form > :last-child { grid-column: 3; grid-row: 1; }
+.android-macro-fullscreen form > p { grid-column: 1 / -1; grid-row: 2; }
+.android-macro-fullscreen .macro-description { grid-column: 1 / -1; grid-row: 3; }
+.android-macro-fullscreen .macro-code { grid-column: 1 / -1; grid-row: 4; }
+
+/* Center the name in the dialog and tighten the title/subtitle spacing. */
+.android-macro-fullscreen > form {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 320px) minmax(0, 1fr);
+    row-gap: 4px;
+}
+.android-macro-fullscreen .macro-name { justify-self: center; }
+.android-macro-fullscreen form > :first-child { justify-self: start; }
+.android-macro-fullscreen form > :first-child h2 { margin-bottom: 0 !important; }
+.android-macro-fullscreen form > :last-child { justify-self: end; }
+.android-macro-fullscreen .macro-description { margin-top: 4px !important; }
+.android-macro-fullscreen .macro-code { margin-top: 4px !important; }
+@media (max-width: 850px) {
+    .android-macro-fullscreen > form {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 240px) minmax(0, 1fr);
+        column-gap: 10px;
+    }
+}
+
+/* Compact variable picker with a larger list when opened. */
+.android-macro-fullscreen .macro-variable-select {
+    width: 180px;
+    max-width: 100%;
+    flex-shrink: 0;
+}
+
+.android-tray-size-actions { display: flex; align-items: center; gap: 8px; }
+.android-tray-size-actions button:disabled { opacity: .3; }
+
+/* Keep macro actions at the compact-landscape size in every tray state. */
+.android-macros-panel .android-macro-actions,
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions {
+    align-self: end;
+    justify-self: end;
+    width: 88px;
+    gap: 6px !important;
+}
+.android-macros-panel .android-macro-actions > button,
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions > button {
+    flex: none;
+    height: 62px;
+    min-height: 62px;
+    width: 88px;
+}
+.android-macros-panel .android-macro-actions > button > div { height: 100%; }
+
+/* Taller macro actions with tighter vertical spacing. */
+.android-macros-panel .android-macro-actions,
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions {
+    gap: 3px !important;
+}
+.android-macros-panel .android-macro-actions > button,
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions > button {
+    height: 66px;
+    min-height: 66px;
+}
+
+/* More substantial height for macro action buttons. */
+.android-macros-panel .android-macro-actions > button,
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions > button {
+    height: 80px;
+    min-height: 80px;
+}
+
+.android-bottom-drawer[data-compact-panel="true"][data-active-panel="Macros"] {
+    top: clamp(var(--android-header-height), var(--compact-panel-top), calc(100dvh - 354px));
+}
+
+/* Fill the wrapper so the visible action face is tall, not just its hit area. */
+.android-macros-panel .android-macro-actions > button > div {
+    height: 100% !important;
+    min-height: 0 !important;
+    box-sizing: border-box;
+}
+.android-macros-panel .android-macro-actions { gap: 2px !important; }
+.android-macros-panel .android-macro-actions > button > div {
+    height: 76px !important;
+    min-height: 76px !important;
+}
+.android-bottom-drawer[data-compact-panel="true"] .android-macro-actions,
+.android-macros-panel .android-macro-actions { gap: 2px !important; }
+
+/* Macro pages adapt their capacity to the current tray dimensions. */
+.android-macro-pages { height: 100%; min-height: 0; display: grid; grid-template-rows: minmax(0, 1fr) 28px; }
+.android-macro-page-grid { display: grid; gap: 8px; min-height: 0; }
+.android-macro-page-grid > div { min-width: 0; min-height: 0; }
+.android-macro-page-grid .android-macro-button { height: 100%; box-sizing: border-box; }
+.android-macro-page-dots { display: flex; align-items: center; justify-content: center; gap: 2px; overflow-x: auto; }
+.android-macro-page-dots button { display: flex; align-items: center; justify-content: center; width: 28px; height: 28px; flex: none; }
+.android-macro-page-dots span { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; }
+.android-macro-page-dots [aria-current="page"] span { background: #689ac9; width: 9px; height: 9px; }
+
+/* Two jog pages, with tilt controls beside their readiness lamp on the XY page. */
+.android-jog-dock .android-jog-card { position: relative; padding-bottom: 28px !important; }
+.android-jog-page-dots { position: absolute; bottom: 2px; left: 0; right: 0; display: flex; justify-content: center; gap: 4px; height: 24px; }
+.android-jog-page-dots button { width: 28px; height: 24px; display: flex; align-items: center; justify-content: center; }
+.android-jog-page-dots span { width: 7px; height: 7px; border-radius: 50%; background: #94a3b8; }
+.android-jog-page-dots [aria-current="page"] span { width: 9px; height: 9px; background: #689ac9; }
+.android-jog-tilt-slot { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+.android-jog-tilt-slot .android-tilt-switch { margin: 0; padding: 0; border: 0; gap: 5px; font-size: 11px; }
+.android-jog-tilt-slot .android-jog-readiness { position: static; flex: none; margin: 0; }
+
+/* Tighter tilt label spacing in the jog header. */
+.android-jog-tilt-slot .android-tilt-switch {
+    padding: 0 !important;
+    gap: 3px !important;
+}
+.android-jog-tilt-slot .android-tilt-switch > span {
+    min-width: 0;
+    padding: 0;
+}
+
+/* Jog page selection sits in the lower-left corner. */
+.android-jog-page-dots {
+    left: 8px;
+    right: auto;
+    justify-content: flex-start;
+}
+
+/* Reduce the unused space above the jog toolbar. */
+.android-jog-dock .android-jog-card {
+    padding-top: 4px !important;
+}
+
+/* Keep Z and A together in a right-hand column, with A below Z. */
+@media (orientation: landscape) {
+    .android-jog-area {
+        grid-template-columns: minmax(0, 1fr) 64px;
+        grid-template-areas: "xy axes";
+    }
+    .android-jog-axes {
+        display: flex;
+        grid-area: axes;
+        flex-direction: column;
+        gap: 8px;
+    }
+    .android-jog-z, .android-jog-a { grid-area: auto; }
+    .android-jog-z { order: 0; }
+    .android-jog-a { order: 1; }
+}
+
+/* Lower the stacked Z/A controls within the jog area. */
+.android-jog-area .android-jog-axes {
+    padding-top: 12px;
+    box-sizing: border-box;
+}
+
+/* Give the landscape XY pad more of the available jog height. */
+@media (orientation: landscape) {
+    .android-jog-dock .android-jog-card:has(.android-xy-pad) {
+        gap: 4px !important;
+        padding-bottom: 22px !important;
+    }
+    .android-jog-card:has(.android-xy-pad) .android-jog-toolbar {
+        padding-top: 0;
+        padding-bottom: 0;
+    }
+    .android-jog-area:has(.android-xy-pad) { padding-block: 0; }
+}
+
+/* Match the portrait Z/A stack proportions and placement in landscape. */
+@media (orientation: landscape) {
+    .android-carve-grid {
+        grid-template-columns: minmax(0, 1fr) 432px;
+        grid-template-rows: minmax(214px, 1fr) 428px;
+    }
+    .android-jog-area {
+        grid-template-columns: minmax(0, 1fr) 76.5px;
+        column-gap: 12px;
+        padding: 4px 10px;
+    }
+    .android-jog-area .android-jog-axes { gap: 12px; }
+    .android-jog-area .android-jog-z > div,
+    .android-jog-area .android-jog-a > div { gap: 18px !important; }
+    .android-jog-area .android-jog-axes .jog-btn {
+        width: 68.5px !important;
+        height: 68.5px !important;
+    }
+}
+
+/* Slightly wider landscape DRO and jog column. */
+@media (orientation: landscape) {
+    .android-carve-grid {
+        grid-template-columns: minmax(0, 1fr) 464px;
+    }
+}
+
+/* Shorter landscape jog container, retaining room for the stacked axes. */
+@media (orientation: landscape) {
+    .android-carve-grid {
+        grid-template-rows: minmax(214px, 1fr) 400px;
+    }
+    .android-jog-area .android-jog-z > div,
+    .android-jog-area .android-jog-a > div { gap: 12px !important; }
+    .android-jog-area .android-jog-axes { padding-top: 8px; }
+}
+
+/* Fit the fixed-size axis stack without shrinking the regular XY buttons. */
+@media (orientation: landscape) {
+    .android-jog-area:not(:has(.android-xy-pad)) .android-jog-z > div,
+    .android-jog-area:not(:has(.android-xy-pad)) .android-jog-a > div { gap: 4px !important; }
+}
+
+/* Anchor fitted landscape controls at the portrait-style right inset. */
+@media (orientation: landscape) {
+    .android-jog-fit .android-jog-area {
+        margin-left: auto;
+        margin-right: 0;
+    }
+}
+
+/* Separate the landscape XY pad from the right-hand axis buttons. */
+@media (orientation: landscape) {
+    .android-jog-area:has(.android-xy-pad) {
+        column-gap: 20px;
+    }
+}
+
+/* Tighten the jog footer and shorten the landscape container. */
+@media (orientation: landscape) {
+    .android-carve-grid { grid-template-rows: minmax(214px, 1fr) 388px; }
+    .android-jog-dock .android-jog-card,
+    .android-jog-dock .android-jog-card:has(.android-xy-pad) {
+        padding-bottom: 16px !important;
+    }
+    .android-jog-page-dots { height: 18px; bottom: 0; }
+    .android-jog-page-dots button { height: 18px; }
+}
+
+.android-jog-step-switch { display: flex; padding: 3px; gap: 3px; border-radius: 10px; background: var(--surface-raised, #eef1f5); }
+.android-jog-step-switch > button { padding: 6px 10px; border: 0; border-radius: 7px; font-size: 12px; line-height: 16px; font-weight: 600; }
+.android-jog-step-switch > button[aria-pressed="true"] { background: #689ac9; color: white; }
+
+/* Consistent Z/A spacing in both orientations and on both jog pages. */
+.android-jog-card .android-jog-area .android-jog-axes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px !important;
+    padding-top: 8px;
+}
+.android-jog-card .android-jog-area .android-jog-z > div,
+.android-jog-card .android-jog-area .android-jog-a > div {
+    display: flex;
+    flex-direction: column;
+    gap: 4px !important;
+}
+.android-jog-card .android-jog-area .android-jog-axes .jog-btn {
+    margin-block: 0 !important;
+}
+
+/* Fit the approved layout below Android's system bars on short landscapes. */
+@media (orientation: landscape) {
+    .android-carve-grid[data-short-landscape="true"] {
+        grid-template-rows: minmax(244px, 44fr) minmax(280px, 56fr);
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-position-card .android-dro-card {
+        min-height: 0;
+        grid-template-rows: 36px minmax(128px, 1fr) 36px;
+        gap: 4px !important;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-dro-axes {
+        grid-template-rows: repeat(4, minmax(28px, 1fr));
+        gap: 4px !important;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-dro-actions {
+        height: 36px;
+        min-height: 36px;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-jog-dock .android-jog-card {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: 4px !important;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-jog-toolbar {
+        flex-direction: row;
+        align-items: center;
+        padding-block: 0;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-jog-presets {
+        display: grid !important;
+        width: max-content;
+        height: 36px;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-jog-area {
+        grid-template-columns: minmax(0, 1fr) 62px;
+        padding-block: 0;
+    }
+    .android-carve-grid[data-short-landscape="true"] .android-jog-area .android-jog-axes .jog-btn {
+        width: 54px !important;
+        height: 54px !important;
+    }
 }

@@ -239,6 +239,7 @@
     "@serialport/parser-byte-length": "^13.0.0",
     "@serialport/parser-readline": "^13.0.0",
     "@sienci/avrgirl-arduino": "^5.0.3",
+    "@sienci/gviewer": "^0.1.37",
     "axios": "^1.2.4",
     "basic-ftp": "^5.1.0",
     "bcrypt-nodejs": "0.0.3",
@@ -286,6 +287,7 @@
     "range_check": "~1.4.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
+    "react-virtuoso": "^4.18.13",
     "registry-auth-token": "~3.4.0",
     "registry-url": "~5.1.0",
     "rimraf": "~2.6.3",
@@ -303,8 +305,7 @@
     "watch": "~1.0.2",
     "webappengine": "~1.2.0",
     "winreg": "^1.2.5",
-    "winston": "^3.19.0",
-    "@sienci/gviewer": "^0.1.37"
+    "winston": "^3.19.0"
   },
   "devDependencies": {
     "@babel/core": "^7.29.0",

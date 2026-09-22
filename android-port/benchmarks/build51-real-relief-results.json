@@ -1,0 +1,98 @@
+{
+  "completion": {
+    "time": 1790016768.251078,
+    "event": "job_completed",
+    "seconds": 596.5266952080019,
+    "acknowledged": 298263,
+    "received": 298263,
+    "achieved_lines_per_second": 499.99941728676396,
+    "command_sha256": "ea176107cb962066df316e3cdd6e46f85bfc7512f0e5acf19891579d09fe6cbc",
+    "expected_match": true,
+    "expected_file": "MAXMAKE-snow-mountain-simulation.nc",
+    "max_receive_gap_ms": 67.43245799953002,
+    "max_status_poll_gap_ms": 355.3542080007901,
+    "rx_overflows": 0
+  },
+  "observed_load_ready_seconds": 14.294986724853516,
+  "observed_preview_ready_seconds": 14.361466884613037,
+  "combined_peak_pss_mib": 401.4345703125,
+  "app_peak_pss_mib": 236.6796875,
+  "minimum_available_mib": 754.8515625,
+  "app_pids": [
+    "28585"
+  ],
+  "webview_pids": [
+    "28618"
+  ],
+  "memory_samples": 212,
+  "matching_error_lines": [],
+  "windows": [
+    {
+      "phase": "visualizer-idle",
+      "gestures": 8,
+      "frame_gap_median_p95_ms": 33.29999999998836,
+      "dispatch_median_p95_ms": 31.299999997019768,
+      "median_commands_per_second": null,
+      "minimum_commands_per_second": null,
+      "max_status_poll_gap_ms": null
+    },
+    {
+      "phase": "visualizer-run",
+      "gestures": 8,
+      "frame_gap_median_p95_ms": 116.70000000001164,
+      "dispatch_median_p95_ms": 34.149999998509884,
+      "median_commands_per_second": 499.9855586294098,
+      "minimum_commands_per_second": 499.13875301874185,
+      "max_status_poll_gap_ms": 270.70691699918825
+    },
+    {
+      "phase": "visualizer-run-middle",
+      "gestures": 8,
+      "frame_gap_median_p95_ms": 116.70000000001164,
+      "dispatch_median_p95_ms": 33.70000000298023,
+      "median_commands_per_second": 499.8961603071171,
+      "minimum_commands_per_second": 499.23692383596716,
+      "max_status_poll_gap_ms": 258.90895900010946
+    },
+    {
+      "phase": "visualizer-run-late",
+      "gestures": 8,
+      "frame_gap_median_p95_ms": 116.69999999995343,
+      "dispatch_median_p95_ms": 33.70000000298023,
+      "median_commands_per_second": 500.0120560467835,
+      "minimum_commands_per_second": 499.2642663397842,
+      "max_status_poll_gap_ms": 261.63391700174543
+    },
+    {
+      "phase": "visualizer-run-final",
+      "gestures": 8,
+      "frame_gap_median_p95_ms": 116.70000000006985,
+      "dispatch_median_p95_ms": 33.75,
+      "median_commands_per_second": 499.94531426519103,
+      "minimum_commands_per_second": 499.4136469282973,
+      "max_status_poll_gap_ms": 260.78645899906405
+    }
+  ],
+  "streaming_intervals": 594,
+  "rate_median": 499.97701612132585,
+  "rate_p05": 499.33641927580436,
+  "rate_min": 497.8909827857359,
+  "preview_completed_count": 1,
+  "preview_cache_hits": 12,
+  "preview_events": [
+    {
+      "time": 1790016144.915,
+      "id": 1,
+      "mode": "software-bitmap",
+      "drawMs": 2194,
+      "exportMs": 5.200000002980232
+    }
+  ],
+  "ui_completion": {
+    "time": 1790016828.6017752,
+    "case": "MAXMAKE-snow-mountain-simulation.nc",
+    "phase": "ui-completion-observed",
+    "seconds_after_controller_completion": 60.34825611114502,
+    "ui_finished": true
+  }
+}

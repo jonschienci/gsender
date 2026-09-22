@@ -2,7 +2,7 @@
 
 Android host for gSender's existing desktop and pendant interfaces, Node backend, and direct USB serial connection to a CNC controller. The Android-specific code lives in this directory; upstream source is adapted only at bundle time.
 
-Current build: [Build 47](BUILD-47.md), including the authorized UI update, Pico SLB-Lite automatic connection, and retained Build 46 job-performance changes.
+Current build: [Build 54](BUILD-54.md), combining the revised pendant UI with Build 53 display updates, cached previews and offline benchmark tools. [Three-tablet performance report](benchmarks/gSender-Android-Build-53-Benchmark-Report.pdf) (Build 53 measurements; Build 54 has not been benchmarked).
 
 ## Target and status
 

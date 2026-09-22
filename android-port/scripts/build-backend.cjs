@@ -4,6 +4,7 @@ const esbuild = require('esbuild');
 const root = path.resolve(__dirname, '../..');
 const out = path.join(root, 'android-port/build/payload');
 const runtime = path.join(root, 'android-port/runtime');
+const buildNumber=fs.readFileSync(path.join(root,'android-port/app/build.gradle'),'utf8').match(/versionCode\s+(\d+)/)[1];
 const replace = (source, from, to) => {
     if (!source.includes(from)) throw new Error('Upstream source changed: ' + from);
     return source.replace(from, to);
@@ -12,10 +13,13 @@ const replace = (source, from, to) => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
         bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
-        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':'"1.6.4-android.47-prototype"','global.METRICS_ENDPOINT':'""'},
+        define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':JSON.stringify('1.6.4-android.'+buildNumber+'-prototype'),'global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
+                build.onResolve({filter:/^android-benchmark$/},()=>({path:'./benchmark/service.cjs',external:true}));
+                build.onResolve({filter:/^android-benchmark-gate$/},()=>({path:path.join(root,'android-port/benchmark/gate.cjs')}));
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
+                build.onResolve({filter:/^android-serial-display$/},()=>({path:path.join(runtime,'serial-display.cjs')}));
                 build.onResolve({filter:/^android-job-lines$/},()=>({path:path.join(runtime,'job-lines.cjs')}));
                 build.onResolve({filter:/^android-slb-autoconnect$/},()=>({path:path.join(runtime,'slb-autoconnect.cjs')}));
                 build.onResolve({filter:/^android-usb-pendant$/},()=>({path:path.join(root,'android-port/pendant/service.cjs')}));
@@ -26,6 +30,8 @@ const replace = (source, from, to) => {
                 build.onResolve({filter:/^(server|app)\//},args=>({path:require.resolve(path.join(root,'src',args.path))}));
                 build.onLoad({filter:/src\/server\/.*\.js$/},args=>{
                     let s=fs.readFileSync(args.path,'utf8');
+                    s=require('./display-backend.cjs').transform(s,args.path);
+                    s=require('./benchmark-backend.cjs').transform(s,args.path);
                     s=require('./controller-startup.cjs').transform(s,args.path);
                     s=require('./job-memory.cjs').transform(s,args.path);
                     s=require('./network-close.cjs').transform(s,args.path);
@@ -33,7 +39,7 @@ const replace = (source, from, to) => {
                     if(args.path.endsWith('lib/Connection.js')) s=replace(s, 'path: port,', 'path: port, requestPermission: options.requestPermission !== false,');
                     if(args.path.endsWith('lib/SerialConnection.js')) s=replace(s, 'this.port.write(Buffer.from(data));',
                         'const bytes = data === "\\x85" ? Buffer.from([0x85]) : Buffer.from(data); if (context?.usbPendant === true) { const port = this.port; port.writeBounded(bytes, err => { if (err) port.destroy(err); }); } else this.port.write(bytes);');
-                    if(args.path.endsWith('server/app.js')) s=replace(s, 'const app = express();', "const app = express(); require('./local-access.cjs').install(app); require('android-usb-pendant').installRoutes(app);");
+                    if(args.path.endsWith('server/app.js')) s=replace(s, 'const app = express();', "const app = express(); require('./local-access.cjs').install(app); require('android-usb-pendant').installRoutes(app); require('android-benchmark').installRoutes(app);");
                     if(args.path.endsWith('settings.base.js')) {
                         s=replace(s,'const getUserHome = () => os.homedir();','const getUserHome = () => process.env.GSENDER_USER_DATA;');
                         s=replace(s,"path.resolve(__dirname, '..', 'i18n',", "path.resolve(process.env.GSENDER_BUNDLE_DIR, 'i18n',");
@@ -67,5 +73,6 @@ const replace = (source, from, to) => {
     fs.cpSync(path.join(root,'src/server/i18n'),path.join(out,'i18n'),{recursive:true});
     fs.cpSync(path.join(root,'src/server/views'),path.join(out,'views'),{recursive:true});
     fs.copyFileSync(path.join(root,'LICENSE'),path.join(out,'LICENSE'));
+    fs.cpSync(path.join(root,'android-port/benchmark'),path.join(out,'benchmark'),{recursive:true});
     console.log('Android backend compiled.');
 })().catch(err=>{console.error(err);process.exitCode=1;});

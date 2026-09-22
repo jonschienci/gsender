@@ -6,27 +6,26 @@ import {
     addToInputHistory,
     clearHistory,
 } from 'app/store/redux/slices/console.slice';
-import { KeyboardEvent, useEffect, useRef, useState } from 'react';
+import ConsoleList from './upstream-console/components/ConsoleList';
+import type { ConsoleMessage } from './upstream-console/definitions';
+import './upstream-console/styles.css';
+import { KeyboardEvent, useMemo, useState } from 'react';
 
 type Props = {
     className?: string;
+    isActive?: boolean;
 };
 
-function lineColor(line: string): string {
-    if (/error:/i.test(line) || /ALARM:/i.test(line)) {
-        return 'text-red-400';
-    }
-    return 'text-gray-500 dark:text-content-secondary';
-}
+const EMPTY_HISTORY: string[] = [];
 
-export default function ConsolePanel({ className = '' }: Props) {
-    const history = useTypedSelector((s: RootState) => s.console.history);
+export default function ConsolePanel({ className = '', isActive = true }: Props) {
+    const history = useTypedSelector((s: RootState) => isActive ? s.console.history : EMPTY_HISTORY);
     const [input, setInput] = useState('');
-    const bottomRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [history]);
+    const messages = useMemo<ConsoleMessage[]>(() => history.map((message, index) => ({
+        id: `${index}:${message}`,
+        message,
+        type: /ALARM:/i.test(message) ? 'alarm' : /error:/i.test(message) ? 'error' : 'response',
+    })), [history]);
 
     const send = () => {
         const cmd = input.trim();
@@ -43,28 +42,13 @@ export default function ConsolePanel({ className = '' }: Props) {
     const clear = () => store.dispatch(clearHistory());
 
     return (
-        <div className={`flex flex-col h-full ${className}`}>
-            {/* Output */}
-            <div className="flex-1 overflow-y-auto px-3 py-2 space-y-0.5">
-                {history.length === 0 ? (
-                    <p className="font-mono text-xs text-gray-400 dark:text-content-muted italic">
-                        No output yet
-                    </p>
-                ) : (
-                    history.map((line, i) => (
-                        <p
-                            key={i}
-                            className={`font-mono text-xs leading-snug whitespace-pre-wrap break-all ${lineColor(line)}`}
-                        >
-                            {line}
-                        </p>
-                    ))
-                )}
-                <div ref={bottomRef} />
+        <div className={`android-pendant-console relative flex flex-col h-full ${className}`}>
+            <div className="dark relative flex-1 min-h-0" data-theme="dark">
+                <ConsoleList messages={messages} isActive={isActive} />
             </div>
 
             {/* Input row */}
-            <div className="flex items-center gap-2 px-3 py-2 border-t border-gray-200 dark:border-white/10 shrink-0">
+            <div className="android-console-command-row flex items-center gap-2 px-3 py-2 shrink-0">
                 <input
                     type="text"
                     value={input}

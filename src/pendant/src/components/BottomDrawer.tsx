@@ -1,3 +1,5 @@
+import { cacheRecentFile, readRecentFile } from '../utils/recentFileCache';
+import { createPortal } from 'react-dom';
 import GcodeEditor from 'app/features/Visualizer/GcodeEditor';
 import { useTypedSelector } from 'app/hooks/useTypedSelector';
 import { useWorkspaceState } from 'app/hooks/useWorkspaceState';
@@ -101,9 +103,9 @@ export default function BottomDrawer() {
     const DOUBLE_TAP_MS = 260;
     const [mode, setMode] = useState<DrawerMode>('closed');
     const [activeTab, setActiveTab] = useState<DrawerTab>('File');
-    const [consoleExpanded, setConsoleExpanded] = useState(false);
+    const [standaloneExpanded, setStandaloneExpanded] = useState(false);
     const [compactTop, setCompactTop] = useState(400);
-    useEffect(() => { setConsoleExpanded(false); }, [activeTab, mode === 'closed']);
+    useEffect(() => { setStandaloneExpanded(false); }, [activeTab, mode === 'closed']);
     useEffect(() => {
         const visualizer = document.querySelector('.android-visualizer-frame');
         if (!visualizer) return;
@@ -114,7 +116,7 @@ export default function BottomDrawer() {
         update();
         return () => { observer.disconnect(); window.removeEventListener('resize', update); };
     }, []);
-    const compactPanel = activeTab === 'Macros' || (activeTab === 'Console' && !consoleExpanded);
+    const compactPanel = (activeTab === 'Macros' || activeTab === 'Console') && !standaloneExpanded;
     useEffect(() => {
         if (mode === 'closed') return;
         const dismissOutside = (event: PointerEvent) => {
@@ -128,6 +130,14 @@ export default function BottomDrawer() {
         document.addEventListener('pointerdown', dismissOutside, true);
         return () => document.removeEventListener('pointerdown', dismissOutside, true);
     }, [mode]);
+    const [filePane, setFilePane] = useState<HTMLElement | null>(null);
+    useEffect(() => {
+        const update = () => setFilePane(document.getElementById('android-visualizer-files'));
+        update();
+        const observer = new MutationObserver(update);
+        observer.observe(document.body, {childList: true, subtree: true});
+        return () => observer.disconnect();
+    }, []);
     const [recentFiles, setRecentFiles] = useState<RecentFile[]>([]);
     const [loadedAt, setLoadedAt] = useState<number | null>(null);
 
@@ -145,7 +155,7 @@ export default function BottomDrawer() {
         (s: RootState) => s.controller.settings.info?.NEWOPT?.ATC,
     );
     const atcEnabledOrCompiled = atcEnabled || atcReport === '1';
-    const TABS = ALL_TABS.filter(
+    const TABS = ALL_TABS.filter(t => t !== 'File').filter(
         (t) =>
             (t !== 'Coolant' || coolantFunctions) &&
             (t !== 'ATC' || atcEnabledOrCompiled),
@@ -240,6 +250,7 @@ export default function BottomDrawer() {
 
     const applyLoadedFile = (payload: GcodeFilePayload) => {
         applyGcodeFile(payload);
+        if (!isElectron()) void cacheRecentFile(payload).catch(() => { /* File picker remains available if local storage is full. */ });
         const timeLoaded = Date.now();
         setLoadedAt(timeLoaded);
         saveRecentEntry({
@@ -286,19 +297,18 @@ export default function BottomDrawer() {
     };
 
     const handleRecentLoad = async (recentFile: RecentFile) => {
-        if (!recentFile.filePath) return;
-
-        if (isElectron()) {
-            try {
-                const loaded = await readGcodeFile(recentFile.filePath);
-                if (loaded) {
-                    applyLoadedFile(loaded);
-                }
-            } catch (_error) {
-                // no-op: file missing/unreadable
+        try {
+            const loaded = isElectron() && recentFile.filePath
+                ? await readGcodeFile(recentFile.filePath)
+                : await readRecentFile(recentFile.fileName, recentFile.filePath);
+            if (loaded) {
+                applyLoadedFile(loaded);
+                return;
             }
-            return;
+        } catch (_error) {
+            // Missing files or unavailable browser storage fall back to selecting a file.
         }
+        await handleLoadClick();
     };
 
     // Bounds from bbox.delta (populated when server parses; zeros when offline)
@@ -376,6 +386,7 @@ export default function BottomDrawer() {
     return (
         <div
             data-compact-panel={compactPanel}
+            data-active-panel={activeTab}
             style={{ ['--compact-panel-top' as string]: `${compactTop}px` }}
             className={`relative shrink-0 h-14 ${mode !== 'closed' ? 'z-40' : ''}`}
         >
@@ -403,24 +414,26 @@ export default function BottomDrawer() {
                 style={{ height: panelHeight }}
             >
                 <div className="flex flex-col h-full">
-                    {activeTab === 'Console' && (
+                    {(activeTab === 'Console' || activeTab === 'Macros') && (
                         <div className="android-console-size-bar">
-                            <span>Console</span>
+                            <span>{activeTab}</span>
+                            <div className="android-tray-size-actions">
                             <button
-                                aria-label={consoleExpanded ? 'Collapse console' : 'Expand console'}
-                                aria-expanded={consoleExpanded}
-                                onClick={() => setConsoleExpanded(value => !value)}
+                                aria-label={`${standaloneExpanded ? 'Collapse' : 'Expand'} ${activeTab.toLowerCase()}`}
+                                aria-expanded={standaloneExpanded}
+                                onClick={() => setStandaloneExpanded(value => !value)}
                             >
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: consoleExpanded ? 'rotate(180deg)' : undefined }}>
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ transform: standaloneExpanded ? 'rotate(180deg)' : undefined }}>
                                     <path d="m6 14 6-6 6 6 M6 20l6-6 6 6" />
                                 </svg>
                             </button>
+                            </div>
                         </div>
                     )}
                     {/* Header bar — standalone navigation panels omit tray tabs. */}
                     <div
                         data-standalone-panel={activeTab === 'Console' || activeTab === 'Macros'}
-                        className="w-full h-14 shrink-0 flex items-center gap-3 px-4 py-3 bg-gray-100 dark:bg-surface-raised border-b border-gray-200 dark:border-outline"
+                        className="android-tray-header w-full h-14 shrink-0 flex items-center gap-3 px-4 py-3 bg-gray-100 dark:bg-surface-raised border-b border-gray-200 dark:border-outline"
                         onClick={(e) => handleHeaderTap(e.target)}
                     >
                         <div className="flex items-center gap-1 flex-1 min-w-0">
@@ -481,13 +494,8 @@ export default function BottomDrawer() {
                     </div>
 
                     {/* File tab — always mounted */}
-                    <div
-                        className={
-                            activeTab === 'File'
-                                ? 'flex-1 flex flex-col overflow-hidden min-h-0'
-                                : 'hidden'
-                        }
-                    >
+                    {filePane && createPortal(
+                    <div className="h-full flex flex-col min-h-0">
                         {file.fileLoaded ? (
                             <div className="shrink-0 px-3 py-2 flex flex-col gap-2">
                                 <div className="flex items-center gap-3 bg-gray-200/70 dark:bg-surface-elevated rounded-lg px-3 py-2">
@@ -549,7 +557,7 @@ export default function BottomDrawer() {
                                 </button>
                             </div>
                         )}
-                        {mode === 'expanded' && (
+                        {true && (
                             <div className="flex-1 overflow-hidden min-h-0">
                                 {file.fileLoaded ? (
                                     <div className="h-full overflow-auto px-3 py-2">
@@ -591,14 +599,7 @@ export default function BottomDrawer() {
                                                                     r,
                                                                 )
                                                             }
-                                                            disabled={
-                                                                !r.filePath
-                                                            }
-                                                            className={`text-xs font-semibold rounded px-3 py-1.5 border transition-colors ${
-                                                                r.filePath
-                                                                    ? 'text-robin-600 dark:text-robin-400 border-robin-300 dark:border-robin-600 hover:bg-robin-50 dark:hover:bg-robin-500/15'
-                                                                    : 'text-gray-400 dark:text-content-muted border-gray-200 dark:border-outline cursor-default'
-                                                            }`}
+                                                            className="text-xs font-semibold rounded px-3 py-1.5 border transition-colors text-robin-600 dark:text-robin-400 border-robin-300 dark:border-robin-600 hover:bg-robin-50 dark:hover:bg-robin-500/15"
                                                         >
                                                             Load
                                                         </button>
@@ -611,6 +612,7 @@ export default function BottomDrawer() {
                             </div>
                         )}
                     </div>
+                    , filePane)}
 
                     {/* Move tab — always mounted */}
                     <div
@@ -650,7 +652,7 @@ export default function BottomDrawer() {
                                 <div ref={consolePreviewBottomRef} />
                             </div>
                         ) : (
-                            <ConsolePanel className="h-full" />
+                            <ConsolePanel className="h-full" isActive={mode !== 'closed' && activeTab === 'Console'} />
                         )}
                     </div>
 

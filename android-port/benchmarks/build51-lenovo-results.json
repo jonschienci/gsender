@@ -1,0 +1,484 @@
+[
+  {
+    "case": "arcs-1024KiB.nc",
+    "start": 1790013890.569967,
+    "end": 1790013978.7062762,
+    "frames": {
+      "run-static": {
+        "frames": 127.0,
+        "janky_percent": 14.17,
+        "p50_ms": 14.0,
+        "p95_ms": 36.0,
+        "p99_ms": 81.0,
+        "missed_deadlines": 18.0
+      },
+      "run-static-after": {
+        "frames": 147.0,
+        "janky_percent": 14.29,
+        "p50_ms": 13.0,
+        "p95_ms": 28.0,
+        "p99_ms": 73.0,
+        "missed_deadlines": 21.0
+      },
+      "visualizer-run": {
+        "frames": 333.0,
+        "janky_percent": 61.56,
+        "p50_ms": 23.0,
+        "p95_ms": 57.0,
+        "p99_ms": 89.0,
+        "missed_deadlines": 140.0
+      },
+      "visualizer-idle": {
+        "frames": 492.0,
+        "janky_percent": 86.99,
+        "p50_ms": 22.0,
+        "p95_ms": 40.0,
+        "p99_ms": 65.0,
+        "missed_deadlines": 86.0
+      }
+    },
+    "completion": {
+      "time": 1790013978.2360692,
+      "event": "job_completed",
+      "seconds": 51.79906304100041,
+      "acknowledged": 25898,
+      "received": 25898,
+      "achieved_lines_per_second": 499.9704334323771,
+      "command_sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+      "expected_match": true,
+      "expected_file": "arcs-1024KiB.nc",
+      "max_receive_gap_ms": 48.780332999740494,
+      "max_status_poll_gap_ms": 273.14279200072633,
+      "rx_overflows": 0
+    },
+    "load_observed_seconds": 13.552292823791504,
+    "peak_cpu_one_core_percent": 164.48,
+    "peak_combined_swap_pss_mib": 6.017578125,
+    "pids": [
+      "10867"
+    ],
+    "partial_last_progress": {
+      "time": 1790013977.568641,
+      "event": "job_progress",
+      "interval_start": 1790013976.564589,
+      "interval_seconds": 1.0040440840002702,
+      "acknowledged": 25563,
+      "interval_commands": 502,
+      "lines_per_second": 499.97804678052853,
+      "held": false,
+      "max_status_poll_gap_ms": 252.3737080009596
+    },
+    "peak_app_pss_mib": 227.4755859375,
+    "peak_combined_pss_mib": 489.8720703125,
+    "minimum_available_mib": 704.078125,
+    "median_pan_commands_per_second": 500.0121392385654,
+    "pan_gestures": 8,
+    "pan_median_gesture_p95_frame_gap_ms": 116.60000000000582,
+    "pan_median_gesture_p95_event_dispatch_ms": 45.29999999701977,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0,
+    "preview_cache_hits": 9,
+    "preview_modes": [
+      "software-bitmap"
+    ],
+    "preview_count": 1,
+    "preview_median_drawMs": 6789.899999991059,
+    "preview_max_drawMs": 6789.899999991059,
+    "preview_median_exportMs": 3.800000011920929,
+    "preview_max_exportMs": 3.800000011920929,
+    "minimum_case_samples": 30
+  },
+  {
+    "case": "contour-128KiB.nc",
+    "start": 1790014077.950507,
+    "end": 1790014105.481051,
+    "frames": {
+      "run-static": {
+        "frames": 0.0,
+        "janky_percent": 0.0,
+        "p50_ms": 4950.0,
+        "p95_ms": 4950.0,
+        "p99_ms": 4950.0,
+        "missed_deadlines": 0.0
+      },
+      "run-static-after": {
+        "frames": 13.0,
+        "janky_percent": 15.38,
+        "p50_ms": 14.0,
+        "p95_ms": 32.0,
+        "p99_ms": 32.0,
+        "missed_deadlines": 2.0
+      },
+      "visualizer-run": {
+        "frames": 66.0,
+        "janky_percent": 56.06,
+        "p50_ms": 23.0,
+        "p95_ms": 48.0,
+        "p99_ms": 57.0,
+        "missed_deadlines": 27.0
+      },
+      "visualizer-idle": {
+        "frames": 114.0,
+        "janky_percent": 80.7,
+        "p50_ms": 22.0,
+        "p95_ms": 38.0,
+        "p99_ms": 61.0,
+        "missed_deadlines": 25.0
+      }
+    },
+    "completion": {
+      "time": 1790014104.435018,
+      "event": "job_completed",
+      "seconds": 7.957640416998402,
+      "acknowledged": 3978,
+      "received": 3978,
+      "achieved_lines_per_second": 499.89692817767326,
+      "command_sha256": "3d8804a18d3d09c86f037f6440f137e129fa964e9a8d65b5c7c81637785485fb",
+      "expected_match": true,
+      "expected_file": "contour-128KiB.nc",
+      "max_receive_gap_ms": 33.44420800021908,
+      "max_status_poll_gap_ms": 258.58012499884353,
+      "rx_overflows": 0
+    },
+    "load_observed_seconds": 10.147218942642212,
+    "peak_cpu_one_core_percent": 162.15,
+    "peak_combined_swap_pss_mib": 5.87890625,
+    "pids": [
+      "10867"
+    ],
+    "partial_last_progress": {
+      "time": 1790014103.496796,
+      "event": "job_progress",
+      "interval_start": 1790014102.4928071,
+      "interval_seconds": 1.003982874999565,
+      "acknowledged": 3508,
+      "interval_commands": 502,
+      "lines_per_second": 500.0085285321401,
+      "held": false,
+      "max_status_poll_gap_ms": 253.22558300103992
+    },
+    "peak_app_pss_mib": 219.8818359375,
+    "peak_combined_pss_mib": 340.4521484375,
+    "minimum_available_mib": 815.125,
+    "median_pan_commands_per_second": 500.1819524164715,
+    "pan_gestures": 2,
+    "pan_median_gesture_p95_frame_gap_ms": 116.64999999999418,
+    "pan_median_gesture_p95_event_dispatch_ms": 32.54999999701977,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0,
+    "preview_cache_hits": 2,
+    "preview_modes": [
+      "software-bitmap"
+    ],
+    "preview_count": 1,
+    "preview_median_drawMs": 129.70000000298023,
+    "preview_max_drawMs": 129.70000000298023,
+    "preview_median_exportMs": 4.0999999940395355,
+    "preview_max_exportMs": 4.0999999940395355,
+    "minimum_case_samples": 9
+  },
+  {
+    "case": "relief-5120KiB.nc",
+    "start": 1790014161.975872,
+    "end": 1790014247.135964,
+    "frames": {
+      "run-static": {
+        "frames": 127.0,
+        "janky_percent": 16.54,
+        "p50_ms": 13.0,
+        "p95_ms": 32.0,
+        "p99_ms": 73.0,
+        "missed_deadlines": 21.0
+      },
+      "run-static-after": {
+        "frames": 149.0,
+        "janky_percent": 11.41,
+        "p50_ms": 13.0,
+        "p95_ms": 24.0,
+        "p99_ms": 81.0,
+        "missed_deadlines": 17.0
+      },
+      "visualizer-run": {
+        "frames": 319.0,
+        "janky_percent": 60.19,
+        "p50_ms": 24.0,
+        "p95_ms": 57.0,
+        "p99_ms": 81.0,
+        "missed_deadlines": 132.0
+      },
+      "visualizer-idle": {
+        "frames": 477.0,
+        "janky_percent": 86.37,
+        "p50_ms": 22.0,
+        "p95_ms": 42.0,
+        "p99_ms": 77.0,
+        "missed_deadlines": 90.0
+      }
+    },
+    "completion": null,
+    "load_observed_seconds": 13.69875979423523,
+    "peak_cpu_one_core_percent": 153.25,
+    "peak_combined_swap_pss_mib": 6.7431640625,
+    "pids": [
+      "10867"
+    ],
+    "partial_last_progress": {
+      "time": 1790014245.994792,
+      "event": "job_progress",
+      "interval_start": 1790014244.9895182,
+      "interval_seconds": 1.0052628750017902,
+      "acknowledged": 24047,
+      "interval_commands": 503,
+      "lines_per_second": 500.3666329556876,
+      "held": false,
+      "max_status_poll_gap_ms": 252.68716600112384
+    },
+    "peak_app_pss_mib": 241.8779296875,
+    "peak_combined_pss_mib": 434.09375,
+    "minimum_available_mib": 737.08984375,
+    "median_pan_commands_per_second": 499.9972295162287,
+    "pan_gestures": 8,
+    "pan_median_gesture_p95_frame_gap_ms": 116.60000000003492,
+    "pan_median_gesture_p95_event_dispatch_ms": 34.150000005960464,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0,
+    "preview_cache_hits": 9,
+    "preview_modes": [
+      "software-bitmap"
+    ],
+    "preview_count": 1,
+    "preview_median_drawMs": 1235.4000000059605,
+    "preview_max_drawMs": 1235.4000000059605,
+    "preview_median_exportMs": 5.399999991059303,
+    "preview_max_exportMs": 5.399999991059303,
+    "minimum_case_samples": 29
+  },
+  {
+    "case": "relief-20480KiB.nc",
+    "start": 1790014322.822617,
+    "end": 1790014418.125819,
+    "frames": {
+      "run-static": {
+        "frames": 127.0,
+        "janky_percent": 13.39,
+        "p50_ms": 13.0,
+        "p95_ms": 38.0,
+        "p99_ms": 81.0,
+        "missed_deadlines": 17.0
+      },
+      "run-static-after": {
+        "frames": 149.0,
+        "janky_percent": 8.72,
+        "p50_ms": 13.0,
+        "p95_ms": 25.0,
+        "p99_ms": 77.0,
+        "missed_deadlines": 13.0
+      },
+      "visualizer-run": {
+        "frames": 320.0,
+        "janky_percent": 60.62,
+        "p50_ms": 23.0,
+        "p95_ms": 57.0,
+        "p99_ms": 85.0,
+        "missed_deadlines": 129.0
+      },
+      "visualizer-idle": {
+        "frames": 465.0,
+        "janky_percent": 86.02,
+        "p50_ms": 24.0,
+        "p95_ms": 46.0,
+        "p99_ms": 85.0,
+        "missed_deadlines": 103.0
+      }
+    },
+    "completion": null,
+    "load_observed_seconds": 23.826477766036987,
+    "peak_cpu_one_core_percent": 163.98,
+    "peak_combined_swap_pss_mib": 29.736328125,
+    "pids": [
+      "10867"
+    ],
+    "partial_last_progress": {
+      "time": 1790014416.812076,
+      "event": "job_progress",
+      "interval_start": 1790014415.810404,
+      "interval_seconds": 1.0016667499985488,
+      "acknowledged": 24058,
+      "interval_commands": 501,
+      "lines_per_second": 500.1663477406292,
+      "held": false,
+      "max_status_poll_gap_ms": 252.27345800158218
+    },
+    "peak_app_pss_mib": 282.1083984375,
+    "peak_combined_pss_mib": 627.8271484375,
+    "minimum_available_mib": 586.69140625,
+    "median_pan_commands_per_second": 499.95912535371997,
+    "pan_gestures": 8,
+    "pan_median_gesture_p95_frame_gap_ms": 116.60000000009313,
+    "pan_median_gesture_p95_event_dispatch_ms": 34.20000000298023,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0,
+    "preview_cache_hits": 9,
+    "preview_modes": [
+      "software-bitmap"
+    ],
+    "preview_count": 1,
+    "preview_median_drawMs": 5087.29999999702,
+    "preview_max_drawMs": 5087.29999999702,
+    "preview_median_exportMs": 4.899999991059303,
+    "preview_max_exportMs": 4.899999991059303,
+    "minimum_case_samples": 32
+  },
+  {
+    "case": "relief-30720KiB.nc",
+    "start": 1790014679.0792341,
+    "end": 1790014781.752636,
+    "frames": {
+      "run-static": {
+        "frames": 127.0,
+        "janky_percent": 12.6,
+        "p50_ms": 13.0,
+        "p95_ms": 30.0,
+        "p99_ms": 81.0,
+        "missed_deadlines": 16.0
+      },
+      "run-static-after": {
+        "frames": 148.0,
+        "janky_percent": 7.43,
+        "p50_ms": 13.0,
+        "p95_ms": 23.0,
+        "p99_ms": 77.0,
+        "missed_deadlines": 11.0
+      },
+      "visualizer-run": {
+        "frames": 309.0,
+        "janky_percent": 56.96,
+        "p50_ms": 23.0,
+        "p95_ms": 57.0,
+        "p99_ms": 77.0,
+        "missed_deadlines": 128.0
+      },
+      "visualizer-idle": {
+        "frames": 478.0,
+        "janky_percent": 87.87,
+        "p50_ms": 23.0,
+        "p95_ms": 44.0,
+        "p99_ms": 61.0,
+        "missed_deadlines": 93.0
+      }
+    },
+    "completion": null,
+    "load_observed_seconds": 30.754438877105713,
+    "peak_cpu_one_core_percent": 154.37,
+    "peak_combined_swap_pss_mib": 37.1865234375,
+    "pids": [
+      "10867"
+    ],
+    "partial_last_progress": {
+      "time": 1790014780.576103,
+      "event": "job_progress",
+      "interval_start": 1790014779.574366,
+      "interval_seconds": 1.0017278340019402,
+      "acknowledged": 24062,
+      "interval_commands": 501,
+      "lines_per_second": 500.13584827575994,
+      "held": false,
+      "max_status_poll_gap_ms": 252.12241700137383
+    },
+    "peak_app_pss_mib": 365.0009765625,
+    "peak_combined_pss_mib": 772.9091796875,
+    "minimum_available_mib": 428.65234375,
+    "median_pan_commands_per_second": 500.11388300502944,
+    "pan_gestures": 8,
+    "pan_median_gesture_p95_frame_gap_ms": 116.65000000002328,
+    "pan_median_gesture_p95_event_dispatch_ms": 48.54999999701977,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0,
+    "preview_cache_hits": 9,
+    "preview_modes": [
+      "software-bitmap"
+    ],
+    "preview_count": 1,
+    "preview_median_drawMs": 6908.70000000298,
+    "preview_max_drawMs": 6908.70000000298,
+    "preview_median_exportMs": 3.9000000059604645,
+    "preview_max_exportMs": 3.9000000059604645,
+    "minimum_case_samples": 34
+  },
+  {
+    "case": "relief-40960KiB.nc",
+    "start": 1790014861.173295,
+    "end": 1790014974.2130911,
+    "frames": {
+      "run-static": {
+        "frames": 125.0,
+        "janky_percent": 14.4,
+        "p50_ms": 13.0,
+        "p95_ms": 32.0,
+        "p99_ms": 81.0,
+        "missed_deadlines": 18.0
+      },
+      "run-static-after": {
+        "frames": 149.0,
+        "janky_percent": 6.71,
+        "p50_ms": 13.0,
+        "p95_ms": 17.0,
+        "p99_ms": 85.0,
+        "missed_deadlines": 10.0
+      },
+      "visualizer-run": {
+        "frames": 315.0,
+        "janky_percent": 56.83,
+        "p50_ms": 24.0,
+        "p95_ms": 57.0,
+        "p99_ms": 77.0,
+        "missed_deadlines": 121.0
+      },
+      "visualizer-idle": {
+        "frames": 492.0,
+        "janky_percent": 83.94,
+        "p50_ms": 21.0,
+        "p95_ms": 36.0,
+        "p99_ms": 48.0,
+        "missed_deadlines": 86.0
+      }
+    },
+    "completion": null,
+    "load_observed_seconds": 34.47198295593262,
+    "peak_cpu_one_core_percent": 159.55,
+    "peak_combined_swap_pss_mib": 35.4130859375,
+    "pids": [
+      "10867"
+    ],
+    "partial_last_progress": {
+      "time": 1790014972.841579,
+      "event": "job_progress",
+      "interval_start": 1790014971.8407836,
+      "interval_seconds": 1.0007885410013841,
+      "acknowledged": 24037,
+      "interval_commands": 501,
+      "lines_per_second": 500.60525223310594,
+      "held": false,
+      "max_status_poll_gap_ms": 252.76045800274005
+    },
+    "peak_app_pss_mib": 395.9150390625,
+    "peak_combined_pss_mib": 835.88671875,
+    "minimum_available_mib": 321.6796875,
+    "median_pan_commands_per_second": 500.00153892766014,
+    "pan_gestures": 8,
+    "pan_median_gesture_p95_frame_gap_ms": 116.60000000009313,
+    "pan_median_gesture_p95_event_dispatch_ms": 37.75,
+    "pan_long_task_count": 0,
+    "matching_error_log_lines": 0,
+    "preview_cache_hits": 9,
+    "preview_modes": [
+      "software-bitmap"
+    ],
+    "preview_count": 1,
+    "preview_median_drawMs": 8780.59999999404,
+    "preview_max_drawMs": 8780.59999999404,
+    "preview_median_exportMs": 3.7999999970197678,
+    "preview_max_exportMs": 3.7999999970197678,
+    "minimum_case_samples": 38
+  }
+]

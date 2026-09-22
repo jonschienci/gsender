@@ -1,6 +1,19 @@
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const {JSDOM}=require('jsdom');
 const group=(values,stride=4)=>({hexColor:'#123456',opacity:.5,stride,positionsLen:values.length,positionsBuffer:new Float32Array(values).buffer});
+test('pan cache covers visible geometry including negative screen Y, while zoom/resize/new regions redraw',async()=>{
+    const {previewCovers}=await import('../ui/raster-geometry.mjs');
+    const bounds={minX:0,maxX:10,minY:0,maxY:10};
+    const painted={view:{x:-5,y:-15,w:20,h:20},width:400,height:400,strokeWidth:1};
+    assert.equal(previewCovers(painted,{x:0,y:-10,w:20,h:20},400,400,1,bounds),true);
+    assert.equal(previewCovers(painted,{x:100,y:100,w:20,h:20},400,400,1,bounds),true);
+    assert.equal(previewCovers(painted,{x:-1,y:-11,w:12,h:12},400,400,1,bounds),false,'zoom needs more detail');
+    assert.equal(previewCovers(painted,painted.view,800,800,1,bounds),false,'larger output needs more pixels');
+    assert.equal(previewCovers(painted,painted.view,400,400,2,bounds),false,'stroke changes invalidate');
+    const crop={view:{x:0,y:-10,w:5,h:10},width:100,height:200,strokeWidth:1};
+    assert.equal(previewCovers(crop,{x:4,y:-10,w:5,h:10},100,200,1,bounds),false,'pan reveals an unpainted region');
+    assert.equal(previewCovers(null,painted.view,400,400,1,bounds),false);
+});
 test('preview preserves all finite segment endpoints, exact bounds, group opacity and bounded native paths',async()=>{
     const {geometryBounds,rasterSize,paintGroups}=await import('../ui/raster-geometry.mjs');
     const groups=[group([0,0,10,20,10,20,-5,-2]),group([1,2,3,4,5,6],6)];
@@ -26,6 +39,11 @@ test('real renderer uses bounded images, keeps bounds/overlays, rejects stale im
     global.requestAnimationFrame=()=>1;global.cancelAnimationFrame=()=>{};
     const {GCodeSVGRenderer:Renderer}=require('@sienci/gviewer/viewer');
     const {installRasterPreview}=await import('../ui/raster-preview.mjs');
+    const transferred=[];let failPresentation=false;
+    dom.window.HTMLCanvasElement.prototype.getContext=function(kind) {
+        assert.equal(kind,'bitmaprenderer');return {transferFromImageBitmap:bitmap=>{if(failPresentation)throw Error('Presentation failed');transferred.push(bitmap);}};
+    };
+    const bitmap=()=>({width:320,height:240,closed:false,close(){this.closed=true;}});
     const workers=[];let urls=0;const revoked=[];
     const oldCreate=URL.createObjectURL,oldRevoke=URL.revokeObjectURL;
     URL.createObjectURL=()=>`blob:test-${++urls}`;URL.revokeObjectURL=url=>revoked.push(url);
@@ -40,14 +58,22 @@ test('real renderer uses bounded images, keeps bounds/overlays, rejects stale im
         assert.equal(renderer.segmentGroups[0].verts.length,4);
         const worker=workers[0],request=worker.messages.at(-1);
         assert.equal(worker.messages[0].groups[0].positionsBuffer.byteLength,32);
-        worker.onmessage({data:{id:request.id,view:request.view,blob:{}}});
-        assert.equal(renderer.pathLayer.querySelectorAll('image').length,1);
+        const first=bitmap();worker.onmessage({data:{id:request.id,view:request.view,bitmap:first,mode:'bitmap',width:request.width,height:request.height,strokeWidth:request.strokeWidth}});
+        assert.equal(first.closed,true);assert.equal(transferred[0],first);
+        assert.equal(renderer.pathLayer.querySelectorAll('foreignObject canvas').length,1);
         assert.equal(renderer.svg.dataset.previewStatus,'ready');
-        worker.onmessage({data:{id:request.id-1,view:request.view,blob:{}}});assert.equal(urls,1);
-        renderer.setBitPosition({x:5,y:4,z:1});assert.equal(renderer.pathLayer.querySelectorAll('image').length,1);
+        const stale=bitmap();worker.onmessage({data:{id:request.id-1,view:request.view,bitmap:stale}});assert.equal(stale.closed,true);assert.equal(transferred.length,1);
+        renderer.setBitPosition({x:5,y:4,z:1});assert.equal(renderer.pathLayer.querySelectorAll('foreignObject canvas').length,1);
+        // A queued frame can arrive after panning back to a cached view. If
+        // presentation fails, the old cache must not suppress the PNG retry.
+        failPresentation=true;
+        const failed=bitmap();worker.onmessage({data:{id:request.id,view:request.view,bitmap:failed}});
+        assert.equal(failed.closed,true);assert.equal(worker.messages.at(-1).bitmap,false);
+        assert.ok(worker.messages.at(-1).id>request.id);
+        failPresentation=false;
         renderer.clear();assert.equal(worker.stopped,true);assert.equal(renderer.pathLayer.children.length,0);
-        worker.onmessage({data:{id:request.id,view:request.view,blob:{}}});assert.equal(urls,1);
-        assert.deepEqual(revoked,['blob:test-1']);
+        const late=bitmap();worker.onmessage({data:{id:request.id,view:request.view,bitmap:late}});assert.equal(late.closed,true);assert.equal(transferred.length,1);
+        assert.deepEqual(revoked,[]);
         const raw={vertices:new Float32Array([-8,2,-7,9,23,6,9,23,6,2,5,0]).buffer,
             verticesLen:12,frames:new Uint32Array([0,2]).buffer,framesLen:2,
             colorArrayBuffer:new Float32Array([1,0,0,1,1,0,0,1,0,1,0,.5,0,1,0,.5]).buffer};
@@ -57,6 +83,13 @@ test('real renderer uses bounded images, keeps bounds/overlays, rejects stale im
         assert.equal(workers[1].messages[0].groups.length,2);
         assert.equal(workers[1].messages[0].groups[1].opacity,.5);
         assert.equal(renderer.segmentGroups[0].verts.length,4);
-        renderer.dispose();assert.equal(workers[1].stopped,true);
+        dom.window.HTMLCanvasElement.prototype.getContext=()=>null;
+        renderer.clear();renderer.loadFromPrecomputedGroups([data]);
+        const fallback=workers[2],fallbackRequest=fallback.messages.at(-1);
+        assert.equal(fallbackRequest.bitmap,false);
+        fallback.onmessage({data:{id:fallbackRequest.id,view:fallbackRequest.view,blob:{},mode:'png'}});
+        assert.equal(renderer.pathLayer.querySelectorAll('image').length,1);
+        renderer.dispose();assert.equal(fallback.stopped,true);assert.equal(workers[1].stopped,true);
+        assert.deepEqual(revoked,['blob:test-1']);
     } finally {URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;dom.window.close();}
 });

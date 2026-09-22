@@ -27,10 +27,28 @@ export function rasterSize(view, desiredWidth, desiredHeight) {
         Math.max(1,desiredWidth)/view.w,Math.max(1,desiredHeight)/view.h);
     return {width:Math.max(1,Math.round(view.w*scale)),height:Math.max(1,Math.round(view.h*scale))};
 }
-export async function paintGroups(groups, view, canvas, layer, strokeWidth, current, yieldWork) {
-    const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    const mask=layer.getContext('2d',{willReadFrequently:true});
+// Reuse an image while panning if it already covers every visible part of the
+// toolpath at sufficient resolution. Zoom/resize or revealing uncached geometry
+// still requests a fresh image; overlays continue to use the live SVG viewBox.
+export function previewCovers(painted, view, desiredWidth, desiredHeight, strokeWidth, bounds) {
+    if(!painted || painted.strokeWidth!==strokeWidth)return false;
+    const size=rasterSize(view,desiredWidth,desiredHeight);
+    if((painted.width+1)/painted.view.w<size.width/view.w || (painted.height+1)/painted.view.h<size.height/view.h)return false;
+    const margin=Math.max(0,strokeWidth)/2;
+    const left=Math.max(view.x,bounds.minX-margin),right=Math.min(view.x+view.w,bounds.maxX+margin);
+    const top=Math.max(view.y,-bounds.maxY-margin),bottom=Math.min(view.y+view.h,-bounds.minY+margin);
+    if(left>=right || top>=bottom)return true;
+    const old=painted.view,epsilon=1e-7;
+    return left>=old.x-epsilon && right<=old.x+old.w+epsilon && top>=old.y-epsilon && bottom<=old.y+old.h+epsilon;
+}
+export async function paintGroups(groups, view, canvas, layer, strokeWidth, current, yieldWork, software=true) {
+    // Keep dense path rasterization in the worker's software canvas. GPU path
+    // drawing caused a measured input-dispatch ANR on the Lenovo in Build 48.
+    // The finished bitmap is still presented through the accelerated WebView.
+    const ctx=canvas.getContext('2d',{willReadFrequently:software});
+    const mask=layer.getContext('2d',{willReadFrequently:software});
     if (!ctx || !mask) throw Error('Canvas preview unavailable');
+    if (ctx.isContextLost?.() || mask.isContextLost?.()) throw Error('Canvas preview context lost');
     const sx=canvas.width/view.w, sy=canvas.height/view.h;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     let examined=0;
@@ -58,5 +76,6 @@ export async function paintGroups(groups, view, canvas, layer, strokeWidth, curr
         ctx.globalAlpha=Number.isFinite(group.opacity)?Math.max(0,Math.min(1,group.opacity)):1;
         ctx.drawImage(layer,0,0); // Apply group opacity once, including overlaps.
     }
+    if (ctx.isContextLost?.() || mask.isContextLost?.()) throw Error('Canvas preview context lost');
     return current();
 }

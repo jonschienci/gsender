@@ -1,0 +1,30 @@
+# Build 53 — responsive job display updates
+
+Build 52's tablet reports showed successful command delivery but a large interface backlog: the complex-relief completion appeared 24–69 seconds late and streaming animation frame-gap p95 was approximately 116–117 ms on all three tablets.
+
+Build 53 batches the socket copies of serial console output for clients that negotiate support. Packets flush within 100 ms, at 128 entries/64 KiB, or before an error or another event. Legacy clients retain individual events. CNC writes, parsing, acknowledgements and streaming are unchanged. The frontend still delivers individual lines to existing listeners, while console history dispatches are batched with a bounded 300-line tail. Hidden console panels stop rendering and scrolling history; the standard terminal batches visible writes as well.
+
+Position-only and progress-counter snapshots can replace pending snapshots before the next display frame, with a 50 ms timeout fallback. Machine state, pin, modal, hold, completion and connection changes are ordering barriers. GrblHAL polling/publication now runs every 100 ms, retaining the outstanding-request guard. Existing toolpath caching and marker-only position updates remain in place.
+
+The benchmark records preview stages and explicit worker errors. A known preview error stops the case immediately; a readiness timeout also captures its last stage and UI processing state. These diagnostics investigate the Lenovo's Build 52 preview timeout without assuming its cause.
+
+The source and layout are based on the tested Build 52 snapshot. No unrelated UI-task changes are included. Node 24.21.0, ARMv7 packaging, application identity and signing key are retained.
+
+## Validation
+
+- 322 regression tests passed, including batched/legacy event ordering, preservation of alarms and state transitions, bounded histories, hidden-console rendering, preview failure reporting, simulated command verification, USB recovery and jogging regressions.
+- Both frontends compiled; Android release assembly, release lint and APK/runtime verification passed.
+- APK: `gSender-Android-build-53.apk`, 83,189,141 bytes; SHA-256 `7fd11ca05a00fc3f26f8e8310c2447ede477a75f3f440d527184134db2882b96`.
+- Lenovo TB-8506F, portrait, quick benchmark: completed in 101.26 seconds; all 25,898 commands verified; 500.06 commands/second; zero RX overflows. Observed workflow completion delay was 806 ms. Fully streaming animation windows had frame-gap p95 of 50 and 83.2 ms. Maximum observed heartbeat response age was 256 ms. Status polls were approximately 100–110 ms apart.
+- The quick benchmark's `completion_display.delayMs` also includes the end of an in-progress viewport exercise. Use the timestamped workflow transition (`measurements.completionDisplayDelayMs`) to measure when the interface actually caught up.
+- Lenovo full suite completed in 20.33 minutes. All 328,139 commands across the three complete jobs passed checksum verification with zero RX overflows at approximately 500 commands/s. Relief completion display delay fell from 69.04 s (Build 52) to 553 ms; arcs delay fell from 79.12 s to 563 ms. Fully streaming frame-gap p95 was approximately 50 ms for those two cases versus 116–117 ms previously.
+- Lenovo loaded the 20 MiB preview in 22.10 s (previously timed out) and the 40 MiB preview in 42.59 s. All seven cases completed without recorded preview failures. The 5–40 MiB cases are timed streaming samples, not full deliveries.
+- Minimum sampled available memory was 335.2 MiB, above the 256 MiB benchmark stop threshold. Peak sampled host/Node PSS was 256.1 MiB, excluding the isolated WebView renderer. Maximum heartbeat response age was 306 ms. No error-level app, Chromium, or AndroidRuntime messages appeared in the collected final log snapshot. This is one full run and does not establish the maximum safe file size.
+- K50 full suite completed in 19.12 minutes. All 328,139 commands across the three complete jobs passed checksum verification with zero RX overflows. Measured throughput was 493.6–499.8 commands/s against the 500 commands/s target. Relief completion display delay fell from 23.80 s to 552 ms; fully streaming relief frame-gap p95 fell from 115.9 ms to 49.7–66.2 ms.
+- K50 loaded the 20 MiB preview in 9.21 s (17.36 s previously) and the 40 MiB preview in 17.29 s (28.80 s previously). All seven cases completed with no recorded preview failure or sampled low-memory flag. Minimum sampled available memory was 1,313.3 MiB; peak host/Node PSS was 396.1 MiB, excluding the isolated WebView renderer. Maximum heartbeat response age was 307 ms.
+- K90 full suite completed in 19.12 minutes. All 328,139 commands across the three complete jobs passed checksum verification with zero RX overflows at approximately 500 commands/s. Relief completion display delay fell from 43.09 s to 566 ms. The 20 MiB preview loaded in 8.98 s and the 40 MiB preview in 17.68 s (30.74 s previously).
+- **K90 rendering regression:** fully streaming relief animation frame-gap p95 increased from approximately 116.8 ms to 150.1 ms. Arcs p95 remained approximately 116.7 ms. Job status responsiveness improved, but K90 streaming animation smoothness remains unresolved and must not be reported as an improvement.
+- K90 minimum sampled available memory was 4,768.4 MiB with no sampled low-memory flags; peak host/Node PSS was 584.0 MiB, excluding the isolated WebView renderer. Maximum heartbeat response age was 71 ms. Before/after viewport and pixel ratio matched. Post-run diagnostics showed a 60 Hz display and current thermal status 0; these snapshots do not establish thermal conditions throughout the run or identify the rendering bottleneck.
+- Full-suite reports for all three tablets are collected. Automated animation timing is not physical touch latency, and the loopback simulator does not validate USB transport or real machine motion. No further build or benchmark was started after collecting the K90 report.
+
+No Git push has been performed for this build.

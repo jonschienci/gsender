@@ -7,7 +7,8 @@ import {
 import type { Job } from 'app/features/Stats/utils/StatContext';
 import { useTypedSelector } from 'app/hooks/useTypedSelector';
 import type { RootState } from 'app/store/redux';
-import JobEndModal from 'app/workspace/Alerts/JobEndModal';
+import { createPortal } from 'react-dom';
+import { convertMillisecondsToTimeStamp } from 'app/lib/datetime';
 import { useEffect, useRef, useState } from 'react';
 
 export default function JobCompletionAlert() {
@@ -26,6 +27,14 @@ export default function JobCompletionAlert() {
     const [showJobEndModal, setShowJobEndModal] = useState(false);
     const [job, setJob] = useState<Job | null>(null);
 
+    const [summaryHost, setSummaryHost] = useState<HTMLElement | null>(null);
+    useEffect(() => {
+        const update = () => setSummaryHost(document.getElementById('android-job-summary-host'));
+        update();
+        const observer = new MutationObserver(update);
+        observer.observe(document.body, { childList: true, subtree: true });
+        return () => observer.disconnect();
+    }, []);
     const hasRunRef = useRef(false);
     const lastFinishTimeRef = useRef(0);
 
@@ -67,17 +76,17 @@ export default function JobCompletionAlert() {
         hasRunRef.current = false;
     }, [workflowState, senderStatus, controllerType, port, filePath]);
 
-    if (!job) {
-        return null;
-    }
+    if (!job || !showJobEndModal || !summaryHost) return null;
 
-    return (
-        <JobEndModal
-            job={job}
-            errors={[]}
-            showModal={showJobEndModal}
-            setShowModal={setShowJobEndModal}
-            onClose={() => setShowJobEndModal(false)}
-        />
+    return createPortal(
+        <section className="android-job-summary" aria-label="Job completion stats">
+            <header><strong>Job complete</strong><button type="button" onClick={() => setShowJobEndModal(false)}>Close</button></header>
+            <dl>
+                <dt>File</dt><dd>{job.file}</dd>
+                <dt>Status</dt><dd>{job.jobStatus}</dd>
+                <dt>Time</dt><dd>{convertMillisecondsToTimeStamp(job.duration)}</dd>
+                <dt>Lines</dt><dd>{job.totalLines}</dd>
+            </dl>
+        </section>, summaryHost,
     );
 }

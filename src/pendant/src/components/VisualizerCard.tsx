@@ -1,7 +1,12 @@
+import { store as reduxStore } from 'app/store/redux';
+import { unloadFileInfo } from 'app/store/redux/slices/fileInfo.slice';
+import { cancelGcodeProcessing } from '../utils/gcodeProcessing';
+import { useEffect, useState } from 'react';
+import { WORKFLOW_STATE_RUNNING, WORKFLOW_STATE_PAUSED } from 'app/constants';
 import { useTypedSelector } from 'app/hooks/useTypedSelector';
 import type { RootState } from 'app/store/redux';
+import GcodeEditor from 'app/features/Visualizer/GcodeEditor';
 import { FileCode2 } from 'lucide-react';
-import { openGcodeFile } from '../utils/fileLoader';
 import FeedOverrideWrapper from './FeedOverrideWrapper';
 import FileLoadingOverlay from './FileLoadingOverlay';
 import JobControls from './JobControls';
@@ -10,7 +15,13 @@ import Visualizer from './Visualizer';
 import WorkspaceSelector from './WorkspaceSelector';
 
 export default function VisualizerCard() {
+    const [filesOpen, setFilesOpen] = useState(false);
+    const [editorOpen, setEditorOpen] = useState(false);
     const fileLoaded = useTypedSelector((s: RootState) => s.file.fileLoaded);
+    const workflowState = useTypedSelector((s: RootState) => s.controller.workflow.state);
+    const showJobControls = fileLoaded ||
+        workflowState === WORKFLOW_STATE_RUNNING ||
+        workflowState === WORKFLOW_STATE_PAUSED;
     const fileProcessing = useTypedSelector(
         (s: RootState) => s.file.fileProcessing,
     );
@@ -26,8 +37,10 @@ export default function VisualizerCard() {
             : s.file.name || '',
     );
 
+    useEffect(() => { if (fileProcessing) setFilesOpen(false); }, [fileProcessing]);
+
     return (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3" data-show-job-controls={showJobControls}>
             {/* Visualizer canvas */}
             <div className="rounded-xl border border-gray-300 dark:border-outline dark:bg-surface-raised flex flex-col">
                 {/* Top toolbar */}
@@ -52,11 +65,25 @@ export default function VisualizerCard() {
                             Bounds
                         </span>
                     </div>
+                    {fileLoaded && <button type="button" className="android-load-file" aria-expanded={editorOpen} onClick={() => { setFilesOpen(false); setEditorOpen(value => !value); }}>
+                        {editorOpen ? 'Close Editor' : 'G-code Editor'}
+                    </button>}
+                    <button type="button" className="android-load-file" aria-expanded={filesOpen} onClick={() => { setEditorOpen(false); setFilesOpen(value => !value); }}>
+                        <FileCode2 size={16} /> {filesOpen ? 'Close Files' : 'Load File'}
+                    </button>
+                    {fileLoaded && <button type="button" className="android-load-file"
+                        disabled={workflowState === WORKFLOW_STATE_RUNNING || workflowState === WORKFLOW_STATE_PAUSED}
+                        onClick={() => { cancelGcodeProcessing(); reduxStore.dispatch(unloadFileInfo()); setEditorOpen(false); setFilesOpen(false); }}>
+                        Close File
+                    </button>}
                     <WorkspaceSelector />
                 </div>
 
                 <div className="relative h-56 overflow-hidden rounded-b-xl dark:bg-surface-sunken">
                     <Visualizer />
+                    <div id="android-job-summary-host" />
+                    {editorOpen && fileLoaded && <section className="android-visualizer-editor" aria-label="G-code editor"><GcodeEditor onClose={() => setEditorOpen(false)} /></section>}
+                    <section id="android-visualizer-files" aria-label="G-code files" hidden={!filesOpen} />
                     {fileProcessing && (
                         <div className="absolute inset-0 flex items-center justify-center p-3 bg-dark-darker/95">
                             <FileLoadingOverlay
@@ -68,7 +95,7 @@ export default function VisualizerCard() {
                     {!fileLoaded && !fileProcessing && (
                         <button
                             type="button"
-                            onClick={() => openGcodeFile()}
+                            onClick={() => setFilesOpen(true)}
                             className="absolute inset-2 rounded-lg flex flex-col items-center justify-center gap-2 bg-gray-100 dark:bg-transparent border border-dashed border-gray-300 dark:border-white/25 cursor-pointer"
                             aria-label="Open G-code file"
                         >
@@ -88,7 +115,7 @@ export default function VisualizerCard() {
             </div>
 
             {/* Job controls */}
-            <JobControls />
+            {showJobControls && <JobControls />}
 
             <ProgressAreaWrapper />
 

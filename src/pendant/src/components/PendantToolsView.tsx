@@ -1,3 +1,4 @@
+import ToolsPages from './ToolsPages';
 import { TbRulerMeasure } from 'react-icons/tb';
 import ToolCard from 'app/components/ToolCard';
 import { BiSolidCylinder } from 'react-icons/bi';
@@ -16,7 +17,7 @@ export default function PendantToolsView() {
                 Tools included with gSender.
             </p>
 
-            <div className="grid grid-cols-2 gap-3">
+            <ToolsPages>
                 <ToolCard
                     title="Surfacing"
                     description="Flatten your wasteboard or other non-flat stock"
@@ -64,7 +65,7 @@ export default function PendantToolsView() {
                     icon={LuDrill}
                 />
 
-            </div>
+            </ToolsPages>
         </div>
     );
 }

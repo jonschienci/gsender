@@ -62,6 +62,7 @@ public final class MainActivity extends Activity {
             v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
             return insets;
         });
+        hideStatusBar();
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
@@ -98,7 +99,8 @@ public final class MainActivity extends Activity {
             @Override public boolean onConsoleMessage(ConsoleMessage message) {
                 // Opt-in local telemetry, without enabling remote WebView debugging.
                 if (visualizerBenchmark
-                    && message.message().startsWith("GSENDER_VISUALIZER_BENCHMARK ")
+                    && (message.message().startsWith("GSENDER_VISUALIZER_BENCHMARK ")
+                        || message.message().startsWith("GSENDER_PREVIEW_BENCHMARK "))
                     && message.message().length() <= 3500) {
                     android.util.Log.i("gSenderBench", message.message());
                     return true;
@@ -156,6 +158,20 @@ public final class MainActivity extends Activity {
                 });
             }
         }, "AndroidDownload");
+        web.addJavascriptInterface(new Object() {
+            @JavascriptInterface public String sample() {
+                try {
+                    android.app.ActivityManager manager = getSystemService(android.app.ActivityManager.class);
+                    android.app.ActivityManager.MemoryInfo memory = new android.app.ActivityManager.MemoryInfo();
+                    manager.getMemoryInfo(memory);
+                    return new JSONObject().put("model", Build.MODEL).put("manufacturer", Build.MANUFACTURER)
+                        .put("android", Build.VERSION.RELEASE).put("sdk", Build.VERSION.SDK_INT)
+                        .put("totalMiB", memory.totalMem / 1048576.0).put("availableMiB", memory.availMem / 1048576.0)
+                        .put("lowMemory", memory.lowMemory).put("appPssMiB", android.os.Debug.getPss() / 1024.0)
+                        .put("pssScope", "Host app and Node; excludes isolated WebView renderer").toString();
+                } catch (Exception error) { return "{}"; }
+            }
+        }, "AndroidBenchmark");
         web.setDownloadListener((url, userAgent, disposition, mime, length) -> {
             if (!url.startsWith("blob:" + EngineService.url) && !local(Uri.parse(url))) return;
             String name = URLUtil.guessFileName(url, disposition, mime);
@@ -175,6 +191,7 @@ public final class MainActivity extends Activity {
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
         if (qr != null) qr.cancel();
         super.onConfigurationChanged(configuration);
+        hideStatusBar();
     }
     private void showUsbStatus() {
         TextView details = new TextView(this);
@@ -211,8 +228,22 @@ public final class MainActivity extends Activity {
             }, "gsender-export").start();
         }
     }
+    private void hideStatusBar() {
+        // Reclaim the clock/notification strip while retaining Android navigation.
+        // The user can still reveal the status bar with an edge swipe.
+        if (Build.VERSION.SDK_INT >= 30) {
+            WindowInsetsController controller = getWindow().getInsetsController();
+            if (controller != null) {
+                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+                controller.hide(WindowInsets.Type.statusBars());
+            }
+        } else {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
+        }
+    }
     @Override public void onWindowFocusChanged(boolean focus) {
         super.onWindowFocusChanged(focus);
+        if (focus) hideStatusBar();
         if (!focus && tiltSensor != null) tiltSensor.stop();
     }
     @Override protected void onPause() {
@@ -227,6 +258,7 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
+        hideStatusBar();
         resumed = true;
         if (qr != null) qr.resume();
         EngineService.foreground(true);

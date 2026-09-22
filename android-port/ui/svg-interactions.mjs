@@ -30,6 +30,8 @@ export function installSvgInteractions(Renderer) {
     }
     p.bindEvents = function() {
         if (!this.svg || !this.pathLayer || !this.viewBox) return original.bindEvents.call(this);
+        this.svg.dataset.gsenderViewport='true';
+        this.svg.__gsenderViewport = { read:()=>({...this.viewBox}), write:view=>{this.viewBox={...view};this.applyViewBox();} };
         states.set(this, {frame:null, view:null, markerDirty:false, disposed:false});
         // SVG root still receives all gestures and pointer capture. Walking a
         // giant path to decide which painted segment was touched is unnecessary.
@@ -66,6 +68,7 @@ export function installSvgInteractions(Renderer) {
             if (state.frame !== null) cancelAnimationFrame(state.frame);
             states.delete(this);
         }
+        if(this.svg)delete this.svg.__gsenderViewport;
         original.dispose.call(this);
     };
     return true;

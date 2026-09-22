@@ -3,12 +3,15 @@ const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
 const {JSDOM}=require('jsdom'),{buildSync,transformSync}=require('esbuild');
 const wait=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-test('XY switch transforms both real jog layouts into valid JSX without replacing Z controls',()=>{
+test('pendant page controls and desktop XY switch compile without replacing Z controls',()=>{
  const {transform}=require('../scripts/xy-pad-ui.cjs');
  for(const file of ['src/pendant/src/components/JoggingCard.tsx','src/app/src/features/Jogging/index.tsx']){
   const filename=path.resolve(__dirname,'../..',file),result=transform(fs.readFileSync(filename,'utf8'),filename);
   transformSync(result.code,{loader:'tsx'});
-  assert.match(result.code,file.includes('/pendant/')?/<XYJogModeSwitch checked=\{showPad\} disabled=\{tiltJog.enabled\}/:/<XYJogModeSwitch checked=\{xyPad\}/);
+  if (file.includes('/pendant/')) {
+   assert.match(result.code,/aria-label="Jog control pages"/);
+   assert.match(result.code,/stopContinuousJog\(\);stopTiltJog\(\);setXyPad\(value\)/);
+  } else assert.match(result.code,/<XYJogModeSwitch checked=\{xyPad\}/);
   assert.doesNotMatch(result.code,/<select aria-label="XY controls"/);assert.match(result.code,/zPlusJog|<ZJog/);
  }
 });

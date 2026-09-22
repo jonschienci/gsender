@@ -48,7 +48,8 @@ test('actual pendant card keeps Z enabled while tilting/calibrating and displays
   assert.equal(view.getByRole('button',{name:'Jog Z plus',exact:true}).disabled,true);
   assert.equal(view.getByRole('img',{name:'Jog unavailable'}).dataset.state,'unavailable');
   state.connection.isConnected=true;tilt={enabled:false,phase:'Off',reason:'Off'};await draw();
-  assert.equal(view.getByRole('img',{name:'Jog ready'}).dataset.state,'ready');
+  assert.ok(view.getByRole('group',{name:'Jog step size'}));
+  assert.equal(view.getByRole('button',{name:'Jog buttons page'}).getAttribute('aria-current'),'page');
   assert.equal(view.queryByTestId('tilt-pad'),null);
   assert.equal(view.getByRole('button',{name:'Jog X plus',exact:true}).disabled,false,'the prior normal jog view is restored');
  }finally{cleanup();dom.window.close();}

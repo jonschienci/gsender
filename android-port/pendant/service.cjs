@@ -404,6 +404,7 @@ class Pendant {
         });
     }
     tick() {
+        if(require('../benchmark/gate.cjs').state.active)return;
         if (this.ticking) return;
         this.ticking = true;
         try {
@@ -482,7 +483,7 @@ function installRoutes(app) {
         catch { res.status(409).json({error:'CNC status unavailable'}); }
     });
     app.post('/api/tablet-pad/:action', express.json({limit:'2kb'}), (req,res) => {
-        if(!service || req.get('X-USB-Pendant')!=='1')return res.status(403).end();
+        if(require('../benchmark/gate.cjs').state.active || !service || req.get('X-USB-Pendant')!=='1')return res.status(403).end();
         res.set('Cache-Control','no-store');
         try {
             if(req.params.action==='begin')return res.json(service.beginTabletPad(req.body));
@@ -493,7 +494,7 @@ function installRoutes(app) {
     });
     app.post('/api/usb-pendant/:action', express.json({ limit: '2kb' }), async (req, res) => {
         // Custom header requires same-origin JS; form/CSRF writes are rejected.
-        if (!service || req.get('X-USB-Pendant') !== '1') return res.status(403).end();
+        if (require('../benchmark/gate.cjs').state.active || !service || req.get('X-USB-Pendant') !== '1') return res.status(403).end();
         try {
             switch (req.params.action) {
                 case 'scan-begin': return res.json({ token:service.beginScan() });

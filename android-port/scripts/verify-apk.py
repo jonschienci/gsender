@@ -1,5 +1,5 @@
 from pathlib import Path
-import zipfile, hashlib, io, argparse, json
+import zipfile, hashlib, io, argparse, json, re
 parser = argparse.ArgumentParser()
 parser.add_argument("--abi", action="append")
 parser.add_argument("--apk", type=Path)
@@ -33,5 +33,11 @@ with zipfile.ZipFile(apk) as zip:
     with zipfile.ZipFile(io.BytesIO(payload)) as contents:
         assert 'GSENDER_LOCAL_TOKEN' in contents.read('bootstrap.cjs').decode()
         assert 'application.css' not in contents.read('app/index.html').decode()
+        for entry in ('app/index.html', 'pendant/index.html'):
+            html = contents.read(entry).decode()
+            overrides = html.index('<style id="android-jog-layout">')
+            stylesheets = list(re.finditer(r'<link\b[^>]*\brel="stylesheet"[^>]*>', html))
+            assert stylesheets and all(link.end() < overrides for link in stylesheets), \
+                f'{entry}: Android layout must follow generated CSS to match the preview'
         assert not any(name.startswith('test/') for name in contents.namelist())
 print(f'APK payload and native libraries verified ({apk.stat().st_size/1024/1024:.1f} MiB).')

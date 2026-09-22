@@ -11,14 +11,20 @@ export default function JogAreaFit({ children, xyPad }: { children: ReactNode; x
         const fit = () => {
             inner.style.width = '';
             if (!orientation.matches || !outer.clientHeight) return;
+            const main = inner.querySelector<HTMLElement>('.android-jog-main');
+            const style = getComputedStyle(inner);
+            const verticalPadding = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+            // Fixed-size Z/A controls cannot be made shorter by narrowing the XY
+            // column. Measure only the controls whose height changes with width.
+            const fits = () => (main?.getBoundingClientRect().height ?? inner.getBoundingClientRect().height) + verticalPadding <= outer.clientHeight;
             let low = Math.min(212, outer.clientWidth), high = outer.clientWidth;
             // Keep a usable minimum on exceptionally short windows; the host
             // scrolls as a fallback instead of allowing hit areas to overlap.
-            if (inner.getBoundingClientRect().height <= outer.clientHeight) return;
+            if (fits()) return;
             for (let i = 0; i < 9; i++) {
                 const width = (low + high) / 2;
                 inner.style.width = `${width}px`;
-                if (inner.getBoundingClientRect().height <= outer.clientHeight) low = width;
+                if (fits()) low = width;
                 else high = width;
             }
             inner.style.width = `${Math.floor(low)}px`;

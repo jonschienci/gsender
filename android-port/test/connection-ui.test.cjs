@@ -40,30 +40,32 @@ test('pendant connection button follows automatic connection, disconnect, recove
     const compiled = new Module(path.join(__dirname,'connection-ui.compiled.cjs'),module);
     compiled.filename = compiled.id; compiled.paths = module.paths; compiled._compile(built.outputFiles[0].text,compiled.filename);
     const Component = compiled.exports.default;
+    const component = () => React.createElement(Component, {machineStatus:f.state.connection.isConnected && f.state.connection.port ? 'Idle' : 'Disconnected',statusColor:'#689ac9'});
     const setConnection = (view, port) => act(() => {
         f.state = {...f.state,connection:{...f.state.connection,isConnected:!!port,port},controller:{type:port?'grblHAL':''}};
-        view.rerender(React.createElement(Component));
+        view.rerender(component());
     });
     try {
-        const view = render(React.createElement(Component));
+        const view = render(component());
         assert.match(view.container.textContent,/Connect/);
         await setConnection(view,'android-usb:42:0');
         assert.match(view.container.textContent,/grblHAL/);
-        assert.match(view.container.textContent,/d-usb:42:0/);
+        assert.match(view.container.textContent,/Idle/);
+        assert.doesNotMatch(view.container.textContent,/Disconnected/);
         await setConnection(view,null);
         assert.match(view.container.textContent,/Connect/);
         assert.doesNotMatch(view.container.textContent,/grblHAL/);
         await act(() => {
             f.state.connection = {...f.state.connection,isConnected:true,port:null};
-            view.rerender(React.createElement(Component));
+            view.rerender(component());
         });
         assert.match(view.container.textContent,/Connect/, 'A stale connected flag without a port is disconnected');
         await setConnection(view,'android-usb:43:0');
-        assert.match(view.container.textContent,/d-usb:43:0/);
+        assert.match(view.container.textContent,/Idle/);
         view.unmount();
-        const late = render(React.createElement(Component));
+        const late = render(component());
         assert.match(late.container.textContent,/grblHAL/);
-        assert.match(late.container.textContent,/d-usb:43:0/);
+        assert.match(late.container.textContent,/Idle/);
         assert.equal(manualOpens,0,'Displaying backend connection must not open USB again');
     } finally {cleanup();dom.window.close();delete globalThis.__androidConnectionUiTest;}
 });

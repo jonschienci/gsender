@@ -1,0 +1,1932 @@
+{
+  "summary": {
+    "id": "36e29254-8160-48e0-b0e8-6da655743620",
+    "schema": 1,
+    "build": 52,
+    "profile": "quick",
+    "device": {
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 900.359375,
+      "lowMemory": false,
+      "appPssMiB": 156.189453125,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    "started": 1790019506473,
+    "status": "completed",
+    "logBytes": 26631,
+    "cases": [
+      {
+        "event": "job_completed",
+        "time": 1790019588335,
+        "case": "arcs-1m",
+        "seconds": 51.860956849,
+        "acknowledged": 25898,
+        "received": 25898,
+        "commandsPerSecond": 499.3737403535657,
+        "sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+        "expectedMatch": true,
+        "overflows": 0
+      }
+    ],
+    "limits": {
+      "rate": 500,
+      "largeJobWindowSeconds": 65,
+      "minimumAvailableMiB": 256
+    },
+    "scope": "Onboard loopback simulator shares tablet CPU/RAM. Automated viewport animation, not physical touch latency. Native PSS excludes isolated WebView renderer; system available memory covers whole device.",
+    "fixtures": [
+      {
+        "file": "arcs-1024KiB.nc",
+        "profile": "arcs",
+        "bytes": 1048609,
+        "commands": 25898,
+        "sha256": "700ea831fc93b8f0c669dc0a487a84b7730a38bd1b749a0e21e65e0002fd5a3f",
+        "command_sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+        "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+        "id": "arcs-1m",
+        "label": "Arcs \u00b7 1 MiB",
+        "full": true
+      }
+    ],
+    "job": {
+      "event": "job_completed",
+      "time": 1790019588335,
+      "case": "arcs-1m",
+      "seconds": 51.860956849,
+      "acknowledged": 25898,
+      "received": 25898,
+      "commandsPerSecond": 499.3737403535657,
+      "sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+      "expectedMatch": true,
+      "overflows": 0
+    },
+    "progress": {
+      "event": "job_progress",
+      "time": 1790019587606,
+      "case": "arcs-1m",
+      "acknowledged": 25533,
+      "rate": 499.9574812056454,
+      "statusPollGapMs": 252.69800000000396
+    },
+    "current": "arcs-1m",
+    "reason": "All selected cases completed",
+    "ended": 1790019650672
+  },
+  "measurements": [
+    {
+      "fixture": "arcs-1m",
+      "stream": {
+        "time": 1790019588335,
+        "event": "job_completed",
+        "case": "arcs-1m",
+        "seconds": 51.860956849,
+        "acknowledged": 25898,
+        "received": 25898,
+        "commandsPerSecond": 499.3737403535657,
+        "sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+        "expectedMatch": true,
+        "overflows": 0
+      },
+      "load": {
+        "time": 1790019519359,
+        "event": "load_ready",
+        "fixture": "arcs-1m",
+        "ms": 9639,
+        "previewMode": "software-bitmap"
+      },
+      "completionDisplayDelayMs": 60071,
+      "viewports": [
+        {
+          "time": 1790019536378,
+          "event": "viewport",
+          "label": "arcs-1m:idle",
+          "startedAt": 1790019519360,
+          "endedAt": 1790019536376,
+          "frameGapMs": {
+            "samples": 992,
+            "p50": 16.69999999999709,
+            "p95": 16.799999999995634,
+            "p99": 33.400000000001455,
+            "max": 100,
+            "over50": 1,
+            "over100": 0
+          },
+          "longTaskMs": {
+            "samples": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0,
+            "over50": 0,
+            "over100": 0
+          },
+          "startView": {
+            "x": -17.972,
+            "y": -114.19306628417968,
+            "w": 160.594,
+            "h": 135.3150662841797
+          },
+          "zoomView": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "zoomFactor": 2,
+          "redraws": [
+            {
+              "time": 1790019529940,
+              "drawMs": 4418.800000011921,
+              "exportMs": 4,
+              "view": {
+                "x": 22.176499999999997,
+                "y": -80.36429971313476,
+                "w": 80.297,
+                "h": 67.65753314208985
+              },
+              "mode": "software-bitmap"
+            }
+          ],
+          "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency",
+          "actualStreamingOverlapMs": 0,
+          "classification": "not-streaming"
+        },
+        {
+          "time": 1790019574374,
+          "event": "viewport",
+          "label": "arcs-1m:stream:0",
+          "startedAt": 1790019549035,
+          "endedAt": 1790019574373,
+          "frameGapMs": {
+            "samples": 230,
+            "p50": 116.5,
+            "p95": 116.69999999999709,
+            "p99": 116.70000000001164,
+            "max": 133.3000000000029,
+            "over50": 229,
+            "over100": 144
+          },
+          "longTaskMs": {
+            "samples": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0,
+            "over50": 0,
+            "over100": 0
+          },
+          "startView": {
+            "x": -17.972,
+            "y": -114.19306628417968,
+            "w": 160.594,
+            "h": 135.3150662841797
+          },
+          "zoomView": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "zoomFactor": 2,
+          "redraws": [
+            {
+              "time": 1790019568394,
+              "drawMs": 4872.29999999702,
+              "exportMs": 1.5999999940395355,
+              "view": {
+                "x": 22.176499999999997,
+                "y": -80.36429971313476,
+                "w": 80.297,
+                "h": 67.65753314208985
+              },
+              "mode": "software-bitmap"
+            }
+          ],
+          "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency",
+          "actualStreamingOverlapMs": 25338,
+          "classification": "streaming"
+        },
+        {
+          "time": 1790019603663,
+          "event": "viewport",
+          "label": "arcs-1m:stream:1",
+          "startedAt": 1790019578767,
+          "endedAt": 1790019603662,
+          "frameGapMs": {
+            "samples": 226,
+            "p50": 116.5,
+            "p95": 116.69999999999709,
+            "p99": 116.70000000001164,
+            "max": 150,
+            "over50": 225,
+            "over100": 136
+          },
+          "longTaskMs": {
+            "samples": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0,
+            "over50": 0,
+            "over100": 0
+          },
+          "startView": {
+            "x": -17.972,
+            "y": -114.19306628417968,
+            "w": 160.594,
+            "h": 135.3150662841797
+          },
+          "zoomView": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "zoomFactor": 2,
+          "redraws": [
+            {
+              "time": 1790019583133,
+              "drawMs": 7424.100000008941,
+              "exportMs": 3.2000000029802322,
+              "view": {
+                "x": -17.972,
+                "y": -114.19306628417968,
+                "w": 160.594,
+                "h": 135.3150662841797
+              },
+              "mode": "software-bitmap"
+            },
+            {
+              "time": 1790019597398,
+              "drawMs": 4487.5,
+              "exportMs": 3.5,
+              "view": {
+                "x": 22.176499999999997,
+                "y": -80.36429971313476,
+                "w": 80.297,
+                "h": 67.65753314208985
+              },
+              "mode": "software-bitmap"
+            }
+          ],
+          "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency",
+          "actualStreamingOverlapMs": 9568,
+          "classification": "mixed"
+        },
+        {
+          "time": 1790019632894,
+          "event": "viewport",
+          "label": "arcs-1m:stream:2",
+          "startedAt": 1790019607857,
+          "endedAt": 1790019632894,
+          "frameGapMs": {
+            "samples": 227,
+            "p50": 116.5,
+            "p95": 116.70000000001164,
+            "p99": 133.29999999998836,
+            "max": 133.30000000001746,
+            "over50": 226,
+            "over100": 134
+          },
+          "longTaskMs": {
+            "samples": 0,
+            "p50": 0,
+            "p95": 0,
+            "p99": 0,
+            "max": 0,
+            "over50": 0,
+            "over100": 0
+          },
+          "startView": {
+            "x": -17.972,
+            "y": -114.19306628417968,
+            "w": 160.594,
+            "h": 135.3150662841797
+          },
+          "zoomView": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "zoomFactor": 2,
+          "redraws": [
+            {
+              "time": 1790019611673,
+              "drawMs": 6943.199999988079,
+              "exportMs": 3.6000000089406967,
+              "view": {
+                "x": -17.972,
+                "y": -114.19306628417968,
+                "w": 160.594,
+                "h": 135.3150662841797
+              },
+              "mode": "software-bitmap"
+            },
+            {
+              "time": 1790019626653,
+              "drawMs": 4528,
+              "exportMs": 4,
+              "view": {
+                "x": 22.176499999999997,
+                "y": -80.36429971313476,
+                "w": 80.297,
+                "h": 67.65753314208985
+              },
+              "mode": "software-bitmap"
+            }
+          ],
+          "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency",
+          "actualStreamingOverlapMs": 0,
+          "classification": "not-streaming"
+        }
+      ]
+    }
+  ],
+  "events": [
+    {
+      "time": 1790019506477,
+      "event": "session_start",
+      "profile": "quick",
+      "device": {
+        "model": "Lenovo TB-8506F",
+        "manufacturer": "LENOVO",
+        "android": "11",
+        "sdk": 30,
+        "totalMiB": 1812.78515625,
+        "availableMiB": 900.359375,
+        "lowMemory": false,
+        "appPssMiB": 156.189453125,
+        "pssScope": "Host app and Node; excludes isolated WebView renderer",
+        "viewport": {
+          "width": 1280,
+          "height": 708,
+          "dpr": 1.274999976158142
+        },
+        "jsHeap": 18200000
+      }
+    },
+    {
+      "time": 1790019506755,
+      "event": "ready",
+      "port": 35547
+    },
+    {
+      "time": 1790019506814,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 890.421875,
+      "lowMemory": false,
+      "appPssMiB": 162.75,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019506865,
+      "event": "heartbeat_latency",
+      "requestMs": 97,
+      "responseAgeMs": 51
+    },
+    {
+      "time": 1790019508034,
+      "event": "heartbeat_latency",
+      "requestMs": 204,
+      "responseAgeMs": 194
+    },
+    {
+      "time": 1790019508795,
+      "event": "heartbeat_latency",
+      "requestMs": 26,
+      "responseAgeMs": 13
+    },
+    {
+      "time": 1790019509788,
+      "event": "heartbeat_latency",
+      "requestMs": 20,
+      "responseAgeMs": 9
+    },
+    {
+      "time": 1790019509835,
+      "event": "fixture-ready",
+      "id": "arcs-1m"
+    },
+    {
+      "time": 1790019509837,
+      "event": "fixture_load",
+      "id": "arcs-1m",
+      "bytes": 1048609,
+      "decompressMs": 89
+    },
+    {
+      "time": 1790019510787,
+      "event": "heartbeat_latency",
+      "requestMs": 19,
+      "responseAgeMs": 7
+    },
+    {
+      "time": 1790019511760,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 280756224,
+        "heapTotal": 63586304,
+        "heapUsed": 32485160,
+        "external": 13181206,
+        "arrayBuffers": 8198600
+      },
+      "cpuUserMicros": 2979569,
+      "cpuSystemMicros": 669287,
+      "eventLoopP95Ms": 24.150015,
+      "eventLoopMaxMs": 81.395711
+    },
+    {
+      "time": 1790019512801,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 769.46875,
+      "lowMemory": false,
+      "appPssMiB": 181.310546875,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019512900,
+      "event": "heartbeat_latency",
+      "requestMs": 151,
+      "responseAgeMs": 98
+    },
+    {
+      "time": 1790019513781,
+      "event": "heartbeat_latency",
+      "requestMs": 13,
+      "responseAgeMs": 6
+    },
+    {
+      "time": 1790019514794,
+      "event": "heartbeat_latency",
+      "requestMs": 26,
+      "responseAgeMs": 11
+    },
+    {
+      "time": 1790019515789,
+      "event": "heartbeat_latency",
+      "requestMs": 21,
+      "responseAgeMs": 9
+    },
+    {
+      "time": 1790019516759,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 283119616,
+        "heapTotal": 63848448,
+        "heapUsed": 33571444,
+        "external": 13188817,
+        "arrayBuffers": 8206171
+      },
+      "cpuUserMicros": 3282704,
+      "cpuSystemMicros": 574856,
+      "eventLoopP95Ms": 21.184511,
+      "eventLoopMaxMs": 26.836991
+    },
+    {
+      "time": 1790019516794,
+      "event": "heartbeat_latency",
+      "requestMs": 26,
+      "responseAgeMs": 12
+    },
+    {
+      "time": 1790019517808,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 756.34375,
+      "lowMemory": false,
+      "appPssMiB": 173.4541015625,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019517817,
+      "event": "heartbeat_latency",
+      "requestMs": 49,
+      "responseAgeMs": 9
+    },
+    {
+      "time": 1790019518782,
+      "event": "heartbeat_latency",
+      "requestMs": 14,
+      "responseAgeMs": 6
+    },
+    {
+      "time": 1790019519359,
+      "event": "load_ready",
+      "fixture": "arcs-1m",
+      "ms": 9639,
+      "previewMode": "software-bitmap"
+    },
+    {
+      "time": 1790019519360,
+      "event": "viewport_start",
+      "label": "arcs-1m:idle",
+      "startedAt": 1790019519360
+    },
+    {
+      "time": 1790019519793,
+      "event": "heartbeat_latency",
+      "requestMs": 22,
+      "responseAgeMs": 10
+    },
+    {
+      "time": 1790019520800,
+      "event": "heartbeat_latency",
+      "requestMs": 27,
+      "responseAgeMs": 12
+    },
+    {
+      "time": 1790019521760,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 285265920,
+        "heapTotal": 63848448,
+        "heapUsed": 34512608,
+        "external": 13194327,
+        "arrayBuffers": 8211681
+      },
+      "cpuUserMicros": 3883756,
+      "cpuSystemMicros": 1093475,
+      "eventLoopP95Ms": 21.037055,
+      "eventLoopMaxMs": 23.265279
+    },
+    {
+      "time": 1790019521841,
+      "event": "heartbeat_latency",
+      "requestMs": 66,
+      "responseAgeMs": 54
+    },
+    {
+      "time": 1790019522810,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 864.96484375,
+      "lowMemory": false,
+      "appPssMiB": 175.951171875,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019522843,
+      "event": "heartbeat_latency",
+      "requestMs": 71,
+      "responseAgeMs": 33
+    },
+    {
+      "time": 1790019523792,
+      "event": "heartbeat_latency",
+      "requestMs": 20,
+      "responseAgeMs": 8
+    },
+    {
+      "time": 1790019524798,
+      "event": "heartbeat_latency",
+      "requestMs": 25,
+      "responseAgeMs": 11
+    },
+    {
+      "time": 1790019525789,
+      "event": "heartbeat_latency",
+      "requestMs": 21,
+      "responseAgeMs": 10
+    },
+    {
+      "time": 1790019526761,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 287641600,
+        "heapTotal": 63848448,
+        "heapUsed": 35392768,
+        "external": 13264962,
+        "arrayBuffers": 8282316
+      },
+      "cpuUserMicros": 5768404,
+      "cpuSystemMicros": 1346493,
+      "eventLoopP95Ms": 21.168127,
+      "eventLoopMaxMs": 26.132479
+    },
+    {
+      "time": 1790019526781,
+      "event": "heartbeat_latency",
+      "requestMs": 13,
+      "responseAgeMs": 6
+    },
+    {
+      "time": 1790019527805,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 852.76953125,
+      "lowMemory": false,
+      "appPssMiB": 177.041015625,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019527815,
+      "event": "heartbeat_latency",
+      "requestMs": 47,
+      "responseAgeMs": 9
+    },
+    {
+      "time": 1790019528791,
+      "event": "heartbeat_latency",
+      "requestMs": 23,
+      "responseAgeMs": 9
+    },
+    {
+      "time": 1790019529785,
+      "event": "heartbeat_latency",
+      "requestMs": 17,
+      "responseAgeMs": 6
+    },
+    {
+      "time": 1790019530799,
+      "event": "heartbeat_latency",
+      "requestMs": 31,
+      "responseAgeMs": 17
+    },
+    {
+      "time": 1790019531762,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 287363072,
+        "heapTotal": 63848448,
+        "heapUsed": 36264816,
+        "external": 13270216,
+        "arrayBuffers": 8287570
+      },
+      "cpuUserMicros": 1352057,
+      "cpuSystemMicros": 337399,
+      "eventLoopP95Ms": 21.151743,
+      "eventLoopMaxMs": 25.247743
+    },
+    {
+      "time": 1790019531793,
+      "event": "heartbeat_latency",
+      "requestMs": 25,
+      "responseAgeMs": 12
+    },
+    {
+      "time": 1790019532807,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 856.64453125,
+      "lowMemory": false,
+      "appPssMiB": 177.67578125,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019532820,
+      "event": "heartbeat_latency",
+      "requestMs": 52,
+      "responseAgeMs": 13
+    },
+    {
+      "time": 1790019533791,
+      "event": "heartbeat_latency",
+      "requestMs": 23,
+      "responseAgeMs": 14
+    },
+    {
+      "time": 1790019534788,
+      "event": "heartbeat_latency",
+      "requestMs": 20,
+      "responseAgeMs": 8
+    },
+    {
+      "time": 1790019535790,
+      "event": "heartbeat_latency",
+      "requestMs": 20,
+      "responseAgeMs": 8
+    },
+    {
+      "time": 1790019536393,
+      "event": "start_requested",
+      "id": "arcs-1m"
+    },
+    {
+      "time": 1790019536473,
+      "event": "job_started",
+      "rate": 500,
+      "case": "arcs-1m"
+    },
+    {
+      "time": 1790019536809,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 291831808,
+        "heapTotal": 64372736,
+        "heapUsed": 38823228,
+        "external": 13275676,
+        "arrayBuffers": 8293030
+      },
+      "cpuUserMicros": 2140887,
+      "cpuSystemMicros": 643692,
+      "eventLoopP95Ms": 21.643263,
+      "eventLoopMaxMs": 142.475263
+    },
+    {
+      "time": 1790019537473,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 466,
+      "rate": 465.9129460296876,
+      "statusPollGapMs": 292.7613069999934
+    },
+    {
+      "time": 1790019538476,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 967,
+      "rate": 499.7948023106305,
+      "statusPollGapMs": 254.05561599999783
+    },
+    {
+      "time": 1790019539476,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 1468,
+      "rate": 500.9489032118729,
+      "statusPollGapMs": 251.50361499999417
+    },
+    {
+      "time": 1790019540477,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 1969,
+      "rate": 500.45458157608635,
+      "statusPollGapMs": 255.93692300000112
+    },
+    {
+      "time": 1790019541478,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 2469,
+      "rate": 499.45497924354584,
+      "statusPollGapMs": 252.09907700000622
+    },
+    {
+      "time": 1790019541809,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 293249024,
+        "heapTotal": 62480384,
+        "heapUsed": 34115408,
+        "external": 8107298,
+        "arrayBuffers": 3124652
+      },
+      "cpuUserMicros": 7321263,
+      "cpuSystemMicros": 2488394,
+      "eventLoopP95Ms": 28.409855,
+      "eventLoopMaxMs": 59.441151
+    },
+    {
+      "time": 1790019542479,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 2970,
+      "rate": 500.4158220755424,
+      "statusPollGapMs": 251.60030800000823
+    },
+    {
+      "time": 1790019543482,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 3471,
+      "rate": 499.40133940476164,
+      "statusPollGapMs": 251.8573849999957
+    },
+    {
+      "time": 1790019544484,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 3972,
+      "rate": 500.14955370128115,
+      "statusPollGapMs": 254.03084600000875
+    },
+    {
+      "time": 1790019545488,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 4474,
+      "rate": 500.0944859793171,
+      "statusPollGapMs": 254.4606150000036
+    },
+    {
+      "time": 1790019546489,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 4974,
+      "rate": 499.500461077385,
+      "statusPollGapMs": 252.0957699999999
+    },
+    {
+      "time": 1790019546810,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 293695488,
+        "heapTotal": 62480384,
+        "heapUsed": 30468572,
+        "external": 8105829,
+        "arrayBuffers": 3123183
+      },
+      "cpuUserMicros": 6318065,
+      "cpuSystemMicros": 2038497,
+      "eventLoopP95Ms": 22.855679,
+      "eventLoopMaxMs": 25.444351
+    },
+    {
+      "time": 1790019547492,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 5476,
+      "rate": 500.4875651157662,
+      "statusPollGapMs": 251.42315300001064
+    },
+    {
+      "time": 1790019536378,
+      "event": "viewport",
+      "label": "arcs-1m:idle",
+      "startedAt": 1790019519360,
+      "endedAt": 1790019536376,
+      "frameGapMs": {
+        "samples": 992,
+        "p50": 16.69999999999709,
+        "p95": 16.799999999995634,
+        "p99": 33.400000000001455,
+        "max": 100,
+        "over50": 1,
+        "over100": 0
+      },
+      "longTaskMs": {
+        "samples": 0,
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "over50": 0,
+        "over100": 0
+      },
+      "startView": {
+        "x": -17.972,
+        "y": -114.19306628417968,
+        "w": 160.594,
+        "h": 135.3150662841797
+      },
+      "zoomView": {
+        "x": 22.176499999999997,
+        "y": -80.36429971313476,
+        "w": 80.297,
+        "h": 67.65753314208985
+      },
+      "zoomFactor": 2,
+      "redraws": [
+        {
+          "time": 1790019529940,
+          "drawMs": 4418.800000011921,
+          "exportMs": 4,
+          "view": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "mode": "software-bitmap"
+        }
+      ],
+      "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency"
+    },
+    {
+      "time": 1790019536506,
+      "event": "workflow_changed",
+      "workflow": "running"
+    },
+    {
+      "time": 1790019548277,
+      "event": "heartbeat_latency",
+      "requestMs": 10825,
+      "responseAgeMs": 10805
+    },
+    {
+      "time": 1790019548494,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 5977,
+      "rate": 499.64266274809336,
+      "statusPollGapMs": 253.01269200000388
+    },
+    {
+      "time": 1790019549496,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 6478,
+      "rate": 499.9616950505283,
+      "statusPollGapMs": 252.51861500000814
+    },
+    {
+      "time": 1790019550501,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 6980,
+      "rate": 499.9142806343942,
+      "statusPollGapMs": 253.65930800000206
+    },
+    {
+      "time": 1790019551504,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 7482,
+      "rate": 500.46722303973786,
+      "statusPollGapMs": 252.94130800000858
+    },
+    {
+      "time": 1790019551811,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 293220352,
+        "heapTotal": 62480384,
+        "heapUsed": 39321040,
+        "external": 8175288,
+        "arrayBuffers": 3192642
+      },
+      "cpuUserMicros": 5615431,
+      "cpuSystemMicros": 2410762,
+      "eventLoopP95Ms": 22.642687,
+      "eventLoopMaxMs": 28.311551
+    },
+    {
+      "time": 1790019552507,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 7983,
+      "rate": 499.16851229242434,
+      "statusPollGapMs": 254.27884600000107
+    },
+    {
+      "time": 1790019553510,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 8485,
+      "rate": 500.60704138367174,
+      "statusPollGapMs": 251.20784599999024
+    },
+    {
+      "time": 1790019554512,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 8986,
+      "rate": 500.1673369226809,
+      "statusPollGapMs": 252.3350000000064
+    },
+    {
+      "time": 1790019555513,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 9486,
+      "rate": 499.43847732443703,
+      "statusPollGapMs": 251.7947690000001
+    },
+    {
+      "time": 1790019556516,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 9988,
+      "rate": 500.4646899386112,
+      "statusPollGapMs": 252.6743850000057
+    },
+    {
+      "time": 1790019556812,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 293945344,
+        "heapTotal": 62480384,
+        "heapUsed": 34466140,
+        "external": 8173096,
+        "arrayBuffers": 3190450
+      },
+      "cpuUserMicros": 5852355,
+      "cpuSystemMicros": 2199002,
+      "eventLoopP95Ms": 22.200319,
+      "eventLoopMaxMs": 23.740415
+    },
+    {
+      "time": 1790019557517,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 10488,
+      "rate": 499.3016686973303,
+      "statusPollGapMs": 251.41922999999952
+    },
+    {
+      "time": 1790019558524,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 10991,
+      "rate": 499.7654033633897,
+      "statusPollGapMs": 251.7313850000064
+    },
+    {
+      "time": 1790019559528,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 11494,
+      "rate": 501.0134431199937,
+      "statusPollGapMs": 251.2515379999968
+    },
+    {
+      "time": 1790019560531,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 11995,
+      "rate": 499.61249914953896,
+      "statusPollGapMs": 252.46430799999507
+    },
+    {
+      "time": 1790019561535,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 12497,
+      "rate": 499.95403410659725,
+      "statusPollGapMs": 253.22023099999933
+    },
+    {
+      "time": 1790019561814,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 294543360,
+        "heapTotal": 62742528,
+        "heapUsed": 29091660,
+        "external": 8170768,
+        "arrayBuffers": 3188122
+      },
+      "cpuUserMicros": 5732259,
+      "cpuSystemMicros": 2201592,
+      "eventLoopP95Ms": 22.822911,
+      "eventLoopMaxMs": 26.230783
+    },
+    {
+      "time": 1790019562535,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 12997,
+      "rate": 499.8633063805046,
+      "statusPollGapMs": 252.20369200001005
+    },
+    {
+      "time": 1790019563540,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 13500,
+      "rate": 500.32640976674327,
+      "statusPollGapMs": 253.91000099999656
+    },
+    {
+      "time": 1790019564541,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 14001,
+      "rate": 500.64585063494786,
+      "statusPollGapMs": 255.6196159999963
+    },
+    {
+      "time": 1790019565546,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 14503,
+      "rate": 499.61296466542694,
+      "statusPollGapMs": 261.38123100000666
+    },
+    {
+      "time": 1790019565839,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 842.265625,
+      "lowMemory": false,
+      "appPssMiB": 183.271484375,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019566549,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 15005,
+      "rate": 500.1463421222879,
+      "statusPollGapMs": 251.59530699999596
+    },
+    {
+      "time": 1790019566814,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 293523456,
+        "heapTotal": 62742528,
+        "heapUsed": 36869284,
+        "external": 8174524,
+        "arrayBuffers": 3191878
+      },
+      "cpuUserMicros": 5228104,
+      "cpuSystemMicros": 2395892,
+      "eventLoopP95Ms": 22.659071,
+      "eventLoopMaxMs": 29.261823
+    },
+    {
+      "time": 1790019567554,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 15507,
+      "rate": 499.7324450407924,
+      "statusPollGapMs": 252.44669299999077
+    },
+    {
+      "time": 1790019568558,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 16009,
+      "rate": 500.0171240924244,
+      "statusPollGapMs": 253.255462000001
+    },
+    {
+      "time": 1790019569560,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 16510,
+      "rate": 499.86764582297513,
+      "statusPollGapMs": 252.36323000000266
+    },
+    {
+      "time": 1790019570564,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 17012,
+      "rate": 500.0359742016524,
+      "statusPollGapMs": 252.6863849999936
+    },
+    {
+      "time": 1790019571569,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 17515,
+      "rate": 500.5533722018903,
+      "statusPollGapMs": 253.3640000000014
+    },
+    {
+      "time": 1790019571814,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 267235328,
+        "heapTotal": 33644544,
+        "heapUsed": 27393540,
+        "external": 5607407,
+        "arrayBuffers": 624761
+      },
+      "cpuUserMicros": 5946307,
+      "cpuSystemMicros": 2216601,
+      "eventLoopP95Ms": 23.609343,
+      "eventLoopMaxMs": 58.621951
+    },
+    {
+      "time": 1790019572572,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 18016,
+      "rate": 499.6948739422735,
+      "statusPollGapMs": 251.0359230000031
+    },
+    {
+      "time": 1790019573572,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 18517,
+      "rate": 500.5866305780696,
+      "statusPollGapMs": 254.79707700001018
+    },
+    {
+      "time": 1790019574575,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 19018,
+      "rate": 499.7555701491522,
+      "statusPollGapMs": 252.58661500000744
+    },
+    {
+      "time": 1790019575577,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 19518,
+      "rate": 498.9661038125083,
+      "statusPollGapMs": 251.97823100000096
+    },
+    {
+      "time": 1790019576578,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 20019,
+      "rate": 500.72464000379586,
+      "statusPollGapMs": 253.55507699999725
+    },
+    {
+      "time": 1790019576814,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 267640832,
+        "heapTotal": 33644544,
+        "heapUsed": 27395400,
+        "external": 5738440,
+        "arrayBuffers": 755794
+      },
+      "cpuUserMicros": 5558489,
+      "cpuSystemMicros": 2369291,
+      "eventLoopP95Ms": 23.085055,
+      "eventLoopMaxMs": 27.197439
+    },
+    {
+      "time": 1790019577581,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 20520,
+      "rate": 499.29754914107355,
+      "statusPollGapMs": 255.61630799999693
+    },
+    {
+      "time": 1790019578586,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 21023,
+      "rate": 500.34849919542495,
+      "statusPollGapMs": 254.96623099999852
+    },
+    {
+      "time": 1790019549035,
+      "event": "viewport_start",
+      "label": "arcs-1m:stream:0",
+      "startedAt": 1790019549035
+    },
+    {
+      "time": 1790019574374,
+      "event": "viewport",
+      "label": "arcs-1m:stream:0",
+      "startedAt": 1790019549035,
+      "endedAt": 1790019574373,
+      "frameGapMs": {
+        "samples": 230,
+        "p50": 116.5,
+        "p95": 116.69999999999709,
+        "p99": 116.70000000001164,
+        "max": 133.3000000000029,
+        "over50": 229,
+        "over100": 144
+      },
+      "longTaskMs": {
+        "samples": 0,
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "over50": 0,
+        "over100": 0
+      },
+      "startView": {
+        "x": -17.972,
+        "y": -114.19306628417968,
+        "w": 160.594,
+        "h": 135.3150662841797
+      },
+      "zoomView": {
+        "x": 22.176499999999997,
+        "y": -80.36429971313476,
+        "w": 80.297,
+        "h": 67.65753314208985
+      },
+      "zoomFactor": 2,
+      "redraws": [
+        {
+          "time": 1790019568394,
+          "drawMs": 4872.29999999702,
+          "exportMs": 1.5999999940395355,
+          "view": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "mode": "software-bitmap"
+        }
+      ],
+      "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency"
+    },
+    {
+      "time": 1790019578767,
+      "event": "viewport_start",
+      "label": "arcs-1m:stream:1",
+      "startedAt": 1790019578767
+    },
+    {
+      "time": 1790019578838,
+      "event": "heartbeat_latency",
+      "requestMs": 13035,
+      "responseAgeMs": 12999
+    },
+    {
+      "time": 1790019579588,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 21524,
+      "rate": 499.90889135509605,
+      "statusPollGapMs": 253.5855380000139
+    },
+    {
+      "time": 1790019580592,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 22026,
+      "rate": 500.0694239806668,
+      "statusPollGapMs": 251.11600000000908
+    },
+    {
+      "time": 1790019581592,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 22526,
+      "rate": 499.9907696704013,
+      "statusPollGapMs": 253.11907699999574
+    },
+    {
+      "time": 1790019581815,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 267603968,
+        "heapTotal": 33644544,
+        "heapUsed": 27306144,
+        "external": 5935000,
+        "arrayBuffers": 952354
+      },
+      "cpuUserMicros": 5866510,
+      "cpuSystemMicros": 2161284,
+      "eventLoopP95Ms": 23.035903,
+      "eventLoopMaxMs": 31.047679
+    },
+    {
+      "time": 1790019582595,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 23027,
+      "rate": 499.60954815754235,
+      "statusPollGapMs": 254.2695390000008
+    },
+    {
+      "time": 1790019583598,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 23529,
+      "rate": 500.39246967585996,
+      "statusPollGapMs": 253.73123099999793
+    },
+    {
+      "time": 1790019584599,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 24029,
+      "rate": 499.8139152808342,
+      "statusPollGapMs": 252.7426919999998
+    },
+    {
+      "time": 1790019585601,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 24531,
+      "rate": 500.6623458648471,
+      "statusPollGapMs": 251.87123099999735
+    },
+    {
+      "time": 1790019586602,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 25031,
+      "rate": 499.912284890585,
+      "statusPollGapMs": 252.14276899999822
+    },
+    {
+      "time": 1790019586815,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 267751424,
+        "heapTotal": 33644544,
+        "heapUsed": 26829080,
+        "external": 6065886,
+        "arrayBuffers": 1083240
+      },
+      "cpuUserMicros": 5421760,
+      "cpuSystemMicros": 2134949,
+      "eventLoopP95Ms": 22.511615,
+      "eventLoopMaxMs": 24.887295
+    },
+    {
+      "time": 1790019587606,
+      "event": "job_progress",
+      "case": "arcs-1m",
+      "acknowledged": 25533,
+      "rate": 499.9574812056454,
+      "statusPollGapMs": 252.69800000000396
+    },
+    {
+      "time": 1790019588335,
+      "event": "job_completed",
+      "case": "arcs-1m",
+      "seconds": 51.860956849,
+      "acknowledged": 25898,
+      "received": 25898,
+      "commandsPerSecond": 499.3737403535657,
+      "sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+      "expectedMatch": true,
+      "overflows": 0
+    },
+    {
+      "time": 1790019591815,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268308480,
+        "heapTotal": 33644544,
+        "heapUsed": 26902736,
+        "external": 6132332,
+        "arrayBuffers": 1149686
+      },
+      "cpuUserMicros": 2788404,
+      "cpuSystemMicros": 1219139,
+      "eventLoopP95Ms": 21.889023,
+      "eventLoopMaxMs": 26.755071
+    },
+    {
+      "time": 1790019596815,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268357632,
+        "heapTotal": 33644544,
+        "heapUsed": 27328588,
+        "external": 6134456,
+        "arrayBuffers": 1151810
+      },
+      "cpuUserMicros": 1794375,
+      "cpuSystemMicros": 655335,
+      "eventLoopP95Ms": 20.971519,
+      "eventLoopMaxMs": 21.381119
+    },
+    {
+      "time": 1790019601816,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268759040,
+        "heapTotal": 33644544,
+        "heapUsed": 27733432,
+        "external": 6136574,
+        "arrayBuffers": 1153928
+      },
+      "cpuUserMicros": 1690428,
+      "cpuSystemMicros": 632293,
+      "eventLoopP95Ms": 20.971519,
+      "eventLoopMaxMs": 21.397503
+    },
+    {
+      "time": 1790019606816,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268623872,
+        "heapTotal": 33644544,
+        "heapUsed": 28140596,
+        "external": 6138692,
+        "arrayBuffers": 1156046
+      },
+      "cpuUserMicros": 1650342,
+      "cpuSystemMicros": 788835,
+      "eventLoopP95Ms": 21.069823,
+      "eventLoopMaxMs": 22.315007
+    },
+    {
+      "time": 1790019603663,
+      "event": "viewport",
+      "label": "arcs-1m:stream:1",
+      "startedAt": 1790019578767,
+      "endedAt": 1790019603662,
+      "frameGapMs": {
+        "samples": 226,
+        "p50": 116.5,
+        "p95": 116.69999999999709,
+        "p99": 116.70000000001164,
+        "max": 150,
+        "over50": 225,
+        "over100": 136
+      },
+      "longTaskMs": {
+        "samples": 0,
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "over50": 0,
+        "over100": 0
+      },
+      "startView": {
+        "x": -17.972,
+        "y": -114.19306628417968,
+        "w": 160.594,
+        "h": 135.3150662841797
+      },
+      "zoomView": {
+        "x": 22.176499999999997,
+        "y": -80.36429971313476,
+        "w": 80.297,
+        "h": 67.65753314208985
+      },
+      "zoomFactor": 2,
+      "redraws": [
+        {
+          "time": 1790019583133,
+          "drawMs": 7424.100000008941,
+          "exportMs": 3.2000000029802322,
+          "view": {
+            "x": -17.972,
+            "y": -114.19306628417968,
+            "w": 160.594,
+            "h": 135.3150662841797
+          },
+          "mode": "software-bitmap"
+        },
+        {
+          "time": 1790019597398,
+          "drawMs": 4487.5,
+          "exportMs": 3.5,
+          "view": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "mode": "software-bitmap"
+        }
+      ],
+      "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency"
+    },
+    {
+      "time": 1790019607857,
+      "event": "viewport_start",
+      "label": "arcs-1m:stream:2",
+      "startedAt": 1790019607857
+    },
+    {
+      "time": 1790019608774,
+      "event": "heartbeat_latency",
+      "requestMs": 14143,
+      "responseAgeMs": 14134
+    },
+    {
+      "time": 1790019611816,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268959744,
+        "heapTotal": 30498816,
+        "heapUsed": 26969156,
+        "external": 6132611,
+        "arrayBuffers": 1149965
+      },
+      "cpuUserMicros": 2076495,
+      "cpuSystemMicros": 676887,
+      "eventLoopP95Ms": 20.987903,
+      "eventLoopMaxMs": 25.051135
+    },
+    {
+      "time": 1790019616816,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268976128,
+        "heapTotal": 30498816,
+        "heapUsed": 27369336,
+        "external": 6134571,
+        "arrayBuffers": 1151925
+      },
+      "cpuUserMicros": 1747861,
+      "cpuSystemMicros": 800753,
+      "eventLoopP95Ms": 20.938751,
+      "eventLoopMaxMs": 21.741567
+    },
+    {
+      "time": 1790019621820,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268959744,
+        "heapTotal": 30498816,
+        "heapUsed": 26973276,
+        "external": 6132649,
+        "arrayBuffers": 1150003
+      },
+      "cpuUserMicros": 1707032,
+      "cpuSystemMicros": 681252,
+      "eventLoopP95Ms": 21.020671,
+      "eventLoopMaxMs": 23.461887
+    },
+    {
+      "time": 1790019626821,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 269303808,
+        "heapTotal": 30498816,
+        "heapUsed": 27423192,
+        "external": 6134856,
+        "arrayBuffers": 1152210
+      },
+      "cpuUserMicros": 1728703,
+      "cpuSystemMicros": 731619,
+      "eventLoopP95Ms": 20.922367,
+      "eventLoopMaxMs": 22.052863
+    },
+    {
+      "time": 1790019631821,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268873728,
+        "heapTotal": 30498816,
+        "heapUsed": 26974324,
+        "external": 6132574,
+        "arrayBuffers": 1149928
+      },
+      "cpuUserMicros": 1629867,
+      "cpuSystemMicros": 745953,
+      "eventLoopP95Ms": 20.971519,
+      "eventLoopMaxMs": 21.774335
+    },
+    {
+      "time": 1790019636821,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268881920,
+        "heapTotal": 30498816,
+        "heapUsed": 27396452,
+        "external": 6134692,
+        "arrayBuffers": 1152046
+      },
+      "cpuUserMicros": 1755472,
+      "cpuSystemMicros": 698926,
+      "eventLoopP95Ms": 20.971519,
+      "eventLoopMaxMs": 22.151167
+    },
+    {
+      "time": 1790019632894,
+      "event": "viewport",
+      "label": "arcs-1m:stream:2",
+      "startedAt": 1790019607857,
+      "endedAt": 1790019632894,
+      "frameGapMs": {
+        "samples": 227,
+        "p50": 116.5,
+        "p95": 116.70000000001164,
+        "p99": 133.29999999998836,
+        "max": 133.30000000001746,
+        "over50": 226,
+        "over100": 134
+      },
+      "longTaskMs": {
+        "samples": 0,
+        "p50": 0,
+        "p95": 0,
+        "p99": 0,
+        "max": 0,
+        "over50": 0,
+        "over100": 0
+      },
+      "startView": {
+        "x": -17.972,
+        "y": -114.19306628417968,
+        "w": 160.594,
+        "h": 135.3150662841797
+      },
+      "zoomView": {
+        "x": 22.176499999999997,
+        "y": -80.36429971313476,
+        "w": 80.297,
+        "h": 67.65753314208985
+      },
+      "zoomFactor": 2,
+      "redraws": [
+        {
+          "time": 1790019611673,
+          "drawMs": 6943.199999988079,
+          "exportMs": 3.6000000089406967,
+          "view": {
+            "x": -17.972,
+            "y": -114.19306628417968,
+            "w": 160.594,
+            "h": 135.3150662841797
+          },
+          "mode": "software-bitmap"
+        },
+        {
+          "time": 1790019626653,
+          "drawMs": 4528,
+          "exportMs": 4,
+          "view": {
+            "x": 22.176499999999997,
+            "y": -80.36429971313476,
+            "w": 80.297,
+            "h": 67.65753314208985
+          },
+          "mode": "software-bitmap"
+        }
+      ],
+      "method": "renderer pan plus 2x zoom with 8-second dwell; not native input latency"
+    },
+    {
+      "time": 1790019637047,
+      "event": "verified_stream",
+      "fixture": "arcs-1m",
+      "result": {
+        "event": "job_completed",
+        "time": 1790019588335,
+        "case": "arcs-1m",
+        "seconds": 51.860956849,
+        "acknowledged": 25898,
+        "received": 25898,
+        "commandsPerSecond": 499.3737403535657,
+        "sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+        "expectedMatch": true,
+        "overflows": 0
+      }
+    },
+    {
+      "time": 1790019638157,
+      "event": "heartbeat_latency",
+      "requestMs": 12603,
+      "responseAgeMs": 12593
+    },
+    {
+      "time": 1790019641822,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 269012992,
+        "heapTotal": 30498816,
+        "heapUsed": 26992056,
+        "external": 6132686,
+        "arrayBuffers": 1150040
+      },
+      "cpuUserMicros": 1655988,
+      "cpuSystemMicros": 673096,
+      "eventLoopP95Ms": 20.873215,
+      "eventLoopMaxMs": 22.167551
+    },
+    {
+      "time": 1790019646822,
+      "event": "backend_sample",
+      "memory": {
+        "rss": 268902400,
+        "heapTotal": 30498816,
+        "heapUsed": 27377240,
+        "external": 6134646,
+        "arrayBuffers": 1152000
+      },
+      "cpuUserMicros": 1654911,
+      "cpuSystemMicros": 694020,
+      "eventLoopP95Ms": 21.020671,
+      "eventLoopMaxMs": 21.299199
+    },
+    {
+      "time": 1790019648235,
+      "event": "heartbeat_latency",
+      "requestMs": 67,
+      "responseAgeMs": 57
+    },
+    {
+      "time": 1790019648535,
+      "event": "fixture-ready"
+    },
+    {
+      "time": 1790019648406,
+      "event": "workflow_changed",
+      "workflow": "idle"
+    },
+    {
+      "time": 1790019648520,
+      "event": "completion_display",
+      "fixture": "arcs-1m",
+      "idleObserved": true,
+      "delayMs": 60185,
+      "ui": {
+        "workflow": "idle",
+        "fileLoaded": true,
+        "connection": "127.0.0.1"
+      }
+    },
+    {
+      "time": 1790019648807,
+      "event": "heartbeat_latency",
+      "requestMs": 24,
+      "responseAgeMs": 11
+    },
+    {
+      "time": 1790019649812,
+      "event": "native_sample",
+      "model": "Lenovo TB-8506F",
+      "manufacturer": "LENOVO",
+      "android": "11",
+      "sdk": 30,
+      "totalMiB": 1812.78515625,
+      "availableMiB": 841.21875,
+      "lowMemory": false,
+      "appPssMiB": 158.630859375,
+      "pssScope": "Host app and Node; excludes isolated WebView renderer",
+      "viewport": {
+        "width": 1280,
+        "height": 708,
+        "dpr": 1.274999976158142
+      },
+      "jsHeap": 18200000
+    },
+    {
+      "time": 1790019649880,
+      "event": "heartbeat_latency",
+      "requestMs": 112,
+      "responseAgeMs": 67
+    },
+    {
+      "time": 1790019650671,
+      "event": "session_end",
+      "status": "completed",
+      "reason": "All selected cases completed"
+    }
+  ]
+}

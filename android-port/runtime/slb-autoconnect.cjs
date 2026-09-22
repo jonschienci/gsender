@@ -56,7 +56,7 @@ class SlbAutoConnect {
         try { opener(path, options, done); } catch (error) { done(error); }
     }
     async scan() {
-        if (this.stopped || this.scanning || !this.getOpener()) return;
+        if (require('../benchmark/gate.cjs').state.active || this.stopped || this.scanning || !this.getOpener()) return;
         this.scanning = true;
         try {
             const ports = await this.list();

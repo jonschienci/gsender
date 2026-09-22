@@ -435,12 +435,12 @@ export default function MovePanel({ mode, setMode }: Props) {
     return (
         <div
             className={clsx(
-                'flex-1 flex flex-col overflow-y-auto min-h-0 px-3 py-2 gap-2',
+                'android-move-panel flex-1 flex flex-col overflow-y-auto min-h-0 px-3 py-2 gap-2',
                 mode === 'expanded' ? 'justify-start' : 'justify-center',
             )}
         >
             {/* Quick row */}
-            <div className="flex gap-2 shrink-0">
+            <div className="android-move-actions flex gap-2 shrink-0">
                 <QuickActionButton
                     label="Home All"
                     Icon={Home}
@@ -475,9 +475,7 @@ export default function MovePanel({ mode, setMode }: Props) {
             {mode === 'expanded' && (
                 <>
                     {/* Corner Select */}
-                    <div className="section-label text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-content-muted">
-                        Corner Select
-                    </div>
+                    <section className="android-move-corners">
                     <div className="mx-3 rounded-lg border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-raised px-8 py-8">
                         <div className="relative w-full h-[70px] rounded-md border border-dashed border-gray-300 dark:border-outline-subtle bg-white/40 dark:bg-surface-sunken/40">
                             {CORNERS.map((corner) => (
@@ -498,13 +496,16 @@ export default function MovePanel({ mode, setMode }: Props) {
                                 · Hold to move
                             </span>
                         </div>
+                        <div className="android-corner-label section-label text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-content-muted">
+                            Corner Select
+                        </div>
                     </div>
 
+                    </section>
+
                     {/* Go To */}
-                    <div className="section-label text-[11px] font-semibold uppercase tracking-wide text-gray-400 dark:text-content-muted">
-                        Go To Position
-                    </div>
-                    <div className="flex rounded-lg border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-raised p-1 gap-1">
+                    <section className="android-move-position">
+                    <div className="android-move-mode flex rounded-lg border border-gray-200 dark:border-outline bg-gray-50 dark:bg-surface-raised p-1 gap-1" role="group" aria-label="Position mode">
                         {(
                             [
                                 { key: 'abs', label: 'ABS' },
@@ -521,6 +522,7 @@ export default function MovePanel({ mode, setMode }: Props) {
                                         !isDisabled && setMovementMode(key)
                                     }
                                     disabled={isDisabled}
+                                    aria-pressed={movementMode === key}
                                     className={clsx(
                                         'flex-1 py-2 rounded text-xs font-semibold uppercase tracking-wide transition-colors',
                                         movementMode === key
@@ -536,11 +538,12 @@ export default function MovePanel({ mode, setMode }: Props) {
                         })}
                     </div>
 
-                    <div className="flex justify-end gap-1 -mb-1">
+                    <div className="android-move-steps flex justify-end gap-1 -mb-1" role="group" aria-label="Position step size">
                         {STEP_SIZES.map((size) => (
                             <button
                                 key={size}
                                 type="button"
+                                aria-pressed={stepSize === size}
                                 onClick={() => setStepSize(size)}
                                 className={clsx(
                                     'px-2.5 py-1 rounded text-[11px] font-semibold border transition-colors',
@@ -554,7 +557,7 @@ export default function MovePanel({ mode, setMode }: Props) {
                         ))}
                     </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="android-move-fields grid grid-cols-2 gap-2">
                         {[
                             { axis: 'x' as const, label: 'X', available: true },
                             {
@@ -566,7 +569,7 @@ export default function MovePanel({ mode, setMode }: Props) {
                             {
                                 axis: 'a' as const,
                                 label: 'A',
-                                available: aAxisIsAvailable,
+                                available: true,
                             },
                         ]
                             .filter((f) => f.available)
@@ -584,6 +587,7 @@ export default function MovePanel({ mode, setMode }: Props) {
                                     <div className="flex gap-1.5 shrink-0">
                                         <button
                                             type="button"
+                                            disabled={axis === 'a' && !aAxisIsAvailable}
                                             onClick={() =>
                                                 adjustAxis(axis, -stepSize)
                                             }
@@ -593,6 +597,7 @@ export default function MovePanel({ mode, setMode }: Props) {
                                         </button>
                                         <button
                                             type="button"
+                                            disabled={axis === 'a' && !aAxisIsAvailable}
                                             onClick={() =>
                                                 adjustAxis(axis, stepSize)
                                             }
@@ -619,6 +624,7 @@ export default function MovePanel({ mode, setMode }: Props) {
                         <ArrowRight size={24} />
                         Go to position
                     </button>
+                    </section>
                 </>
             )}
         </div>

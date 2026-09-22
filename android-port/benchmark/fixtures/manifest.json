@@ -1,0 +1,95 @@
+[
+  {
+    "file": "contour-128KiB.nc",
+    "profile": "contour",
+    "bytes": 131080,
+    "commands": 3978,
+    "sha256": "a1789fce01dd84d2d78386ccc42b550b14354b7fca44cf557fbf85ff019a908a",
+    "command_sha256": "3d8804a18d3d09c86f037f6440f137e129fa964e9a8d65b5c7c81637785485fb",
+    "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+    "id": "contour",
+    "label": "Contour \u00b7 128 KiB",
+    "full": true
+  },
+  {
+    "file": "arcs-1024KiB.nc",
+    "profile": "arcs",
+    "bytes": 1048609,
+    "commands": 25898,
+    "sha256": "700ea831fc93b8f0c669dc0a487a84b7730a38bd1b749a0e21e65e0002fd5a3f",
+    "command_sha256": "b0ea54e76de319feb8a05e1b1cf330ef146fce24ece03c02a826ec97f502efdd",
+    "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+    "id": "arcs-1m",
+    "label": "Arcs \u00b7 1 MiB",
+    "full": true
+  },
+  {
+    "file": "MAXMAKE-snow-mountain-simulation.nc",
+    "profile": "public-mountain-relief",
+    "bytes": 5005415,
+    "commands": 298263,
+    "sha256": "021ffc6b7898b793e246285d6398df5ca503c77b2dcd8a913dd93ba875b8fcd0",
+    "command_sha256": "ea176107cb962066df316e3cdd6e46f85bfc7512f0e5acf19891579d09fe6cbc",
+    "source_file": "snow\u2011capped mountain.nc",
+    "source_sha256": "f4b6ca24cde7ba34c3af09876be4f8f4ecc9c738deff48013d873c55bb38db63",
+    "modifications": [
+      "prepend simulator marker G4P0.123 and comment",
+      "replace two M6/M06 words with comments; retain tool numbers, all motion, feed and spindle words"
+    ],
+    "all_original_motion_blocks_unchanged": true,
+    "source_page": "https://maxmake.com/blogs/news/cnc-wood-carving-mountain-relief",
+    "download_url": "https://drive.google.com/uc?export=download&id=1YjbiAtlFhYHiFlJvBvd1APZItnQ8qvtz",
+    "scope": "loopback simulator only; not qualified for physical CNC",
+    "id": "mountain",
+    "label": "Mountain relief \u00b7 4.77 MiB",
+    "full": true
+  },
+  {
+    "file": "relief-5120KiB.nc",
+    "profile": "relief",
+    "bytes": 5242902,
+    "commands": 162404,
+    "sha256": "992764f03de6e07e336eb49f273d5ae82331e6637781c93105d4d5d15826577b",
+    "command_sha256": "f7a7128930849877e15fa6b2405bf6d5d3628c29b98274c391f04ab9841fc8b7",
+    "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+    "id": "relief-5m",
+    "label": "Relief \u00b7 5 MiB",
+    "full": false
+  },
+  {
+    "file": "relief-20480KiB.nc",
+    "profile": "relief",
+    "bytes": 20971529,
+    "commands": 640457,
+    "sha256": "d5decc7c8888ea21e542d76e05808fce4ed200dbea3ba3902f251ac24d877f45",
+    "command_sha256": "c77b2932f680a11006cb8e235b9d8e520500edc8aa2e2839643e4cd60d062cff",
+    "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+    "id": "relief-20m",
+    "label": "Relief \u00b7 20 MiB",
+    "full": false
+  },
+  {
+    "file": "relief-30720KiB.nc",
+    "profile": "relief",
+    "bytes": 31457310,
+    "commands": 959168,
+    "sha256": "8d7b082508f7513e36e45417e2fc658e2eb5627dea66c862c8a14393fbfb9611",
+    "command_sha256": "6acba4fc28664516d072ce50f0547d06f210b0e3531b64eeb9d7832c4b4850e9",
+    "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+    "id": "relief-30m",
+    "label": "Relief \u00b7 30 MiB",
+    "full": false
+  },
+  {
+    "file": "relief-40960KiB.nc",
+    "profile": "relief",
+    "bytes": 41943062,
+    "commands": 1280881,
+    "sha256": "ffef08531dd37527abd9e5e34f7578d14533ed29717f2cd749fdfe66567514a4",
+    "command_sha256": "6ab7a477c4a49e07bdfad897b077f709a3cd33798774e52b3b990f86ebba5a91",
+    "scope": "loopback simulator only; no spindle command; NOT for physical machining",
+    "id": "relief-40m",
+    "label": "Relief \u00b7 40 MiB",
+    "full": false
+  }
+]

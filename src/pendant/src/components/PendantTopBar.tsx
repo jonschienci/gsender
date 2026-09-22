@@ -502,13 +502,13 @@ export default function PendantTopBar() {
 
             {/* Touch-forward connection widget */}
             <div className="shrink-0 no-drag">
-                <ConnectionWidget />
+                <ConnectionWidget machineStatus={badgeLabel} statusColor={c.color} />
             </div>
 
             {/* State badge — absolutely centred so Connection resizing doesn't shift it */}
             <div
                 className={[
-                    'absolute left-1/2 -translate-x-1/2 pointer-events-none',
+                    'absolute left-1/2 -translate-x-1/2 pointer-events-none android-replaced-status',
                     badge.animation === 'pulse-run' ? 'badge-animate-run' : '',
                     badge.animation === 'pulse-alarm'
                         ? 'badge-animate-alarm'

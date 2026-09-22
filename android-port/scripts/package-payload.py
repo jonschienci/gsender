@@ -18,6 +18,7 @@ version = re.search(r'^\s*versionCode\s+([1-9][0-9]*)\s*$',
                     (root / 'android-port/app/build.gradle').read_text(), re.MULTILINE)
 if not version:
     raise RuntimeError('Cannot find Android versionCode for the in-app build label')
+(payload / 'benchmark/build.json').write_text('{"build":' + version.group(1) + '}\n')
 build_label = ('<script id="android-build-number">window.__gsenderAndroidBuildNumber='
                + version.group(1) + ';</script>')
 for entry in (payload / 'app/index.html', payload / 'pendant/index.html'):

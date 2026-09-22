@@ -1,3 +1,4 @@
+const benchmarkGate = require(require('node:fs').existsSync(require('node:path').join(__dirname,'../benchmark/gate.cjs')) ? '../benchmark/gate.cjs' : '../../benchmark/gate.cjs');
 'use strict';
 const { Duplex } = require('node:stream');
 const { randomUUID } = require('node:crypto');
@@ -74,6 +75,8 @@ function createSerialPort({ send, subscribe, timeout = 15000, permissionTimeout 
                 queueMicrotask(() => callback ? callback(err) : this.emit('error', err));
                 return;
             }
+            try { benchmarkGate.enter(this, this.settings); }
+            catch(err) { queueMicrotask(() => callback ? callback(err) : this.emit('error', err)); return; }
             this.opening = true;
             request('open', { session: this.session, options: this.settings }, permissionTimeout).then(() => {
                 this.opening = false;
@@ -84,6 +87,7 @@ function createSerialPort({ send, subscribe, timeout = 15000, permissionTimeout 
                 for (const bytes of this.early) { if (!this.destroyed) this.push(bytes); }
                 this.early = []; this.earlyBytes = 0;
             }, (err) => {
+                benchmarkGate.release(this);
                 this.opening = false;
                 this.early = []; this.earlyBytes = 0;
                 // Cancel pending permission/open, including late success after timeout.
@@ -130,6 +134,7 @@ function createSerialPort({ send, subscribe, timeout = 15000, permissionTimeout 
             this.destroy();
         }
         _destroy(err, callback) {
+            benchmarkGate.release(this);
             const wasActive = this.isOpen || this.opening;
             this.isOpen = false;
             this.opening = false;

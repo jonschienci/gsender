@@ -14,7 +14,9 @@ export default function PendantCarveView({ drawerOpen, onDrawerOpenChange, drawe
     useLayoutEffect(() => {
         const element = grid.current!;
         const observer = new ResizeObserver(() => {
-            element.dataset.shortLandscape = String(element.clientHeight < 610);
+            // The current DRO footer and jog stack need about 670px together.
+            // Measure the space below the header, including when Status is open.
+            element.dataset.shortLandscape = String(element.clientHeight < 680);
             element.dataset.compactJog = String(element.clientHeight < 530);
             element.dataset.tightDro = String(element.clientHeight < 460);
         });

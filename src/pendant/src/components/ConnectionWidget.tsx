@@ -61,7 +61,7 @@ const STATUS_CLASSES: Record<
 };
 
 const PILL_BASE =
-    'conn-anim-pop-in flex items-center gap-2 w-48 h-11 pl-1.5 pr-3 rounded-md border';
+    'android-connection-pill conn-anim-pop-in flex items-center gap-2 w-48 h-11 pl-1.5 pr-3 rounded-md border';
 
 function truncatePortName(port: string = ''): string {
     const portName = port.split('/').pop() ?? '';
@@ -256,7 +256,7 @@ function readConfigValues(): ConnectionConfigValues {
     };
 }
 
-export default function ConnectionWidget() {
+export default function ConnectionWidget({ machineStatus = 'Disconnected', statusColor }: { machineStatus?: string; statusColor?: string }) {
     const connectionConfig = useMemo(() => new WidgetConfig('connection'), []);
 
     // Redux-backed data (populated by the pendant sagas' serialport:list bridge).
@@ -554,12 +554,11 @@ export default function ConnectionWidget() {
                 {connectionState === ConnectionState.DISCONNECTED && (
                     <button
                         key="disconnected"
+                        style={{ borderColor: statusColor }}
                         type="button"
                         onClick={openSheet}
                         className={cn(
                             PILL_BASE,
-                            status.tint,
-                            status.border,
                             'active:scale-95 transition-transform',
                         )}
                     >
@@ -567,7 +566,8 @@ export default function ConnectionWidget() {
                             <Plug className={cn('w-6 h-6', status.icon)} />
                         </span>
                         <span className="flex-1 min-w-0 text-left truncate font-semibold text-sm text-black dark:text-content-primary">
-                            Connect to CNC
+                            <span className="android-connection-title">Connect to CNC</span>
+                            <span className="android-connection-status" style={{ color: statusColor }}>{machineStatus}</span>
                         </span>
                     </button>
                 )}
@@ -575,10 +575,9 @@ export default function ConnectionWidget() {
                 {connectionState === ConnectionState.CONNECTING && (
                     <div
                         key="connecting"
+                        style={{ borderColor: statusColor }}
                         className={cn(
                             PILL_BASE,
-                            status.tint,
-                            status.border,
                             'conn-anim-shimmer',
                         )}
                     >
@@ -591,7 +590,8 @@ export default function ConnectionWidget() {
                             />
                         </span>
                         <span className="flex-1 min-w-0 text-left truncate font-semibold text-sm text-black dark:text-content-primary">
-                            Connecting…
+                            <span className="android-connection-title">Connecting…</span>
+                            <span className="android-connection-status" style={{ color: statusColor }}>{machineStatus}</span>
                         </span>
                     </div>
                 )}
@@ -599,12 +599,11 @@ export default function ConnectionWidget() {
                 {connectionState === ConnectionState.ERROR && (
                     <button
                         key="error"
+                        style={{ borderColor: statusColor }}
                         type="button"
                         onClick={openSheet}
                         className={cn(
                             PILL_BASE,
-                            status.tint,
-                            status.border,
                             'active:scale-95 transition-transform',
                         )}
                     >
@@ -614,7 +613,8 @@ export default function ConnectionWidget() {
                             />
                         </span>
                         <span className="flex-1 min-w-0 text-left truncate font-semibold text-sm text-red-600">
-                            Connection failed
+                            <span className="android-connection-title">Connection failed</span>
+                            <span className="android-connection-status" style={{ color: statusColor }}>{machineStatus}</span>
                         </span>
                     </button>
                 )}
@@ -622,14 +622,13 @@ export default function ConnectionWidget() {
                 {connectionState === ConnectionState.CONNECTED && (
                     <button
                         key="connected"
+                        style={{ borderColor: statusColor }}
                         type="button"
                         onPointerDown={startHold}
                         onPointerUp={endHold}
                         onPointerLeave={endHold}
                         className={cn(
                             PILL_BASE,
-                            status.tint,
-                            status.border,
                             'relative overflow-hidden touch-none select-none',
                         )}
                     >
@@ -643,11 +642,11 @@ export default function ConnectionWidget() {
                             <PlugZap className={cn('w-6 h-6', status.icon)} />
                         </span>
                         <span className="relative flex-1 min-w-0 text-left leading-tight">
-                            <span className="block text-sm font-semibold truncate text-gray-900 dark:text-content-primary">
+                            <span className="android-connection-title block text-sm font-semibold truncate text-gray-900 dark:text-content-primary">
                                 {firmware || 'Connected'}
                             </span>
                             <span className="block text-xs font-mono truncate text-gray-600 dark:text-content-muted">
-                                {displayPort}
+                                <span className="android-connection-status" style={{ color: statusColor }}>{machineStatus}</span>
                             </span>
                         </span>
                     </button>

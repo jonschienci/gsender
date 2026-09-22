@@ -46,6 +46,7 @@ test('position updates move the real SVG marker without rebuilding the preview',
             for(let i=0;i<30000;i++)points.set([i%300,Math.floor(i/300),(i%300)+0.8,Math.floor(i/300)+0.5],i*4);
             await act(()=>pubsub.publishSync('file:load',{svgSegmentGroups:[{hexColor:'#3F85C7',opacity:1,positionsBuffer:points.buffer,positionsLen:points.length,stride:4}],svgMeta:{minZ:0,maxZ:0}}));
             const svg=view.container.querySelector('svg');
+            if(optimized){assert.equal(view.container.querySelector('svg[data-gsender-viewport]'),svg);assert.equal(typeof svg.__gsenderViewport.write,'function');}
             const toolpath=svg.querySelector(optimized?'g image':'g path');assert.ok(toolpath);const attribute=optimized?'href':'d';const before=toolpath.getAttribute(attribute);const workerMessages=workers.at(-1)?.messages.length;
             rebuilds=0;const started=performance.now();
             for(let i=1;i<=30;i++) await act(()=>{
