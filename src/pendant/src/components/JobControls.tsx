@@ -1,4 +1,4 @@
-import { PAUSE, START, STOP } from 'app/constants';
+import { PAUSE, START, STOP, WORKFLOW_STATE_RUNNING } from 'app/constants';
 import ControlButton from 'app/features/JobControl/ControlButton';
 import { useTypedSelector } from 'app/hooks/useTypedSelector';
 import type { RootState } from 'app/store/redux';
@@ -40,8 +40,8 @@ export default function JobControls() {
 
     return (
         <div className="flex w-full items-center justify-center gap-2">
-            <ControlButton type={START} {...sharedProps} />
-            <ControlButton type={PAUSE} {...sharedProps} />
+            <ControlButton type={START} hidden={workflow?.state === WORKFLOW_STATE_RUNNING} {...sharedProps} />
+            <ControlButton type={PAUSE} hidden={workflow?.state !== WORKFLOW_STATE_RUNNING} {...sharedProps} />
             <ControlButton type={STOP} {...sharedProps} />
         </div>
     );

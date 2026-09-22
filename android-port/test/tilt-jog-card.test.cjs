@@ -1,7 +1,7 @@
 'use strict';
 const {test}=require('node:test'),assert=require('node:assert/strict');
 const fs=require('node:fs'),path=require('node:path'),Module=require('node:module');
-const {JSDOM}=require('jsdom'),{transformSync}=require('esbuild');
+const {JSDOM}=require('jsdom'),{transformSync,buildSync}=require('esbuild');
 
 test('actual pendant card keeps Z enabled while tilting/calibrating and displays honest readiness',async()=>{
  const dom=new JSDOM('<html><body></body></html>',{pretendToBeVisual:true});
@@ -18,14 +18,15 @@ test('actual pendant card keeps Z enabled while tilting/calibrating and displays
  const noop=()=>{};
  compiled.require=id=>{
   if(id.endsWith('/ui/tilt-jog.ts'))return {useTiltJog:()=>tilt,setTiltFeed:noop,jogTiltZStep:()=>true,jogTiltZHold:()=>true,releaseTiltZ:()=>true};
-  if(id.endsWith('/ui/JogReadinessLight.tsx')){
-   const m=new Module(id,module);m.filename=id;m.paths=module.paths;m._compile(transformSync(fs.readFileSync(id,'utf8'),{loader:'tsx',format:'cjs',jsx:'automatic'}).code,id);return m.exports;
+  if(id==='./useRotaryEnabled' || id.endsWith('/ui/JogReadinessLight.tsx') || id.endsWith('/ui/JogStepSwitch.tsx')){
+   if(id==='./useRotaryEnabled')id=path.join(path.dirname(filename),'useRotaryEnabled.ts');
+   const m=new Module(id,module);m.filename=id;m.paths=module.paths;m.require=compiled.require;m._compile(buildSync({entryPoints:[id],bundle:true,packages:'external',platform:'browser',format:'cjs',jsx:'automatic',write:false}).outputFiles[0].text,id);return m.exports;
   }
   if(id.endsWith('/ui/TiltJogPad.tsx'))return {__esModule:true,default:()=>React.createElement('div',{'data-testid':'tilt-pad'})};
   if(id.includes('/ui/'))return {__esModule:true,default:({children})=>children||null,precisePadJog:noop};
   if(id==='app/hooks/useTypedSelector')return {useTypedSelector:fn=>fn(state)};
   if(id==='app/hooks/useWorkspaceState')return {useWorkspaceState:()=>({mode:'3axis',units:'mm'})};
-  if(id==='app/store')return {__esModule:true,default:{get:(_key,fallback)=>fallback,on:noop,removeListener:noop}};
+  if(id==='app/store'){const store={get:(_key,fallback)=>fallback,on:noop,removeListener:noop};return {__esModule:true,default:store,...store};}
   if(id==='app/constants')return {GRBL_ACTIVE_STATE_IDLE:'Idle',GRBL_ACTIVE_STATE_JOG:'Jog',IMPERIAL_UNITS:'in',WORKFLOW_STATE_RUNNING:'running',WORKSPACE_MODE:{ROTARY:'rotary'}};
   if(id.includes('Jogging/utils/Jogging'))return new Proxy({}, {get:()=>noop});
   if(id.includes('Jogging/utils/units'))return {convertValue:x=>x};

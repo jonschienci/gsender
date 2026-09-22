@@ -1,4 +1,5 @@
 // Preview pixels only. Never used by the sender, estimator, or G-code storage.
+import {visibleRanges} from './hybrid-geometry.mjs';
 export const MAX_PREVIEW_EDGE = 1600;
 export function geometryBounds(groups) {
     const bounds = {minX:Infinity,minY:Infinity,maxX:-Infinity,maxY:-Infinity};
@@ -21,6 +22,16 @@ export function geometryBounds(groups) {
     }
     return Number.isFinite(bounds.minX) ? bounds : null;
 }
+// SVG's centered `meet` fit shows additional world space when the screen
+// and viewBox have different aspect ratios. Cull and paint that entire space,
+// not just the nominal viewBox, or visible edge paths disappear after a zoom.
+export function visiblePreviewView(view, width, height) {
+    if (!(width > 0 && height > 0 && view.w > 0 && view.h > 0)
+        || ![width,height,view.x,view.y,view.w,view.h].every(Number.isFinite)) return {...view};
+    const scale=Math.min(width/view.w,height/view.h);
+    const w=width/scale,h=height/scale;
+    return {x:view.x-(w-view.w)/2,y:view.y-(h-view.h)/2,w,h};
+}
 export function rasterSize(view, desiredWidth, desiredHeight) {
     if (![view.x,view.y,view.w,view.h].every(Number.isFinite) || view.w<=0 || view.h<=0) throw Error('Invalid preview viewport');
     const scale=Math.min(MAX_PREVIEW_EDGE/view.w,MAX_PREVIEW_EDGE/view.h,
@@ -41,7 +52,7 @@ export function previewCovers(painted, view, desiredWidth, desiredHeight, stroke
     const old=painted.view,epsilon=1e-7;
     return left>=old.x-epsilon && right<=old.x+old.w+epsilon && top>=old.y-epsilon && bottom<=old.y+old.h+epsilon;
 }
-export async function paintGroups(groups, view, canvas, layer, strokeWidth, current, yieldWork, software=true) {
+export async function paintGroups(groups, view, canvas, layer, strokeWidth, current, yieldWork, software=true, index=null) {
     // Keep dense path rasterization in the worker's software canvas. GPU path
     // drawing caused a measured input-dispatch ANR on the Lenovo in Build 48.
     // The finished bitmap is still presented through the accelerated WebView.
@@ -52,14 +63,17 @@ export async function paintGroups(groups, view, canvas, layer, strokeWidth, curr
     const sx=canvas.width/view.w, sy=canvas.height/view.h;
     ctx.clearRect(0,0,canvas.width,canvas.height);
     let examined=0;
-    for (const group of groups) {
+    for (let g=0;g<groups.length;g++) {
+        if(!current())return false;
+        const group=groups[g];
         const stride=group.stride??6, half=stride/2;
-        const data=new Float32Array(group.positionsBuffer,0,group.positionsLen);
+        const data=index?.[g].data??new Float32Array(group.positionsBuffer,0,group.positionsLen);
         mask.setTransform(1,0,0,1,0,0);mask.clearRect(0,0,layer.width,layer.height);
         mask.setTransform(sx,0,0,sy,-view.x*sx,-view.y*sy);
         mask.lineWidth=strokeWidth;mask.lineCap='round';mask.lineJoin='round';mask.strokeStyle=group.hexColor;
         let batch=0;mask.beginPath();
-        for (let i=0;i+stride-1<data.length;i+=stride) {
+        const ranges=index?visibleRanges(index[g],view,strokeWidth):[[0,data.length]];
+        for(const [start,end] of ranges) for (let i=start;i+stride-1<end;i+=stride) {
             if (!current()) return false;
             const x1=data[i],y1=-data[i+1],x2=data[i+half],y2=-data[i+half+1];
             if ([x1,y1,x2,y2].every(Number.isFinite)

@@ -8,10 +8,15 @@ test('pendant page controls and desktop XY switch compile without replacing Z co
  for(const file of ['src/pendant/src/components/JoggingCard.tsx','src/app/src/features/Jogging/index.tsx']){
   const filename=path.resolve(__dirname,'../..',file),result=transform(fs.readFileSync(filename,'utf8'),filename);
   transformSync(result.code,{loader:'tsx'});
+  assert.match(result.code,/holdDelay=\{jogThreshold\}/);
   if (file.includes('/pendant/')) {
+   assert.match(result.code,/holdFeed=\{customFeed \?\? getPresetFromStore\(stepPreset,'mm'\)\.feedrate\}/);
    assert.match(result.code,/aria-label="Jog control pages"/);
    assert.match(result.code,/stopContinuousJog\(\);stopTiltJog\(\);setXyPad\(value\)/);
-  } else assert.match(result.code,/<XYJogModeSwitch checked=\{xyPad\}/);
+  } else {
+   assert.match(result.code,/<XYJogModeSwitch checked=\{xyPad\}/);
+   assert.match(result.code,/holdFeed=\{padUnits === 'in' \? jogSpeed.feedrate \* 25\.4 : jogSpeed.feedrate\}/);
+  }
   assert.doesNotMatch(result.code,/<select aria-label="XY controls"/);assert.match(result.code,/zPlusJog|<ZJog/);
  }
 });
@@ -52,14 +57,31 @@ test('real touch component stops on release/lost capture/background/multitouch a
   assert.ok(requests.some(r=>r.action==='move'&&r.body.x===.8));
   await act(async()=>{f.event('pointerup',180,100);await wait(1);});const count=requests.filter(r=>r.action==='move').length;
   await act(()=>wait(70));assert.equal(requests.filter(r=>r.action==='move').length,count);assert.ok(requests.some(r=>r.action==='end'));f.view.unmount();
-  for(const cancel of ['lost','background','multitouch','outside','blur','disable','unmount']){
+  const outside=await setup(),beforeOutside=requests.length;
+  await act(async()=>{outside.event('pointerdown',122,100);await wait(5);});
+  assert.equal(requests.slice(beforeOutside).find(r=>r.action==='begin').body.rapid,5000,'the enlarged center target starts a Rapid-capped session');
+  for(const [x,y] of [[900,100],[900,-300],[-700,900],[100,100]]){
+   await act(async()=>{outside.event('pointermove',x,y);await wait(55);});
+   const move=requests.filter(r=>r.action==='move').at(-1).body;
+   const dx=(x-100)/100,dy=(100-y)/100,scale=Math.max(1,Math.hypot(dx,dy));
+   assert.ok(Math.abs(move.x-dx/scale)<1e-10 && Math.abs(move.y-dy/scale)<1e-10,'radial clamping preserves direction outside the pad');
+   assert.ok(Math.hypot(move.x,move.y)<=1+1e-10,'neither dot nor requested speed exceeds the radial limit');
+   assert.equal(outside.pad.hasPointerCapture(1),true);
+   assert.equal(requests.slice(beforeOutside).filter(r=>r.action==='end').length,0);
+  }
+  await act(async()=>{outside.event('pointerup',900,-300);await wait(5);});
+  assert.equal(requests.slice(beforeOutside).filter(r=>r.action==='end').length,1,'release outside ends the session');
+  const afterOutside=requests.length;await act(()=>wait(60));assert.equal(requests.length,afterOutside);outside.view.unmount();
+  const beyondTarget=await setup(),beforeTarget=requests.length;
+  await act(async()=>{beyondTarget.event('pointerdown',126,100);await wait(5);beyondTarget.event('pointerup',126,100);});
+  assert.equal(requests.slice(beforeTarget).some(r=>r.action==='begin'),false,'the larger center target does not absorb the middle/rim');beyondTarget.view.unmount();
+  for(const cancel of ['lost','background','multitouch','blur','disable','unmount']){
    const f=await setup(),before=requests.filter(r=>r.action==='end').length;
    await act(async()=>{f.event('pointerdown');await wait(1);f.event('pointermove',150,100);await wait(50);});
    await act(async()=>{
     if(cancel==='lost')f.event('lostpointercapture');
     if(cancel==='background'){window.__usbKnobActive=false;window.dispatchEvent(new Event('usb-knob-visibility'));}
     if(cancel==='multitouch')f.event('pointerdown',100,100,{pointerId:2,isPrimary:false});
-    if(cancel==='outside')f.event('pointermove',220,100);
     if(cancel==='blur')window.dispatchEvent(new Event('blur'));
     if(cancel==='disable')f.view.rerender(React.createElement(Component,{...props,disabled:true}));
     if(cancel==='unmount')f.view.unmount();

@@ -1,3 +1,4 @@
+import PendantNumberPad from '../../../android-port/ui/PendantNumberPad';
 import ConfirmationDialog from 'app/components/ConfirmationDialog/ConfirmationDialog';
 import { Toaster } from 'app/components/shadcn/Sonner';
 import { useDarkMode } from 'app/hooks/useDarkMode';
@@ -30,6 +31,7 @@ export default function PendantShell() {
 
     return (
         <div className="h-screen w-screen flex flex-col bg-gray-100 dark:bg-surface-base overflow-hidden">
+            <PendantNumberPad />
             <PendantTopBar />
             <InfoStrip />
 

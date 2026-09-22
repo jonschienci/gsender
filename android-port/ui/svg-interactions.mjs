@@ -31,6 +31,11 @@ export function installSvgInteractions(Renderer) {
     p.bindEvents = function() {
         if (!this.svg || !this.pathLayer || !this.viewBox) return original.bindEvents.call(this);
         this.svg.dataset.gsenderViewport='true';
+        // Arm length already follows the viewBox in renderCrosshairMarker.
+        // Keep its stroke in screen pixels as well, independent of zoom.
+        this.crosshairEl.style.strokeWidth = '3px';
+        this.crosshairEl.style.vectorEffect = 'non-scaling-stroke';
+        this.crosshairEl.classList.add('android-machine-crosshair');
         this.svg.__gsenderViewport = { read:()=>({...this.viewBox}), write:view=>{this.viewBox={...view};this.applyViewBox();} };
         states.set(this, {frame:null, view:null, markerDirty:false, disposed:false});
         // SVG root still receives all gestures and pointer capture. Walking a

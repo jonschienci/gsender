@@ -58,3 +58,35 @@ test('returning to a cached view cancels pending work and a later render still s
     assert.equal(messages.length,0);assert.equal(f.bitmaps.length,0);
     receive(request(2));await settle();assert.deepEqual(messages.map(m=>m.id),[2]);
 });
+test('hybrid worker selects detail by viewport, rechecks raster caches and releases pixel surfaces for SVG',async()=>{
+    const {createRasterWorker}=await import('../ui/raster-worker.mjs');
+    const f=canvasFactory(),messages=[];
+    const receive=createRasterWorker({...f,post:data=>messages.push(data),yieldWork:settle});
+    const positions=new Float32Array(Array.from({length:2000},(_,i)=>[i,0,i+.1,.1]).flat());
+    receive({type:'geometry',groups:[{stride:4,positionsBuffer:positions.buffer,positionsLen:positions.length,hexColor:'#123456',opacity:.5}]});
+    const send=async(id,view,extra={})=>{receive({...request(id),hybrid:true,strokeWidth:.001,view,...extra});await settle();return messages.at(-1);};
+    const overview={x:0,y:-1,w:2000,h:2000},detail={x:500,y:-1,w:5,h:5};
+    assert.equal((await send(1,detail)).mode,'svg');assert.equal(f.surfaces.length,0);
+    assert.equal((await send(2,overview,{previousMode:'svg'})).mode,'software-bitmap');
+    assert.equal(f.surfaces.length,2);const denseBitmap=f.bitmaps.length;
+    assert.equal((await send(3,overview,{reuseRaster:true})).reuse,true);
+    assert.equal(f.bitmaps.length,denseBitmap,'reusing a raster must avoid painting/exporting');
+    assert.equal((await send(4,detail,{reuseRaster:true})).mode,'svg','cache cannot prevent detail upgrade');
+    assert.equal(f.surfaces[0].width,1);assert.equal(f.surfaces[1].height,1);
+    assert.equal(messages.at(-1).paths[0].color,'#123456');
+});
+test('hybrid indexing survives viewport supersession and discards replaced geometry',async()=>{
+    const {createRasterWorker}=await import('../ui/raster-worker.mjs');
+    for(const replaceGeometry of [false,true]) {
+        const f=canvasFactory(),messages=[];let resume;
+        const gate=new Promise(resolve=>resume=resolve);
+        const receive=createRasterWorker({...f,post:data=>messages.push(data),yieldWork:()=>gate});
+        const positions=new Float32Array(4*9000);
+        receive({type:'geometry',groups:[{stride:4,positionsBuffer:positions.buffer,positionsLen:positions.length,hexColor:'#fff'}]});
+        receive({...request(1),hybrid:true});await settle();
+        if(replaceGeometry)receive({type:'geometry',groups:[]});
+        receive({...request(2),hybrid:true,view:{x:500,y:500,w:1,h:1}});resume();await settle();
+        assert.deepEqual(messages.map(m=>m.id),[2]);assert.equal(messages[0].mode,'svg');
+        assert.deepEqual(messages[0].paths,[]);assert.equal(f.surfaces.length,0);
+    }
+});

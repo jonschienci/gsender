@@ -1,3 +1,5 @@
+import CustomJogFeed from '../../../../android-port/ui/CustomJogFeed';
+import useRotaryEnabled from './useRotaryEnabled';
 import {
     GRBL_ACTIVE_STATE_IDLE,
     GRBL_ACTIVE_STATE_JOG,
@@ -247,6 +249,7 @@ export default function JoggingCard() {
         (state: RootState) => state.controller.state.status?.activeState ?? '',
     );
 
+    const [customFeed, setCustomFeed] = useState<number | null>(null);
     const [stepPreset, setStepPreset] = useState<JogPresetId>('normal');
     const [jogThreshold, setJogThreshold] = useState<number>(
         getThresholdFromStore(),
@@ -268,6 +271,7 @@ export default function JoggingCard() {
         };
     }, [units]);
 
+    const rotaryEnabled = useRotaryEnabled();
     const isRotaryMode = mode === WORKSPACE_MODE.ROTARY;
     const canJog =
         isConnected &&
@@ -279,7 +283,7 @@ export default function JoggingCard() {
     const xyDistance = selectedJog.xyStep;
     const zDistance = selectedJog.zStep;
     const aDistance = selectedJog.aStep;
-    const feedrate = selectedJog.feedrate;
+    const feedrate = customFeed === null ? selectedJog.feedrate : customFeed / (units === 'in' ? 25.4 : 1);
     const rotaryAxis = isRotaryMode ? 'Y' : 'A';
 
     const baseButton =
@@ -394,9 +398,9 @@ export default function JoggingCard() {
                 {PRESET_META.map((preset) => (
                     <button
                         key={preset.id}
-                        onClick={() => setStepPreset(preset.id)}
+                        onClick={() => { stopContinuousJog(); setCustomFeed(null); setStepPreset(preset.id); }}
                         className={`px-3 py-2 rounded-lg text-sm font-semibold transition-colors ${
-                            stepPreset === preset.id
+                            customFeed === null && stepPreset === preset.id
                                 ? 'bg-robin-500 text-white border border-robin-500'
                                 : 'bg-white dark:bg-surface-raised text-gray-500 dark:text-content-muted hover:text-gray-700 dark:hover:text-content-primary border border-gray-300 dark:border-outline'
                         }`}
@@ -404,6 +408,7 @@ export default function JoggingCard() {
                         {preset.label}
                     </button>
                 ))}
+                <CustomJogFeed units={units ?? 'mm'} selected={customFeed !== null} onSelect={value => {stopContinuousJog();setCustomFeed(value);}} />
             </div>
 
             <div className="space-y-[clamp(0.375rem,1.5vh,0.75rem)]">
@@ -698,7 +703,7 @@ export default function JoggingCard() {
                         </div>
                     </div>
 
-                    <div className={axisPanel}>
+                    {rotaryEnabled && <div className={axisPanel}>
                         <div className="space-y-1.5">
                             <JogActionButton
                                 id="a-plus"
@@ -785,7 +790,7 @@ export default function JoggingCard() {
                                 )}
                             </JogActionButton>
                         </div>
-                    </div>
+                    </div>}
                 </div>
             </div>
         </div>

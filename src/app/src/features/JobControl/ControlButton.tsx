@@ -37,6 +37,7 @@ type MACHINE_CONTROL_BUTTONS_T =
     (typeof MACHINE_CONTROL_BUTTONS)[keyof typeof MACHINE_CONTROL_BUTTONS];
 
 interface ControlButtonProps {
+    hidden?: boolean;
     type: MACHINE_CONTROL_BUTTONS_T;
     workflow: { state: WORKFLOW_STATES_T };
     activeState: GRBL_ACTIVE_STATES_T;
@@ -73,6 +74,7 @@ const ControlButton: React.FC<ControlButtonProps> = ({
     fileLoaded,
     onStop,
     validateATC,
+    hidden = false,
 }) => {
     const posthog = usePostHog();
     const [isRunningSDFile, setIsRunningSDFile] = useState<boolean>(false);
@@ -356,7 +358,7 @@ const ControlButton: React.FC<ControlButtonProps> = ({
     };
 
     return (
-        <div className="flex justify-center items-center">
+        <div className="flex justify-center items-center" hidden={hidden} style={hidden ? { display: 'none' } : undefined}>
             <button
                 type="button"
                 className={cx(

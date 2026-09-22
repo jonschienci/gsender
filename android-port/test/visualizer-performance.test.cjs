@@ -7,8 +7,15 @@ const {transform} = require('../scripts/performance-ui.cjs');
 
 test('position updates move the real SVG marker without rebuilding the preview', async () => {
     const dom = new JSDOM('<!doctype html><html><body></body></html>', {url:'http://localhost',pretendToBeVisual:true});
-    for(const key of ['window','document','navigator','HTMLElement','SVGElement','Element','Event'])
+    for(const key of ['window','document','navigator','HTMLElement','SVGElement','Element','Event','MutationObserver'])
         Object.defineProperty(globalThis,key,{configurable:true,value:dom.window[key]});
+    // JSDOM does not implement SVGAnimatedRect. The real browser exposes this
+    // to the coordinate-grid overlay installed by the current pendant UI.
+    Object.defineProperty(dom.window.SVGElement.prototype,'viewBox',{get(){
+        const [x=0,y=0,width=0,height=0]=(this.getAttribute('viewBox')||'').split(/\s+/).map(Number);
+        return {baseVal:{x,y,width,height}};
+    }});
+    dom.window.HTMLCanvasElement.prototype.getContext=()=>null;
     let frames=[];
     const workers=[];
     globalThis.Worker=class {

@@ -757,25 +757,18 @@ export default function SpindlePanel({ mode }: Props) {
                 ) : (
                     <>
                         <SpindleButton
-                            label="Forward"
-                            Icon={RotateCw}
-                            active={isConnected && spindleForward}
+                            label={isConnected && spindleForward ? 'Stop' : 'Forward'}
+                            Icon={isConnected && spindleForward ? Square : RotateCw}
+                            danger={isConnected && spindleForward}
                             disabled={!clickable}
-                            onClick={actions.sendM3}
+                            onClick={isConnected && spindleForward ? actions.sendM5 : actions.sendM3}
                         />
                         <SpindleButton
-                            label="Reverse"
-                            Icon={RotateCcw}
-                            active={isConnected && spindleReverse}
+                            label={isConnected && spindleReverse ? 'Stop' : 'Reverse'}
+                            Icon={isConnected && spindleReverse ? Square : RotateCcw}
+                            danger={isConnected && spindleReverse}
                             disabled={!clickable}
-                            onClick={actions.sendM4}
-                        />
-                        <SpindleButton
-                            label="Stop"
-                            Icon={Square}
-                            danger
-                            disabled={!clickable}
-                            onClick={actions.sendM5}
+                            onClick={isConnected && spindleReverse ? actions.sendM5 : actions.sendM4}
                         />
                     </>
                 )}
@@ -851,6 +844,7 @@ export default function SpindlePanel({ mode }: Props) {
                     <div className="android-spindle-speed">
                         <RangeSlider
                             title={isLaserMode ? 'Laser power' : 'Spindle speed'}
+                            inlineValue
                             showText
                             value={String(isLaserMode ? state.laser.power : state.spindleSpeed)}
                             percentage={[isLaserMode ? state.laser.power : state.spindleSpeed]}

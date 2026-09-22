@@ -33,7 +33,7 @@ test('rim steps use the saved Precise preset and normal unit conversion, never t
  for(const [x,y] of [[0,0],[.5,1],[Infinity,0],[1,NaN]])assert.throws(()=>jog(x,y));assert.equal(calls.length,0);
 });
 
-test('real pad rim taps step once; held touches do not repeat; drag release and cancelled taps never add steps',async()=>{
+test('real pad rim taps step once; holds stream until release without an extra step; cancelled gestures cannot revive',async()=>{
  const dom=new JSDOM('<html><body></body></html>',{url:'http://localhost',pretendToBeVisual:true});
  for(const key of ['window','document','navigator','HTMLElement','HTMLFormElement','Event','MouseEvent'])Object.defineProperty(globalThis,key,{configurable:true,value:dom.window[key]});
  globalThis.IS_REACT_ACT_ENVIRONMENT=true;
@@ -41,12 +41,16 @@ test('real pad rim taps step once; held touches do not repeat; drag release and 
  const React=require('react'),{render,act,cleanup,fireEvent}=require('@testing-library/react');
  const compiled=new Module(path.join(__dirname,'rim-pad.compiled.cjs'),module);compiled.filename=compiled.id;compiled.paths=module.paths;
  compiled._compile(buildSync({entryPoints:[path.resolve(__dirname,'../ui/XYJogPad.tsx')],bundle:true,packages:'external',platform:'node',format:'cjs',jsx:'automatic',write:false}).outputFiles[0].text,compiled.filename);
- const Component=compiled.exports.default,calls=[],requests=[];let ticket=0,isReady=true;
+ const Component=compiled.exports.default,calls=[],requests=[];let ticket=0,isReady=true,pendingBegin;
  const originalFetch=globalThis.fetch;
- globalThis.fetch=async(url,options)=>{const action=url.split('/').at(-1);requests.push(action);return {ok:true,json:async()=>action==='tablet-pad'?{ready:isReady}:{token:'token',ticket:String(++ticket)}};};
- const props={disabled:false,rapidFeed:5000,units:'mm',onStep:(x,y)=>calls.push([x,y])};
- async function setup(){
-  let view;await act(async()=>{view=render(React.createElement(Component,props));await wait(1);});
+ globalThis.fetch=async(url,options)=>{
+  const action=url.split('/').at(-1);requests.push({action,body:options?.body&&JSON.parse(options.body)});
+  if(action==='begin'&&pendingBegin)await new Promise(resolve=>pendingBegin.resolve=resolve);
+  return {ok:true,json:async()=>action==='tablet-pad'?{ready:isReady}:{token:'token',ticket:String(++ticket)}};
+ };
+ const props={disabled:false,rapidFeed:5000,holdFeed:1200,holdDelay:50,units:'mm',onStep:(x,y)=>calls.push([x,y])};
+ async function setup(overrides={}){
+  let view;await act(async()=>{view=render(React.createElement(Component,{...props,...overrides}));await wait(1);});
   const pad=view.getByRole('group'),captured=new Set();pad.setPointerCapture=id=>captured.add(id);pad.releasePointerCapture=id=>captured.delete(id);pad.hasPointerCapture=id=>captured.has(id);
   pad.getBoundingClientRect=()=>({left:0,top:0,right:200,bottom:200,width:200,height:200});
   const event=(type,x=185,y=100,extra={})=>pad.dispatchEvent(new Pointer(type,{clientX:x,clientY:y,button:0,buttons:type==='pointerup'?0:1,...extra}));
@@ -56,17 +60,33 @@ test('real pad rim taps step once; held touches do not repeat; drag release and 
   const f=await setup();
   for(const [x,y] of [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]]){
    const length=Math.hypot(x,y),px=100+85*x/length,py=100-85*y/length,before=calls.length;
-   await act(async()=>{f.event('pointerdown',px,py);await wait(x===1&&y===0?350:5);});assert.equal(calls.length,before,'Holding the rim cannot repeat');
+   await act(async()=>{f.event('pointerdown',px,py);await wait(5);});assert.equal(calls.length,before,'a press does not step before release');
    await act(async()=>{f.event('pointerup',px,py);f.event('pointerup',px,py);});assert.deepEqual(calls.slice(before),[[x,y]]);
   }
-  assert.equal(requests.includes('begin'),false,'Rim taps cannot create a continuous touch session');
+  assert.equal(requests.some(r=>r.action==='begin'),false,'Quick rim taps cannot create a continuous touch session');
   const before=calls.length;
   await act(async()=>{f.event('pointerdown',100,100);await wait(5);f.event('pointermove',185,100);await wait(50);f.event('pointerup',185,100);});
-  assert.ok(requests.includes('move'));assert.ok(requests.includes('end'));assert.equal(calls.length,before,'Dragging onto the rim does not add a step');f.view.unmount();
-  for(const cancel of ['pointercancel','lostpointercapture','drag','leaveCircle','secondPointer','blur','pagehide','hidden','disable','units','unmount']){
-   const f=await setup(),before=calls.length;
+  assert.ok(requests.some(r=>r.action==='move'));assert.ok(requests.some(r=>r.action==='end'));assert.equal(calls.length,before,'Dragging onto the rim does not add a step');f.view.unmount();
+  for(const [x,y] of [[1,0],[1,1],[0,1],[-1,1],[-1,0],[-1,-1],[0,-1],[1,-1]]){
+   const f=await setup(),before=calls.length,requestStart=requests.length,length=Math.hypot(x,y),px=100+85*x/length,py=100-85*y/length;
+   await act(async()=>{f.event('pointerdown',px,py);await wait(130);});
+   const active=requests.slice(requestStart);
+   assert.equal(active.filter(r=>r.action==='begin').length,1);
+   assert.equal(active.find(r=>r.action==='begin').body.rapid,1200,'hold uses the selected preset in mm/min');
+   const moves=active.filter(r=>r.action==='move');assert.ok(moves.length>=2,'hold keeps sending fresh input');
+   for(const r of moves){assert.equal(r.body.x,x/length);assert.equal(r.body.y,y/length);}
+   await act(async()=>{f.event('pointerup',px,py);f.event('pointerup',px,py);await wait(5);});
+   assert.equal(requests.slice(requestStart).filter(r=>r.action==='end').length,1);
+   assert.equal(calls.length,before,'releasing a hold cannot append a Precise step');
+   const count=requests.filter(r=>r.action==='move').length;await act(()=>wait(60));assert.equal(requests.filter(r=>r.action==='move').length,count);f.view.unmount();
+  }
+  const capped=await setup({holdFeed:9000}),capStart=requests.length;
+  await act(async()=>{capped.event('pointerdown');await wait(85);capped.event('pointerup');});
+  assert.equal(requests.slice(capStart).find(r=>r.action==='begin').body.rapid,5000,'rim hold cannot exceed saved Rapid');capped.view.unmount();
+  for(const held of [false,true])for(const cancel of ['pointercancel','lostpointercapture','drag','leaveCircle','secondPointer','blur','pagehide','hidden','disable','units','preset','unmount']){
+   const f=await setup(),before=calls.length,requestStart=requests.length;
+   await act(async()=>{f.event('pointerdown');if(held)await wait(85);});
    await act(async()=>{
-    f.event('pointerdown');
     if(cancel==='pointercancel'||cancel==='lostpointercapture')f.event(cancel);
     if(cancel==='drag')f.event('pointermove',160,100);
     if(cancel==='leaveCircle')f.event('pointermove',210,100);
@@ -75,11 +95,19 @@ test('real pad rim taps step once; held touches do not repeat; drag release and 
     if(cancel==='hidden'){window.__usbKnobActive=false;window.dispatchEvent(new Event('usb-knob-visibility'));}
     if(cancel==='disable')f.view.rerender(React.createElement(Component,{...props,disabled:true}));
     if(cancel==='units')f.view.rerender(React.createElement(Component,{...props,units:'in'}));
+    if(cancel==='preset')f.view.rerender(React.createElement(Component,{...props,holdFeed:3000}));
     if(cancel==='unmount')f.view.unmount();
    });
-   await act(async()=>{f.event('pointerup');await wait(5);});assert.equal(calls.length,before,cancel);
+   await act(async()=>{f.event('pointerup');await wait(65);});assert.equal(calls.length,before,cancel);
+   assert.equal(requests.slice(requestStart).filter(r=>r.action==='begin').length,held?1:0,cancel+' cannot begin a cancelled pending hold');
+   assert.equal(requests.slice(requestStart).filter(r=>r.action==='end').length,held?1:0,cancel+' ends a running hold exactly once');
    if(cancel!=='unmount')f.view.unmount();window.__usbKnobActive=true;
   }
+  const late=await setup(),lateStart=requests.length,lateSteps=calls.length;pendingBegin={};
+  await act(async()=>{late.event('pointerdown');await wait(85);late.event('pointerup');pendingBegin.resolve();await wait(65);});
+  assert.equal(requests.slice(lateStart).some(r=>r.action==='move'),false,'late begin cannot start a released hold');
+  assert.equal(requests.slice(lateStart).filter(r=>r.action==='end').length,1);
+  assert.equal(calls.length,lateSteps);pendingBegin=null;late.view.unmount();
   const keyboard=await setup(),beforeKey=calls.length;
   await act(async()=>{const button=keyboard.view.getByRole('button',{name:'Precise jog X plus'});fireEvent.keyDown(button,{key:'Enter'});fireEvent.keyDown(button,{key:'Enter',repeat:true});});
   assert.deepEqual(calls.slice(beforeKey),[[1,0]]);keyboard.view.unmount();

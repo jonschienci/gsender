@@ -21,7 +21,7 @@
  *
  */
 
-import React, { PointerEventHandler } from 'react';
+import React, { PointerEventHandler, useState } from 'react';
 import { Slider } from '../shadcn/Slider';
 import { FaMinus, FaPlus, FaUndo } from 'react-icons/fa';
 import cx from 'classnames';
@@ -62,9 +62,18 @@ const RangeSlider = ({
     disabled,
     controlUnit = '%',
     resetDescription = 'override to 100%',
+    inlineValue = false,
+    inlineLabel = '',
     ...props
 }: RangeSliderProps): React.JSX.Element => {
-    const textComponent = showText ? (
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState('');
+    const commitValue = () => {
+        const number = Number(draft);
+        if (draft.trim() && Number.isFinite(number) && number >= min && number <= max && !disabled) onButtonPress?.([number]);
+        setEditing(false);
+    };
+    const textComponent = showText && !inlineValue ? (
         <div className="flex flex-row items-center justify-between w-full px-4">
             <span className="w-16 text-left">{title}</span>
             {!disabled && (
@@ -110,6 +119,13 @@ const RangeSlider = ({
                     disabled={disabled}
                     {...props}
                 ></Slider>
+                {inlineValue && <input className="android-slider-value-input" aria-label={`${title} value`}
+                    title={`${title}: ${value} ${unitString}`} inputMode="decimal" disabled={disabled}
+                    value={editing ? draft : `${inlineLabel}${percentage[0]}${controlUnit}`}
+                    onFocus={event => {setDraft(String(percentage[0]));setEditing(true);event.target.select();}}
+                    onChange={event => setDraft(event.target.value)}
+                    onBlur={() => {if(editing)commitValue();}}
+                    onKeyDown={event => {if(event.key==='Enter'){event.preventDefault();commitValue();}if(event.key==='Escape'){setEditing(false);}}} />}
                 <Tooltip content={`Decrease ${title} by ${step}${controlUnit}`}>
                     <Button
                         type="button"

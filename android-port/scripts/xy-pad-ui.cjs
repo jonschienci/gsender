@@ -68,7 +68,8 @@ exports.transform=(code,id)=>{
         replace("setMode('minimal')", "setMode('closed')");
         replace("    'Console',", "    'Console',\n    'CNC knob',");
 
-        code = 'import TiltJogSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogSwitch.tsx')) + ';\n' + code;
+        code = 'import JogStepSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/JogStepSwitch.tsx')) + ';\n' + code;
+    code = 'import TiltJogSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogSwitch.tsx')) + ';\n' + code;
         replace('className="flex items-center gap-1 flex-1 min-w-0"', 'className="android-drawer-tabs flex items-center gap-1 flex-1 min-w-0"');
         replace('                    {/* Macros tab — always mounted */}', `<PendantKnobPanel visible={open && activeTab === 'CNC knob'} />
                     {/* Macros tab — always mounted */}`);
@@ -141,7 +142,7 @@ exports.transform=(code,id)=>{
         if (modeStart < 0 || modeEnd < 0) throw Error('Android DRO layout: coordinate selector changed');
         code = code.slice(0, modeStart) + `<div className="android-dro-header">
             <div className="android-dro-workspace"><WorkspaceSelector /></div>
-            <DROCoordinateSwitch mode={mode} onChange={setMode} />
+            <DROCoordinateSwitch mode={mode} onChange={changeMode} />
         </div>\n` + code.slice(modeEnd);
         code = "import WorkspaceSelector from './WorkspaceSelector';\n" + 'import DROCoordinateSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/DROCoordinateSwitch.tsx')) + ';\n' + code;
         const hooks = [
@@ -172,7 +173,8 @@ exports.transform=(code,id)=>{
         replace('<div className="flex flex-row w-full gap-2 justify-around items-center select-none max-xl:scale-90">', `<XYJogModeSwitch checked={xyPad} onChange={value=>{cancelJog(activeState,firmware);setXyPad(value);store.set('android.xyJogPad',value);}} />
             <div className="flex flex-row w-full gap-2 justify-around items-center select-none max-xl:scale-90">`);
         replace('<div className="min-w-[180px] portrait:min-w-[210px] relative">', `<div className="relative" style={{width:xyPad?360:undefined,maxWidth:xyPad?"100%":undefined,minWidth:xyPad?0:180}}>
-            {xyPad && <XYJogPad disabled={!canClick || isRotaryMode} onStep={precisePadJog} rapidFeed={padRapid} units={padUnits ?? 'mm'} />}
+            {xyPad && <XYJogPad disabled={!canClick || isRotaryMode} onStep={precisePadJog} rapidFeed={padRapid}
+                holdFeed={padUnits === 'in' ? jogSpeed.feedrate * 25.4 : jogSpeed.feedrate} holdDelay={jogThreshold} units={padUnits ?? 'mm'} />}
             <div hidden={xyPad}>`);
         replace('<div className="flex justify-center gap-4">','</div><div className="flex justify-center gap-4">');
         return {code,map:null};
@@ -197,19 +199,20 @@ exports.transform=(code,id)=>{
         replace(`continuousJogAxis({ Z: ${direction} }, feedrate)`, `jogTiltZHold(${direction}) || continuousJogAxis({ Z: ${direction} }, feedrate)`);
     }
     replace('    const selectedJog = jogConfigs[stepPreset];', `    useEffect(() => {
-        setTiltFeed(getPresetFromStore(stepPreset, 'mm').feedrate);
-    }, [stepPreset, jogConfigs]);
+        setTiltFeed(customFeed ?? getPresetFromStore(stepPreset, 'mm').feedrate);
+    }, [stepPreset, jogConfigs, customFeed]);
     const selectedJog = jogConfigs[stepPreset];`);
     replace('const [stepPreset, setStepPreset]', 'const [jogStep, setJogStep] = useState(1);\n    const [padReady, setPadReady] = useState(false);\n    const [xyPad, setXyPad] = useState(() => store.get("android.xyJogPad", false) === true);\n\tconst [stepPreset, setStepPreset]');
     replace('const xyDistance = selectedJog.xyStep;', 'const xyDistance = jogStep;');
     replace('const zDistance = selectedJog.zStep;', 'const zDistance = jogStep;');
     replace('const aDistance = selectedJog.aStep;', 'const aDistance = jogStep;');
     replace('<div className="rounded-[20px]', '<div className="android-jog-card rounded-[20px]');
-    replace('<div className="flex items-center justify-center gap-1.5">', `<div className="android-jog-toolbar"><div className="android-jog-tilt-slot">{showPad ? <><TiltJogSwitch /><JogReadinessLight canJog={machineCanJog} tilt={tiltJog} padReady={padReady} xyPad={xyPad} /></> : <div className="android-jog-step-switch" role="group" aria-label="Jog step size">{[0.1,1,10].map(value => <button key={value} type="button" aria-pressed={jogStep === value} onClick={() => {stopContinuousJog();setJogStep(value);}}>{value}</button>)}</div>}</div>
+    replace('<div className="flex items-center justify-center gap-1.5">', `<div className="android-jog-toolbar"><div className="android-jog-tilt-slot">{showPad ? <><TiltJogSwitch /><JogReadinessLight canJog={machineCanJog} tilt={tiltJog} padReady={padReady} xyPad={xyPad} /></> : <JogStepSwitch value={jogStep} onChange={value => {stopContinuousJog();setJogStep(value);}} />}</div>
     <div className="android-jog-presets flex items-center justify-center gap-1.5">`);
     replace('<div className="space-y-[clamp(0.375rem,1.5vh,0.75rem)]">', '</div><JogAreaFit xyPad={showPad}>');
     replace('<div className="grid grid-cols-3 gap-2">', `<div className="android-jog-main">{tiltJog.enabled ? <TiltJogPad /> : xyPad && <XYJogPad disabled={!canJog || isRotaryMode}
-        onReadinessChange={setPadReady} onStep={precisePadJog} rapidFeed={getPresetFromStore('rapid','mm').feedrate} units={units ?? 'mm'} />}
+        onReadinessChange={setPadReady} onStep={precisePadJog} rapidFeed={getPresetFromStore('rapid','mm').feedrate}
+        holdFeed={customFeed ?? getPresetFromStore(stepPreset,'mm').feedrate} holdDelay={jogThreshold} units={units ?? 'mm'} />}
     <div hidden={showPad}><div className="android-jog-grid grid grid-cols-3">`);
     replace('<div className="grid grid-cols-2 gap-2">','</div></div>\n\t\t\t\t<div className="android-jog-axes">');
     // Named hooks move the existing axis controls without duplicating their handlers.
@@ -225,6 +228,7 @@ exports.transform=(code,id)=>{
         </div>
     );
 }`);
+    code = 'import JogStepSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/JogStepSwitch.tsx')) + ';\n' + code;
     code = 'import TiltJogSwitch from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogSwitch.tsx')) + ';\n' + code;
     code = 'import TiltJogPad from ' + JSON.stringify(path.resolve(__dirname, '../ui/TiltJogPad.tsx')) + ';\n' + code;
     code = 'import JogReadinessLight from ' + JSON.stringify(path.resolve(__dirname, '../ui/JogReadinessLight.tsx')) + ';\n' + code;

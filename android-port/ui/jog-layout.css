@@ -276,7 +276,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
         gap: var(--landscape-control-gap) !important;
     }
     .android-position-card .android-dro-axes {
-        grid-template-rows: repeat(4, minmax(32px, 1fr));
+        grid-template-rows: repeat(var(--dro-axis-count, 4), minmax(32px, 1fr));
         gap: var(--landscape-control-gap) !important;
     }
     .android-jog-dock { align-items: stretch; }
@@ -305,7 +305,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     /* Preserve the footer even with the Status strip open on short screens. */
     .android-carve-grid[data-tight-dro="true"] { --landscape-control-gap: 4px; grid-template-rows: minmax(214px, 47fr) minmax(208px, 53fr); }
     .android-carve-grid[data-tight-dro="true"] .android-dro-card { min-height: 214px; grid-template-rows: 28px minmax(124px, 1fr) 32px; }
-    .android-carve-grid[data-tight-dro="true"] .android-dro-axes { grid-template-rows: repeat(4, minmax(28px, 1fr)); }
+    .android-carve-grid[data-tight-dro="true"] .android-dro-axes { grid-template-rows: repeat(var(--dro-axis-count, 4), minmax(28px, 1fr)); }
     .android-carve-grid[data-tight-dro="true"] .android-dro-axis { padding-top: 0 !important; padding-bottom: 0 !important; }
     /* When height is tighter still, presets occupy a side column as well. */
     .android-carve-grid[data-compact-jog="true"] { grid-template-columns: minmax(0, 1fr) 548px; }
@@ -384,8 +384,6 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     .android-jog-area .android-jog-z,
     .android-jog-area .android-jog-a > div,
     .android-jog-area .android-jog-z > div { gap: 4px !important; }
-}
-@media (orientation: landscape) {
     .android-jog-area .android-jog-axes .space-y-1\.5 > .jog-btn { margin-block: 0 !important; }
 }
 /* Jog presets share the rectangular segmented treatment of Work/Machine. */
@@ -623,7 +621,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
 /* Match segmented-control height and use compact label-based widths. */
 .android-position-card .android-coordinate-switch {
     height: 36px !important;
-    width: 172px;
+    width: 124px;
     font-size: 12px;
     line-height: 18px;
 }
@@ -639,7 +637,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     width: auto;
     min-height: 0 !important;
     height: 30px;
-    padding: 4px 12px !important;
+    padding: 4px 8px !important;
     font-size: 12px !important;
     line-height: 18px;
     white-space: nowrap;
@@ -676,7 +674,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     .android-position-card .android-dro-axes {
         flex: 1;
         min-height: 0;
-        grid-template-rows: repeat(4, minmax(0, 1fr));
+        grid-template-rows: repeat(var(--dro-axis-count, 4), minmax(0, 1fr));
     }
     .android-position-card .android-dro-actions { height: 40px; flex-shrink: 0; }
 }
@@ -1060,8 +1058,6 @@ nav.android-bottom-nav > button { gap: 2px !important; }
         justify-self: end;
         margin-left: 0;
     }
-}
-@media (orientation: landscape) {
     .android-move-panel {
         grid-template-columns: 90px minmax(260px, 1fr) 450px;
         column-gap: 20px;
@@ -1600,18 +1596,8 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     box-sizing: border-box;
 }
 
-/* Give the landscape XY pad more of the available jog height. */
-@media (orientation: landscape) {
-    .android-jog-dock .android-jog-card:has(.android-xy-pad) {
-        gap: 4px !important;
-        padding-bottom: 22px !important;
-    }
-    .android-jog-card:has(.android-xy-pad) .android-jog-toolbar {
-        padding-top: 0;
-        padding-bottom: 0;
-    }
-    .android-jog-area:has(.android-xy-pad) { padding-block: 0; }
-}
+/* Both jog pages share toolbar spacing and area padding so the Z/A
+   column stays anchored when switching between buttons and the XY pad. */
 
 /* Match the portrait Z/A stack proportions and placement in landscape. */
 @media (orientation: landscape) {
@@ -1714,7 +1700,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
         gap: 4px !important;
     }
     .android-carve-grid[data-short-landscape="true"] .android-dro-axes {
-        grid-template-rows: repeat(4, minmax(28px, 1fr));
+        grid-template-rows: repeat(var(--dro-axis-count, 4), minmax(28px, 1fr));
         gap: 4px !important;
     }
     .android-carve-grid[data-short-landscape="true"] .android-dro-actions {
@@ -1745,3 +1731,503 @@ nav.android-bottom-nav > button { gap: 2px !important; }
         height: 54px !important;
     }
 }
+
+/* G-code editing uses the same inset tablet popup as macro creation. */
+.android-gcode-editor-dialog {
+    position: fixed !important;
+    inset: 16px !important;
+    width: calc(100vw - 32px) !important;
+    height: calc(100dvh - 32px) !important;
+    max-width: none !important;
+    max-height: none !important;
+    transform: none !important;
+    margin: 0 !important;
+    padding: 12px !important;
+    border-radius: 12px !important;
+    display: flex !important;
+    flex-direction: column;
+    overflow: hidden;
+}
+.android-gcode-editor-dialog > button { display: none !important; }
+.android-gcode-editor-dialog > div { min-height: 0; flex: 1; }
+
+/* Keep editor actions legible when the shared button's primary styles win. */
+.android-gcode-editor-dialog .gcode-editor-actions button {
+    color: #334155 !important;
+    background: #f8fafc !important;
+    border: 1px solid #94a3b8 !important;
+}
+.android-gcode-editor-dialog .gcode-editor-actions button[aria-pressed="true"],
+.android-gcode-editor-dialog .gcode-editor-actions button[data-editor-action="save"]:not(:disabled) {
+    color: white !important;
+    background: #3f85c7 !important;
+    border-color: #3f85c7 !important;
+}
+.android-gcode-editor-dialog .gcode-editor-actions button[data-editor-action="delete"]:not(:disabled) {
+    color: #c62222 !important;
+    border-color: #c62222 !important;
+}
+.android-gcode-editor-dialog .gcode-editor-actions button:disabled {
+    color: #64748b !important;
+    background: #e2e8f0 !important;
+    opacity: 0.65 !important;
+}
+.dark .android-gcode-editor-dialog .gcode-editor-actions button {
+    color: #e2e8f0 !important;
+    background: #252a35 !important;
+}
+.dark .android-gcode-editor-dialog .gcode-editor-actions button:disabled {
+    color: #94a3b8 !important;
+    background: #303744 !important;
+}
+
+/* Keep the inactive Start/Pause control mounted for shortcuts, but out of layout. */
+.android-job-controls > div[hidden] { display: none !important; }
+
+/* Bring the shared Z/A column closer to the card edge on both jog pages. */
+.android-jog-card .android-jog-area {
+    padding-right: 0;
+}
+.android-jog-card .android-jog-area .android-jog-axes .jog-btn {
+    align-self: flex-end;
+}
+
+/* Jog step and speed selections share the same segmented-control treatment. */
+.android-jog-toolbar :is(.android-jog-step-switch, .android-jog-presets) {
+    display: grid;
+    grid-template-columns: repeat(3, max-content) !important;
+    width: max-content;
+    height: 36px;
+    box-sizing: border-box;
+    padding: 2px;
+    gap: 0 !important;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 10px;
+    background: var(--surface-elevated, #f3f4f6);
+}
+.android-jog-toolbar :is(.android-jog-step-switch, .android-jog-presets) > button {
+    width: auto;
+    height: 30px;
+    min-height: 0 !important;
+    padding: 4px 8px !important;
+    border: 0 !important;
+    border-radius: 7px !important;
+    background: transparent !important;
+    color: #6b7280;
+    font-size: 12px !important;
+    font-weight: 600;
+    line-height: 18px;
+    box-shadow: none !important;
+}
+.dark .android-jog-toolbar :is(.android-jog-step-switch, .android-jog-presets) > button {
+    color: #d1d5db;
+}
+.android-jog-toolbar .android-jog-step-switch > button[aria-pressed="true"],
+.android-jog-toolbar .android-jog-presets > button.bg-robin-500 {
+    background: #689ac9 !important;
+    color: #fff !important;
+}
+
+/* Give the jog step labels a little more horizontal breathing room. */
+.android-jog-toolbar .android-jog-step-switch > button {
+    padding-inline: 12px !important;
+}
+
+/* Each coordinate segment fits its own label rather than half the switch. */
+.android-position-card .android-coordinate-switch {
+    width: max-content;
+    grid-template-columns: max-content max-content;
+    align-items: stretch;
+}
+.android-coordinate-switch .android-coordinate-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-inline: 10px;
+    white-space: nowrap;
+    border-radius: 7px;
+}
+.android-coordinate-switch .android-coordinate-active {
+    background: #689ac9;
+    color: #fff;
+}
+
+/* Keep the machine position crosshair legible in either theme. */
+.android-machine-crosshair { stroke: #374151 !important; }
+.dark .android-machine-crosshair { stroke: #fff !important; }
+
+/* Slightly lift the dark visualizer canvas while retaining grid contrast. */
+.dark .android-visualizer-canvas {
+    background-color: #171b23 !important;
+}
+
+/* Keep the original vertical job controls inside the viewport's right edge. */
+.android-visualizer-dock .android-visualizer-card {
+    grid-template-columns: minmax(0, 1fr) !important;
+    grid-template-areas: "canvas" "progress" "feed" !important;
+}
+.android-visualizer-canvas > .android-job-rail {
+    position: absolute;
+    inset: 0 8px 0 auto;
+    width: 64px;
+    z-index: 2;
+    pointer-events: none;
+}
+.android-visualizer-canvas > .android-job-rail button {
+    pointer-events: auto;
+}
+
+/* Compact workspace selection leaves room for both DRO switches. */
+.android-dro-workspace [aria-haspopup="listbox"] {
+    min-width: 0 !important;
+    width: max-content;
+    padding-inline: 5px;
+    gap: 3px;
+}
+.android-dro-switches {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-left: auto;
+}
+.android-position-card .android-dro-switches .android-coordinate-switch {
+    margin-left: 0;
+}
+.android-dro-switches .android-coordinate-label { padding-inline: 7px; }
+
+/* Axis homing choices occupy the exact DRO axis button slots. */
+.android-dro-axis > button[data-home-axis] {
+    background: #689ac9 !important;
+    color: #fff !important;
+    box-shadow: 0 2px 8px #0003;
+    position: relative;
+    z-index: 30;
+}
+.android-home-axis-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    line-height: 14px;
+}
+.android-dro-actions > button { touch-action: manipulation; user-select: none; }
+
+.android-dro-actions > button[data-home-holding="true"] {
+    background-image: linear-gradient(#24558b, #24558b) !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    animation: android-home-hold-wipe 500ms linear forwards;
+    color: #fff !important;
+}
+@keyframes android-home-hold-wipe {
+    from { background-size: 0% 100%; }
+    to { background-size: 100% 100%; }
+}
+
+.android-home-connected-frame {
+    position: absolute;
+    border: none;
+    border-radius: 10px;
+    background: #e5e7eb;
+    pointer-events: none;
+    z-index: 29;
+    box-sizing: border-box;
+}
+
+.dark .android-home-connected-frame { background: #343b46; }
+.android-dro-card:has(.android-home-connected-frame) [data-home-trigger] {
+    position: relative;
+    z-index: 30;
+}
+
+.android-dro-axis { position: relative; }
+.android-dro-axis [role="button"] { cursor: pointer; }
+.android-dro-value-editor {
+    position: absolute;
+    inset: 0;
+    z-index: 35;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 4px;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 8px;
+    background: #f3f4f6;
+    box-shadow: 0 3px 12px #0003;
+}
+.dark .android-dro-value-editor { background: var(--surface-raised, #262c36); }
+.android-dro-value-editor strong { color: #689ac9; font-size: 13px; }
+.android-dro-value-editor input {
+    flex: 0 0 28%; min-width: 0; width: 28%; height: 100%; box-sizing: border-box;
+    font-family: monospace; font-size: 16px;
+    background: transparent; color: inherit; text-align: right;
+    border: none; padding: 3px;
+}
+.android-dro-value-editor button {
+    flex: 1 1 0; height: 100%; min-width: 40px;
+    border: 1px solid var(--outline-default, #d1d5db);
+    border-radius: 6px; padding: 2px 6px; font-size: 14px;
+    background: var(--surface-elevated, #fff);
+}
+.android-dro-value-editor button[type="submit"] { background: #689ac9; color: #fff; }
+.android-dro-value-editor button:disabled { opacity: .45; }
+
+/* Match the displayed coordinate typography; keep the action buttons compact. */
+.android-dro-value-editor input { font-size: 20px; }
+.android-dro-value-editor button { flex: 0 0 18%; min-width: 36px; height: 80%; max-height: 48px; }
+.android-dro-value-editor input { margin-inline: auto; text-align: center; }
+@media (orientation: portrait) {
+    .android-dro-value-editor input { font-size: 26px; }
+}
+
+/* Keep the coordinate field visibly editable even without focus. */
+.android-dro-value-editor input {
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    background: #fff;
+}
+.dark .android-dro-value-editor input {
+    color: #f3f4f6;
+    caret-color: #f3f4f6;
+    border-color: #64748b;
+    background: var(--surface-elevated, #1f2937);
+}
+.android-dro-value-editor input:focus {
+    outline: 2px solid #689ac9;
+    outline-offset: -1px;
+}
+
+/* Align the coordinate field and actions, with tighter horizontal spacing. */
+.android-dro-value-editor input {
+    flex-basis: 36%;
+    width: 36%;
+    height: 86%;
+    max-height: 52px;
+}
+.android-dro-value-editor button {
+    height: 86%;
+    max-height: 52px;
+}
+
+/* Uniform inset and gaps around the inline coordinate controls. */
+.android-dro-value-editor {
+    padding: 6px;
+    gap: 6px;
+    align-items: stretch;
+}
+.android-dro-value-editor input {
+    flex: 2 1 0;
+    width: 0;
+    margin: 0;
+    height: auto;
+    max-height: none;
+}
+.android-dro-value-editor button {
+    flex: 1 1 0;
+    height: auto;
+    max-height: none;
+}
+
+.android-dro-value-editor input,
+.android-dro-value-editor button {
+    padding: 4px;
+    box-sizing: border-box;
+}
+
+/* Give the axis and zero controls a little more breathing room in each row. */
+.android-position-card .android-dro-axis > button:first-child,
+.android-position-card .android-dro-axis > button:last-of-type {
+    width: 56px !important;
+    min-width: 0 !important;
+    height: 86% !important;
+    align-self: center;
+    padding: 2px 4px !important;
+}
+
+/* Align the speed selector with the right-hand jog button edge. */
+.android-jog-toolbar .android-jog-presets { margin-right: 0; }
+
+.android-jog-page-dots {
+    left: auto;
+    right: 4px;
+    justify-content: flex-end;
+}
+
+.android-jog-toolbar { position: relative; }
+.android-jog-tilt-slot, .android-jog-step-control { position: static; }
+.android-jog-step-switch { grid-template-columns: repeat(4, max-content) !important; }
+.android-jog-toolbar .android-jog-step-editor {
+    inset: 0 181px 0 0;
+    padding: 3px;
+    gap: 3px;
+    z-index: 40;
+}
+.android-jog-step-editor input { font-size: 16px; }
+.android-jog-step-editor button { min-width: 30px; padding: 2px; }
+.android-jog-step-switch [data-step-holding="true"] {
+    background-image: linear-gradient(#24558b, #24558b) !important;
+    background-repeat: no-repeat !important;
+    animation: android-home-hold-wipe 500ms linear forwards;
+    color: white !important;
+}
+.android-jog-toolbar .android-jog-step-switch {
+    grid-template-columns: repeat(4, max-content) !important;
+}
+
+.android-jog-toolbar .android-jog-step-switch > button[aria-label="Custom jog increment"] {
+    box-shadow: inset 0 0 0 1px #9ca3af !important;
+}
+
+/* Keep the custom increment outline and hold progress above selected styling. */
+.android-jog-toolbar .android-jog-step-switch > button[aria-label="Custom jog increment"],
+.android-jog-toolbar .android-jog-step-switch > button[aria-label="Custom jog increment"][aria-pressed="true"] {
+    box-shadow: inset 0 0 0 1px #9ca3af !important;
+}
+.android-jog-toolbar .android-jog-step-switch > button[aria-label="Custom jog increment"][data-step-holding="true"] {
+    background-image: linear-gradient(#24558b, #24558b) !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    animation: android-home-hold-wipe 500ms linear forwards;
+    color: #fff !important;
+}
+
+.android-slider-value-input {
+    flex: 0 0 110px;
+    width: 110px;
+    min-width: 0;
+    height: 32px;
+    padding: 3px 6px;
+    text-align: center;
+    font-size: 14px;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    background: #fff;
+    color: #374151;
+}
+.dark .android-slider-value-input { background: var(--surface-elevated, #1f2937); color: #e5e7eb; border-color: #64748b; }
+.android-slider-value-input:disabled { opacity: .6; }
+.android-range-root { min-width: 0; }
+
+/* Taller DRO and jog selectors, including the fourth feed-rate option. */
+.android-dro-header { height: 44px; min-height: 44px; }
+.android-position-card .android-coordinate-switch,
+.android-dro-workspace [aria-haspopup="listbox"] { height: 44px !important; }
+.android-jog-toolbar :is(.android-jog-step-switch, .android-jog-presets) { height: 44px; }
+.android-jog-toolbar :is(.android-jog-step-switch, .android-jog-presets) > button { height: 38px !important; }
+.android-jog-toolbar .android-jog-presets { grid-template-columns: repeat(4, max-content) !important; }
+.android-jog-toolbar .android-jog-presets > button { padding-inline: 6px !important; }
+.android-jog-toolbar .android-custom-feed { box-shadow: inset 0 0 0 1px #9ca3af !important; }
+.android-jog-toolbar .android-custom-feed[data-step-holding="true"] {
+    background-image: linear-gradient(#24558b,#24558b) !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    animation: android-home-hold-wipe 500ms linear forwards;
+    color: #fff !important;
+}
+.android-jog-toolbar .android-jog-feed-editor { inset: 0; z-index: 45; padding: 4px; gap: 5px; }
+.android-jog-feed-editor input { font-size: 18px; }
+.android-feed-unit { white-space: nowrap; font-size: 12px; }
+.android-jog-toolbar .android-jog-step-editor { right: 226px; }
+.android-jog-toolbar .android-jog-presets > button.android-custom-feed {
+    box-shadow: inset 0 0 0 1px #9ca3af !important;
+}
+.android-jog-toolbar .android-jog-presets > button.android-custom-feed[data-step-holding="true"] {
+    background-image: linear-gradient(#24558b,#24558b) !important;
+    background-repeat: no-repeat !important;
+    animation: android-home-hold-wipe 500ms linear forwards;
+}
+.android-jog-feed-editor .android-feed-unit { align-self: center; }
+.android-jog-toolbar .android-tilt-switch { min-height: 44px; }
+
+/* Keep the feed units inside the editable value box. */
+.android-feed-input-box {
+    flex: 2 1 0;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    border: 1px solid #9ca3af;
+    border-radius: 6px;
+    background: #fff;
+    padding-right: 6px;
+}
+.dark .android-feed-input-box { background: var(--surface-elevated, #1f2937); border-color: #64748b; }
+.android-feed-input-box:focus-within { outline: 2px solid #689ac9; outline-offset: -1px; }
+.android-jog-feed-editor .android-feed-input-box input {
+    flex: 1 1 0;
+    width: 0;
+    height: 100%;
+    border: none;
+    background: transparent;
+    outline: none;
+}
+.android-feed-input-box .android-feed-unit { flex: 0 0 auto; }
+
+/* Small app-owned keypad avoids opening the Android system keyboard. */
+.android-jog-toolbar .android-compact-numpad {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 184px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px;
+    padding: 6px;
+    background: #e5e7eb;
+    border: 1px solid #9ca3af;
+    border-radius: 9px;
+    box-shadow: 0 5px 16px #0004;
+    z-index: 60;
+}
+.dark .android-jog-toolbar .android-compact-numpad { background: #343b46; }
+.android-jog-toolbar .android-compact-numpad button {
+    width: auto;
+    min-width: 0;
+    height: 36px;
+    padding: 3px;
+    font-size: 16px;
+}
+.android-compact-numpad .android-numpad-clear { grid-column: span 2; font-size: 13px !important; }
+.android-compact-numpad .android-numpad-done { background: #689ac9; color: #fff; font-size: 13px !important; }
+
+.android-global-numpad {
+    position: fixed; z-index: 2147483000; width: 184px;
+    display: grid; grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 4px; padding: 6px; border: 1px solid #9ca3af;
+    border-radius: 9px; background: #e5e7eb; box-shadow: 0 5px 16px #0004;
+}
+.dark .android-global-numpad { background: #343b46; }
+.android-global-numpad button {
+    min-width: 0; height: 40px; border-radius: 6px;
+    background: #fff; color: #374151; font-size: 16px;
+}
+.dark .android-global-numpad button { background: #1f2937; color: #fff; }
+.android-global-numpad .android-numpad-done { background: #689ac9; color: #fff; font-size: 13px; }
+
+/* Enlarged touch keypad, kept within the viewport. */
+.android-jog-toolbar .android-compact-numpad,
+.android-global-numpad { width:276px; max-width:calc(100vw - 16px); gap:6px; padding:9px; border-radius:14px; }
+.android-jog-toolbar .android-compact-numpad button { height:54px; padding:4px; font-size:24px; }
+.android-global-numpad button { height:60px; border-radius:9px; font-size:24px; }
+.android-jog-toolbar .android-compact-numpad .android-numpad-clear,
+.android-jog-toolbar .android-compact-numpad .android-numpad-done,
+.android-global-numpad .android-numpad-done { font-size:20px !important; }
+
+/* Keep workspace options above the positioned DRO rows and their controls. */
+.android-dro-header { position: relative; z-index: 40; overflow: visible; }
+
+/* Individual axis actions use the same half-second confirmation wipe. */
+.android-dro-axis > button { touch-action: none; user-select: none; }
+.android-dro-axis > button[data-axis-holding="true"] {
+    background-image: linear-gradient(#24558b, #24558b) !important;
+    background-repeat: no-repeat !important;
+    background-position: left center !important;
+    animation: android-home-hold-wipe 500ms linear forwards;
+    color: #fff !important;
+}
+
+/* Machine coordinates can be inspected; work offsets are edited explicitly. */
+.android-dro-readonly-label { font-size: 12px; align-self: center; }
+.android-dro-value-editor .android-dro-edit-work { flex: 0 0 auto; white-space: nowrap; padding-inline: 8px; background: #689ac9; color: #fff; }
+
+.dark .android-dro-readonly-label { color: #cbd5e1; }

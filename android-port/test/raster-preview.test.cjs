@@ -57,6 +57,7 @@ test('real renderer uses bounded images, keeps bounds/overlays, rejects stale im
         assert.equal(renderer.pathLayer.querySelectorAll('path').length,0);
         assert.equal(renderer.segmentGroups[0].verts.length,4);
         const worker=workers[0],request=worker.messages.at(-1);
+        assert.equal(request.hybrid,true);
         assert.equal(worker.messages[0].groups[0].positionsBuffer.byteLength,32);
         const first=bitmap();worker.onmessage({data:{id:request.id,view:request.view,bitmap:first,mode:'bitmap',width:request.width,height:request.height,strokeWidth:request.strokeWidth}});
         assert.equal(first.closed,true);assert.equal(transferred[0],first);
@@ -87,9 +88,41 @@ test('real renderer uses bounded images, keeps bounds/overlays, rejects stale im
         renderer.clear();renderer.loadFromPrecomputedGroups([data]);
         const fallback=workers[2],fallbackRequest=fallback.messages.at(-1);
         assert.equal(fallbackRequest.bitmap,false);
-        fallback.onmessage({data:{id:fallbackRequest.id,view:fallbackRequest.view,blob:{},mode:'png'}});
+        fallback.onmessage({data:{...fallbackRequest,bitmap:undefined,blob:{},mode:'png'}});
+        assert.equal(renderer.pathLayer.querySelectorAll('image').length,1);
+        const wait=()=>new Promise(resolve=>setTimeout(resolve,150));
+        const cachedImage=renderer.pathLayer.firstChild;
+        // A different view fully covered by cached pixels still needs density
+        // analysis, and a dense result must keep the existing bitmap node.
+        renderer.viewBox={...renderer.viewBox,w:renderer.viewBox.w*2,h:renderer.viewBox.h*2};renderer.applyViewBox();await wait();
+        const cachedRequest=fallback.messages.at(-1);
+        assert.ok(cachedRequest.id>fallbackRequest.id);assert.equal(cachedRequest.reuseRaster,true);
+        fallback.onmessage({data:{id:cachedRequest.id,reuse:true,mode:'raster-cache',density:{reason:'screen-density'}}});
+        assert.equal(renderer.pathLayer.firstChild,cachedImage);
+        const move=()=>{renderer.viewBox={...renderer.viewBox,w:renderer.viewBox.w/4,h:renderer.viewBox.h/4};renderer.applyViewBox();};
+        move();await wait();const vectorRequest=fallback.messages.at(-1);
+        fallback.onmessage({data:{...vectorRequest,bitmap:undefined,mode:'svg',paths:[{d:'M1 -2L3 -4',color:'#abcdef',opacity:.25}],density:{reason:'sparse-view'}}});
+        assert.equal(renderer.pathLayer.querySelectorAll('image').length,0);
+        assert.equal(renderer.svg.dataset.previewMode,'svg');assert.equal(renderer.svg.dataset.previewReason,'sparse-view');
+        const vector=renderer.pathLayer.firstChild,path=vector.querySelector('path');
+        assert.equal(vector.tagName,'svg');assert.equal(vector.style.overflow,'hidden');
+        assert.equal(path.getAttribute('d'),'M1 -2L3 -4');assert.equal(path.getAttribute('stroke'),'#abcdef');
+        assert.equal(path.getAttribute('stroke-opacity'),'0.25');
+        assert.equal(path.getAttribute('stroke-width'),String(vectorRequest.strokeWidth));
+        assert.deepEqual(revoked,['blob:test-1']);
+        // Stale SVG/error responses must not replace the new detail or poison
+        // the worker. Position overlays must leave its paths untouched.
+        fallback.onmessage({data:{...fallbackRequest,bitmap:undefined,mode:'svg',paths:[]}});
+        fallback.onmessage({data:{id:fallbackRequest.id,error:'obsolete error'}});
+        renderer.setBitPosition({x:3,y:4,z:0});await wait();
+        assert.equal(renderer.pathLayer.firstChild,vector);assert.equal(renderer.svg.dataset.previewStatus,'ready');
+        assert.equal(fallback.messages.at(-1).id,vectorRequest.id,'unchanged view should not ask worker to redraw');
+        move();await wait();const rasterRequest=fallback.messages.at(-1);
+        assert.equal(rasterRequest.previousMode,'svg');assert.equal(rasterRequest.reuseRaster,false);
+        fallback.onmessage({data:{...rasterRequest,bitmap:undefined,blob:{},mode:'png'}});
+        assert.equal(renderer.pathLayer.querySelectorAll('path').length,0);
         assert.equal(renderer.pathLayer.querySelectorAll('image').length,1);
         renderer.dispose();assert.equal(fallback.stopped,true);assert.equal(workers[1].stopped,true);
-        assert.deepEqual(revoked,['blob:test-1']);
+        assert.deepEqual(revoked,['blob:test-1','blob:test-2']);
     } finally {URL.createObjectURL=oldCreate;URL.revokeObjectURL=oldRevoke;dom.window.close();}
 });

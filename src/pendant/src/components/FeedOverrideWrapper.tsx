@@ -59,6 +59,8 @@ export default function FeedOverrideWrapper() {
                     value={feedrate}
                     percentage={[localOvF]}
                     defaultPercentage={[100]}
+                    inlineValue
+                    inlineLabel="Feed "
                     showText
                     title="Feed"
                     unitString={unitString}

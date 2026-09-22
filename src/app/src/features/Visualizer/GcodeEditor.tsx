@@ -839,9 +839,10 @@ const GcodeEditor = ({ onClose }: GcodeEditorProps) => {
                         })}
                 </div>
             </div>
-            <div className="flex gap-4 p-3 justify-end border-t border-gray-300 dark:border-dark-lighter">
+            <div className="gcode-editor-actions flex gap-4 p-3 justify-end border-t border-gray-300 dark:border-dark-lighter">
                 <Button
                     variant={isSearchOpen ? 'primary' : 'outline'}
+                    aria-label="Search" aria-pressed={isSearchOpen}
                     size="icon"
                     onClick={() => {
                         setIsSearchOpen((prev) => !prev);
@@ -857,6 +858,7 @@ const GcodeEditor = ({ onClose }: GcodeEditorProps) => {
                 />
                 <Button 
                     variant={selectedLines.size === gcodeLines.length ? 'primary' : 'outline'}
+                    aria-label="Select all lines" aria-pressed={selectedLines.size === gcodeLines.length}
                     size="icon" 
                     icon={<CopyCheck className="h-4 w-4" />} 
                     onClick={() => handleSelectAll()} 
@@ -869,6 +871,7 @@ const GcodeEditor = ({ onClose }: GcodeEditorProps) => {
                     variant="outline"
                     size="icon"
                     onClick={handleCopy}
+                    aria-label="Copy"
                     disabled={isJobRunning}
                     className="border border-gray-500"
                     icon={<Copy className="h-4 w-4" />}
@@ -884,6 +887,7 @@ const GcodeEditor = ({ onClose }: GcodeEditorProps) => {
                         variant="outline"
                         size="icon"
                         onClick={handleDeleteSelected}
+                    aria-label="Delete selected lines" data-editor-action="delete"
                         disabled={isJobRunning || selectedLines.size === 0}
                         className="border border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
                         icon={<Trash2 className="h-4 w-4" />}
@@ -897,6 +901,7 @@ const GcodeEditor = ({ onClose }: GcodeEditorProps) => {
                     variant="outline"
                     size="icon"
                     onClick={handleRevert}
+                    aria-label="Revert changes"
                     disabled={!hasChanges || isJobRunning}
                     className="border border-gray-500"
                     icon={<RotateCcw className="h-4 w-4" />}
@@ -910,6 +915,7 @@ const GcodeEditor = ({ onClose }: GcodeEditorProps) => {
                     variant="primary"
                     size="icon"
                     onClick={handleSave}
+                    aria-label="Save changes" data-editor-action="save"
                     disabled={!hasChanges || isJobRunning}
                     icon={<Save className="h-4 w-4" />}
                     tooltip={{

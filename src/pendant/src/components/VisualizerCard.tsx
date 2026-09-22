@@ -1,3 +1,4 @@
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from 'app/components/shadcn/Dialog';
 import { store as reduxStore } from 'app/store/redux';
 import { unloadFileInfo } from 'app/store/redux/slices/fileInfo.slice';
 import { cancelGcodeProcessing } from '../utils/gcodeProcessing';
@@ -81,8 +82,15 @@ export default function VisualizerCard() {
 
                 <div className="relative h-56 overflow-hidden rounded-b-xl dark:bg-surface-sunken">
                     <Visualizer />
+                    {showJobControls && <JobControls />}
                     <div id="android-job-summary-host" />
-                    {editorOpen && fileLoaded && <section className="android-visualizer-editor" aria-label="G-code editor"><GcodeEditor onClose={() => setEditorOpen(false)} /></section>}
+                    {fileLoaded && <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
+                        <DialogContent className="android-gcode-editor-dialog">
+                            <DialogTitle className="sr-only">G-code Editor</DialogTitle>
+                            <DialogDescription className="sr-only">Edit the loaded G-code file.</DialogDescription>
+                            <GcodeEditor onClose={() => setEditorOpen(false)} />
+                        </DialogContent>
+                    </Dialog>}
                     <section id="android-visualizer-files" aria-label="G-code files" hidden={!filesOpen} />
                     {fileProcessing && (
                         <div className="absolute inset-0 flex items-center justify-center p-3 bg-dark-darker/95">
@@ -92,30 +100,10 @@ export default function VisualizerCard() {
                             />
                         </div>
                     )}
-                    {!fileLoaded && !fileProcessing && (
-                        <button
-                            type="button"
-                            onClick={() => setFilesOpen(true)}
-                            className="absolute inset-2 rounded-lg flex flex-col items-center justify-center gap-2 bg-gray-100 dark:bg-transparent border border-dashed border-gray-300 dark:border-white/25 cursor-pointer"
-                            aria-label="Open G-code file"
-                        >
-                            <FileCode2
-                                size={44}
-                                className="text-gray-400/60 dark:text-blue-300/30"
-                            />
-                            <span className="text-[13px] font-medium text-gray-400 dark:text-content-muted">
-                                No file loaded
-                            </span>
-                            <span className="text-[11px] text-gray-500 dark:text-content-muted">
-                                Tap here to open a G-code file
-                            </span>
-                        </button>
-                    )}
+
                 </div>
             </div>
 
-            {/* Job controls */}
-            {showJobControls && <JobControls />}
 
             <ProgressAreaWrapper />
 

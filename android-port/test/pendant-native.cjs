@@ -62,7 +62,7 @@ process._linkedBinding = name => {
                         rx(cnc,(introduced?'':'GrblHAL 1.1f [test]\n')+'[VER:1.1f.20260911:test]\n[OPT:V,15,128]\n[AXS:3:XYZ]\nok\n');
                         introduced=true;
                     }
-                    else if(data.includes('$$'))rx(cnc,'$13=0\n$22=0\n$110=2000\n$111=2000\n$112=1000\n$120=100\n$121=100\n$122=100\nok\n');
+                    else if(data.includes('$$'))rx(cnc,'$13=0\n$22=0\n$110=2000\n$111=2000\n$112=1000\n$120=100\n$121=100\n$122=100\n$130=800\n$131=600\n$132=100\nok\n');
                     else if(data.includes('$G'))rx(cnc,'[GC:G0 G54 G17 G21 G90 G94 M5 M9 T0 F0 S0]\nok\n');
                     else if(data.includes('?')||data.includes('\x87'))status();
                     else if(data.includes('$J=')){

@@ -1,4 +1,4 @@
-# Tablet XY touch pad (Build 38)
+# Tablet XY touch pad (Build 57)
 
 The Android normal and pendant jog panels have an **XY controls** switch:
 **Jog buttons** (default) or **XY touch pad**. The selection persists locally.
@@ -10,11 +10,13 @@ request Y+/Y−. A 6% radial dead zone gives zero motion. Outside it a smoothste
 curve maps distance to 0–100% of the saved Rapid feed. Diagonal motion is
 normalized, so it cannot exceed that total feed. X/Y board maximum feed and
 acceleration settings further constrain motion. Commands use millimetres;
-imperial display affects only the visible feed readout. Rapid edits or unit
-changes end the current contact.
+imperial display uses the same physical feed with unit conversion. Feed, preset,
+hold-threshold or unit changes end the current touch contact.
 
-One active touch owns jogging. Starting it disarms the physical knob. Release,
-drag-out, lost capture, another touch, keyboard/focus changes, app background,
+One active touch owns jogging. Starting it disarms the physical knob. Center
+drags retain pointer capture anywhere inside the app viewport; leaving the pad
+alone does not stop motion. The marker stays within the pad and speed stays
+capped at Rapid. Release, lost capture, another touch, keyboard/focus changes, app background,
 view/mode changes, CNC faults, other gSender controls and lost CNC communication
 end the contact. Reversing across the current direction or returning to center
 cancels queued motion, then requires confirmed Idle and drained cancellation
@@ -78,3 +80,23 @@ Center-started drags retain the existing continuous pad session. Dragging over t
 In pendant view the unlabeled switch at the jog card's upper-left selects regular jog buttons when off and the XY pad when on. Its accessible name remains **XY touch pad**. The standard interface keeps the text labels. Changing modes still cancels jogging and saves the preference.
 
 The pendant controls sit beside the DRO in portrait and below it in landscape, with square jog buttons, a circular pad, and additional spacing around controls. Precise rim taps and continuous center dragging retain Build 38's behavior.
+
+## Builds 55–57: held rim jogging and custom feed
+
+A short rim tap keeps the saved Precise distance/feed. Holding a rim sector past
+the configured jog threshold starts a continuous session at the selected
+Precise/Normal/Rapid or custom feed, capped by Rapid and controller limits.
+Release stops it without appending a Precise step. Sliding out of that sector,
+leaving the rim or losing pointer ownership cancels a rim hold.
+
+The center touch target is 24% of the pad radius. Center-started drags can extend
+across the app viewport while retaining direction; the displayed dot and speed
+remain clamped. A captured drag never produces a rim tap on release. Existing
+fresh-input leases, cancellation receipts and backend queue limits are unchanged.
+The pendant custom feed is stored in mm/min and displayed in the selected units;
+its compact keypad also supports decimal entry.
+
+Pointer regressions cover short taps versus holds, release/cancel races,
+no extra step after a hold, outside-pad center motion, diagonal feed limits and
+unmount cleanup. Build 57's complete regression suite contains 335 tests. These
+checks do not replace physical CNC motion or touch-latency validation.

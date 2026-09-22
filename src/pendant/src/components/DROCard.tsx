@@ -1,3 +1,6 @@
+import HoldAxisButton from './HoldAxisButton';
+import type { CSSProperties } from 'react';
+import useRotaryEnabled from './useRotaryEnabled';
 import {
     GRBL_ACTIVE_STATE_ALARM,
     GRBL_ACTIVE_STATE_IDLE,
@@ -8,6 +11,7 @@ import {
     gotoZero,
     goXYAxes,
     homeMachine,
+    homeAxis,
     zeroAllAxes,
     zeroWCS,
 } from 'app/features/DRO/utils/DRO';
@@ -16,7 +20,7 @@ import type { RootState } from 'app/store/redux';
 import cn from 'classnames';
 import get from 'lodash/get';
 import { Crosshair, Home, Target } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 
 const AXES = [
     {
@@ -43,6 +47,7 @@ function formatAxisValue(value: unknown): string {
 }
 
 export default function DROCard() {
+    const rotaryEnabled = useRotaryEnabled();
     const [mode, setMode] = useState<'work' | 'machine'>('work');
     const isConnected = useTypedSelector(
         (s: RootState) => s.connection.isConnected,
@@ -77,15 +82,120 @@ export default function DROCard() {
             activeState === GRBL_ACTIVE_STATE_JOG);
     const canGoTo = canZero;
     const canHome = (canGoTo && homingEnabled) || isHomingAlarm;
+    const [goXYHolding, setGoXYHolding] = useState(false);
+    const goXYTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const cancelGoXYHold = () => {
+        if (goXYTimer.current !== null) clearTimeout(goXYTimer.current);
+        goXYTimer.current = null;
+        setGoXYHolding(false);
+    };
+    const beginGoXYHold = () => {
+        if (!canGoTo || goXYTimer.current !== null) return;
+        setGoXYHolding(true);
+        goXYTimer.current = setTimeout(() => {
+            goXYTimer.current = null;
+            setGoXYHolding(false);
+            goXYAxes();
+        }, 500);
+    };
+    useEffect(() => {
+        if (!canGoTo) cancelGoXYHold();
+    }, [canGoTo]);
+    useEffect(() => {
+        const cancel = () => cancelGoXYHold();
+        window.addEventListener('blur', cancel);
+        document.addEventListener('visibilitychange', cancel);
+        return () => {
+            if (goXYTimer.current !== null) clearTimeout(goXYTimer.current);
+            window.removeEventListener('blur', cancel);
+            document.removeEventListener('visibilitychange', cancel);
+        };
+    }, []);
+
+
+    const [editingAxis, setEditingAxis] = useState<string | null>(null);
+    const [axisValue, setAxisValue] = useState('');
+    const changeMode = (next: 'work' | 'machine') => { setEditingAxis(null); setMode(next); };
+    useEffect(() => {
+        if (!editingAxis) return;
+        const dismiss = (event: PointerEvent) => {
+            if (!(event.target instanceof Element) || !event.target.closest('[data-dro-editor]')) setEditingAxis(null);
+        };
+        document.addEventListener('pointerdown', dismiss, true);
+        return () => document.removeEventListener('pointerdown', dismiss, true);
+    }, [editingAxis]);
+    useEffect(() => { if (!rotaryEnabled && editingAxis === 'A') setEditingAxis(null); }, [rotaryEnabled, editingAxis]);
+    const [homeMenuOpen, setHomeMenuOpen] = useState(false);
+    const [homeHolding, setHomeHolding] = useState(false);
+    const cardRef = useRef<HTMLDivElement>(null);
+    const [homeFrame, setHomeFrame] = useState<{left:number;top:number;width:number;height:number} | null>(null);
+    useLayoutEffect(() => {
+        if (!homeMenuOpen || !cardRef.current) { setHomeFrame(null); return; }
+        const card = cardRef.current;
+        const update = () => {
+            const buttons = Array.from(card.querySelectorAll<HTMLElement>('[data-home-axis], [data-home-trigger]'));
+            const box = card.getBoundingClientRect();
+            const scaleX = box.width / card.offsetWidth;
+            const scaleY = box.height / card.offsetHeight;
+            const rects = buttons.map(button => button.getBoundingClientRect());
+            if (!rects.length || !scaleX || !scaleY) return;
+            const left = (Math.min(...rects.map(r => r.left)) - box.left) / scaleX - card.clientLeft;
+            const top = (Math.min(...rects.map(r => r.top)) - box.top) / scaleY - card.clientTop;
+            const right = (Math.max(...rects.map(r => r.right)) - box.left) / scaleX - card.clientLeft;
+            const bottom = (Math.max(...rects.map(r => r.bottom)) - box.top) / scaleY - card.clientTop;
+            setHomeFrame({left:left-7,top:top-7,width:right-left+14,height:bottom-top+14});
+        };
+        const observer = new ResizeObserver(update);
+        observer.observe(card);
+        card.querySelectorAll('[data-home-axis], [data-home-trigger]').forEach(button => observer.observe(button));
+        update();
+        return () => observer.disconnect();
+    }, [homeMenuOpen, rotaryEnabled]);
+    const homeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const homeHeld = useRef(false);
+    const cancelHomeHold = () => {
+        if (homeTimer.current !== null) clearTimeout(homeTimer.current);
+        homeTimer.current = null;
+        setHomeHolding(false);
+    };
+    useEffect(() => () => cancelHomeHold(), []);
+    useEffect(() => {
+        if (!canHome) setHomeMenuOpen(false);
+        if (canHome) return;
+        cancelHomeHold();
+        homeHeld.current = true;
+    }, [canHome]);
+    useEffect(() => {
+        const cancel = () => { cancelHomeHold(); homeHeld.current = true; setHomeMenuOpen(false); };
+        window.addEventListener('blur', cancel);
+        document.addEventListener('visibilitychange', cancel);
+        return () => { window.removeEventListener('blur', cancel); document.removeEventListener('visibilitychange', cancel); };
+    }, []);
+    useEffect(() => {
+        if (!homeMenuOpen) return;
+        const dismiss = (event: PointerEvent) => {
+            if (!(event.target instanceof Element) || !event.target.closest('[data-home-axis], [data-home-trigger]')) setHomeMenuOpen(false);
+        };
+        const escape = (event: KeyboardEvent) => {
+            if (event.key === 'Escape') setHomeMenuOpen(false);
+        };
+        document.addEventListener('pointerdown', dismiss, true);
+        document.addEventListener('keydown', escape);
+        return () => {
+            document.removeEventListener('pointerdown', dismiss, true);
+            document.removeEventListener('keydown', escape);
+        };
+    }, [homeMenuOpen, rotaryEnabled]);
 
     return (
-        <div className="rounded-xl bg-white border border-gray-300 dark:bg-surface-raised dark:border-outline p-2 flex flex-col gap-2">
+        <div ref={cardRef} style={{ position: 'relative', '--dro-axis-count': rotaryEnabled ? 4 : 3 } as CSSProperties} className="rounded-xl bg-white border border-gray-300 dark:bg-surface-raised dark:border-outline p-2 flex flex-col gap-2">
+            {homeMenuOpen && homeFrame && <div aria-hidden="true" className="android-home-connected-frame" style={homeFrame} />}
             {/* Work / Machine toggle */}
             <div className="flex gap-1 self-end">
                 {(['work', 'machine'] as const).map((m) => (
                     <button
                         key={m}
-                        onClick={() => setMode(m)}
+                        onClick={() => changeMode(m)}
                         className={`px-3 py-1 rounded text-xs font-semibold uppercase tracking-wide transition-colors ${
                             mode === m
                                 ? 'bg-robin-500 text-white'
@@ -99,25 +209,36 @@ export default function DROCard() {
 
             {/* Axis rows */}
             <div className="flex flex-col gap-1.5">
-                {AXES.map(({ label, color }) => (
+                {AXES.filter(axis => axis.label !== 'A' || rotaryEnabled).map(({ label, color }) => (
                     <div
                         key={label}
                         className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-gray-50 dark:bg-surface-elevated"
                     >
-                        <button
+                        <HoldAxisButton
+                            key={`${homeMenuOpen ? 'home' : 'goto'}-${label}`}
                             type="button"
-                            aria-label={`Go to ${label} axis`}
-                            onClick={() => gotoZero(label)}
-                            disabled={!canGoTo}
+                            aria-label={homeMenuOpen ? `Home ${label} axis` : `Go to ${label} axis`}
+                            data-home-axis={homeMenuOpen ? label : undefined}
+                            actionKey={`${homeMenuOpen ? 'home' : 'goto'}-${label}`}
+                            onActivate={() => {
+                                if (homeMenuOpen) { setHomeMenuOpen(false); if (canHome) homeAxis(label); }
+                                else gotoZero(label);
+                            }}
+                            disabled={homeMenuOpen ? !canHome : !canGoTo}
                             className={`w-9 h-9 rounded flex items-center justify-center text-base font-bold shrink-0 transition-colors ${
                                 canGoTo
                                     ? `hover:brightness-95 active:brightness-90 ${color}`
                                     : 'bg-gray-200 text-gray-400 dark:bg-surface-disabled dark:text-content-disabled cursor-default'
                             }`}
                         >
-                            {label}
-                        </button>
+                            {homeMenuOpen ? <span className="android-home-axis-label"><span>Home</span><span>{label}</span></span> : label}
+                        </HoldAxisButton>
                         <span
+                            role="button"
+                            tabIndex={0}
+                            aria-label={`Edit ${label} coordinate`}
+                            onClick={(event) => { event.stopPropagation(); setHomeMenuOpen(false); setAxisValue(formatAxisValue(activePos?.[label.toLowerCase() as 'x' | 'y' | 'z' | 'a'])); setEditingAxis(label); }}
+                            onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); setHomeMenuOpen(false); setAxisValue(formatAxisValue(activePos?.[label.toLowerCase() as 'x' | 'y' | 'z' | 'a'])); setEditingAxis(label); } }}
                             className={cn(
                                 'flex-1 min-w-0 text-right font-mono text-[2rem] tabular-nums leading-tight',
                                 mode === 'work'
@@ -131,8 +252,10 @@ export default function DROCard() {
                                 ],
                             )}
                         </span>
-                        <button
-                            onClick={() => zeroWCS(label, 0)}
+                        <HoldAxisButton
+                            actionKey={`zero-${label}`}
+                            aria-label={`Zero ${label} axis`}
+                            onActivate={() => zeroWCS(label, 0)}
                             disabled={!canZero}
                             className={`text-sm font-semibold border-[3px] border-gray-400 dark:border-outline rounded-md px-3 py-1.5 shrink-0 transition-colors ${
                                 canZero
@@ -141,7 +264,19 @@ export default function DROCard() {
                             }`}
                         >
                             ZERO
-                        </button>
+                        </HoldAxisButton>
+                        {editingAxis === label && <form data-dro-editor onClick={event => event.stopPropagation()} className="android-dro-value-editor" aria-label={mode === 'work' ? `Set ${label} work coordinate` : `${label} machine coordinate`}
+                            onSubmit={(event) => { event.preventDefault(); const value = Number(axisValue); if (canZero && mode === 'work' && axisValue.trim() && Number.isFinite(value)) { zeroWCS(label, value); setEditingAxis(null); } }}>
+                            <input key={mode} autoFocus readOnly={mode === 'machine'} aria-label={`${label} coordinate value`} inputMode="decimal" value={axisValue} onChange={event => setAxisValue(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setEditingAxis(null); }} />
+                            {mode === 'machine' ? <>
+                                <span className="android-dro-readonly-label">Machine</span>
+                                <button type="button" className="android-dro-edit-work" onClick={() => { setAxisValue(formatAxisValue(wpos?.[label.toLowerCase() as 'x' | 'y' | 'z' | 'a'])); setMode('work'); }}>Edit Work</button>
+                            </> : <>
+                            <button type="button" aria-label={`Decrease ${label} coordinate`} onClick={() => setAxisValue((Number(axisValue || 0) - 1).toFixed(3))}>−</button>
+                            <button type="button" aria-label={`Increase ${label} coordinate`} onClick={() => setAxisValue((Number(axisValue || 0) + 1).toFixed(3))}>+</button>
+                            <button type="submit" aria-label={`Set ${label} coordinate`} disabled={!canZero || mode !== 'work' || !axisValue.trim() || !Number.isFinite(Number(axisValue))}>Set</button>
+                            </>}
+                        </form>}
                     </div>
                 ))}
             </div>
@@ -155,13 +290,37 @@ export default function DROCard() {
                 ].map(({ icon: Icon, label, primary }) => (
                     <button
                         key={label}
+                        data-home-trigger={label === 'Home' ? 'true' : undefined}
+                        data-home-holding={(label === 'Home' && homeHolding) || (label === 'Go to XY' && goXYHolding) ? 'true' : undefined}
+                        aria-expanded={label === 'Home' ? homeMenuOpen : undefined}
+                        onPointerDown={label === 'Go to XY' ? (event) => { if (event.button === 0) beginGoXYHold(); } : label === 'Home' ? (event) => {
+                            if (homeMenuOpen) { homeHeld.current = true; setHomeMenuOpen(false); return; }
+                            if (event.button !== 0 || !canHome) return;
+                            cancelHomeHold();
+                            homeHeld.current = false;
+                            setHomeHolding(true);
+                            homeTimer.current = setTimeout(() => {
+                                homeHeld.current = true;
+                                setHomeMenuOpen(true);
+                                homeTimer.current = null;
+                            }, 500);
+                        } : undefined}
+                        onPointerUp={label === 'Go to XY' ? cancelGoXYHold : label === 'Home' ? cancelHomeHold : undefined}
+                        onPointerLeave={label === 'Go to XY' ? cancelGoXYHold : label === 'Home' ? cancelHomeHold : undefined}
+                        onPointerCancel={label === 'Go to XY' ? cancelGoXYHold : label === 'Home' ? () => { cancelHomeHold(); homeHeld.current = true; } : undefined}
+                        onKeyUp={label === 'Go to XY' ? cancelGoXYHold : undefined}
+                        onBlur={label === 'Go to XY' ? cancelGoXYHold : undefined}
+                        onKeyDown={label === 'Go to XY' ? (event) => { if (event.key === ' ' || event.key === 'Enter') { event.preventDefault(); if (!event.repeat) beginGoXYHold(); } } : label === 'Home' ? (event) => {
+                            if (event.key === 'ArrowUp' && canHome) { event.preventDefault(); setHomeMenuOpen(true); }
+                        } : undefined}
+                        onContextMenu={label === 'Home' || label === 'Go to XY' ? (event) => event.preventDefault() : undefined}
                         onClick={
                             label === 'Home'
-                                ? homeMachine
+                                ? () => { if (!homeHeld.current) { if (homeMenuOpen) setHomeMenuOpen(false); else homeMachine(); } homeHeld.current = false; }
                                 : label === 'Zero All'
                                   ? zeroAllAxes
                                   : label === 'Go to XY'
-                                    ? goXYAxes
+                                    ? (event) => event.preventDefault()
                                     : undefined
                         }
                         disabled={
