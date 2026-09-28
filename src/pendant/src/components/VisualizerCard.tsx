@@ -1,3 +1,4 @@
+import PendantToolChange from '../../../../android-port/ui/PendantToolChange';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from 'app/components/shadcn/Dialog';
 import { store as reduxStore } from 'app/store/redux';
 import { unloadFileInfo } from 'app/store/redux/slices/fileInfo.slice';
@@ -84,6 +85,7 @@ export default function VisualizerCard() {
                     <Visualizer />
                     {showJobControls && <JobControls />}
                     <div id="android-job-summary-host" />
+                    <PendantToolChange />
                     {fileLoaded && <Dialog open={editorOpen} onOpenChange={setEditorOpen}>
                         <DialogContent className="android-gcode-editor-dialog">
                             <DialogTitle className="sr-only">G-code Editor</DialogTitle>

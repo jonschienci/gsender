@@ -22,6 +22,9 @@ public final class MainActivity extends Activity {
     private KnobQrFlow qr;
     private TiltSensor tiltSensor;
     private boolean resumed;
+    private KioskController kiosk;
+    private int pageGeneration;
+    private boolean kioskCheckPending;
     private final Runnable poll = new Runnable() {
         public void run() {
             status.setText(EngineService.status);
@@ -44,25 +47,47 @@ public final class MainActivity extends Activity {
                         java.util.Collections.singletonMap("X-gSender-Key", key));
                 });
             }
-            if (EngineService.url == null) { status.setVisibility(View.VISIBLE); }
+            if (EngineService.url == null) {
+                status.setVisibility(View.VISIBLE);
+                kiosk.ready(false);
+            } else if (loaded && !kioskCheckPending) {
+                kioskCheckPending = true;
+                // Do not lock the user in a loading/error page with no exit target.
+                final int generation = pageGeneration;
+                web.evaluateJavascript("(()=>{const b=document.querySelector('.android-build-badge[data-kiosk-exit=\"five-tap\"]');if(!b)return false;const r=b.getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", value -> {
+                    if (generation == pageGeneration) kioskCheckPending = false;
+                    if (!isDestroyed() && generation == pageGeneration && EngineService.url != null
+                        && local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) kiosk.ready("true".equals(value));
+                });
+            }
             handler.postDelayed(this, 1000);
         }
     };
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
         visualizerBenchmark = getIntent().getBooleanExtra("visualizer_benchmark", false);
+        kiosk = new KioskController(this);
         qr = new KnobQrFlow(this);
         tiltSensor = new TiltSensor(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         status = new TextView(this); status.setPadding(16, 12, 16, 12); layout.addView(status);
         web = new WebView(this); layout.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(layout);
-        // Respect system insets on Android 15 rather than obscuring gSender controls.
+        // Consume only visible system bars, the keyboard and physical cutouts.
+        // Kiosk uses the space released by navigation without covering controls.
+        if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
         layout.setOnApplyWindowInsetsListener((v, insets) -> {
-            v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            if (Build.VERSION.SDK_INT >= 30) {
+                int types = WindowInsets.Type.displayCutout() | WindowInsets.Type.ime();
+                if (!kiosk.fullscreen()) types |= WindowInsets.Type.systemBars();
+                android.graphics.Insets safe = insets.getInsets(types);
+                v.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+            } else {
+                v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            }
             return insets;
         });
-        hideStatusBar();
+        kiosk.update();
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
@@ -73,8 +98,21 @@ public final class MainActivity extends Activity {
         settings.setTextZoom(100); settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
-            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) { if (qr != null) qr.cancel(); if (tiltSensor != null) tiltSensor.stop(); }
+            @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                pageGeneration++;
+                kioskCheckPending = false;
+                kiosk.ready(false);
+                if (qr != null) qr.cancel();
+                if (tiltSensor != null) tiltSensor.stop();
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (local(request.getUrl()) && "/native/kiosk-toggle".equals(request.getUrl().getPath())) {
+                    // A gesture from the first-party badge; no general admin JS bridge.
+                    if (resumed && request.isForMainFrame() && request.hasGesture() && web.hasWindowFocus()
+                        && request.getUrl().getQuery() == null && request.getUrl().getFragment() == null
+                        && local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) kiosk.toggle();
+                    return true;
+                }
                 if (local(request.getUrl()) && "/native/knob-pair".equals(request.getUrl().getPath())) {
                     // A fixed first-party navigation from an explicit tap, not a general camera JS bridge.
                     if (request.isForMainFrame() && request.hasGesture() && web.hasWindowFocus()
@@ -91,8 +129,15 @@ public final class MainActivity extends Activity {
             @Override public void onPageFinished(WebView view, String url) {
                 if (local(Uri.parse(url))) status.setVisibility(View.GONE);
             }
+            @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                kiosk.ready(false);
+                return false; // Use Android's normal renderer-crash recovery after releasing kiosk.
+            }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) { status.setText(error.getDescription()); status.setVisibility(View.VISIBLE); loaded = false; }
+                if (request.isForMainFrame()) {
+                    kiosk.ready(false);
+                    status.setText(error.getDescription()); status.setVisibility(View.VISIBLE); loaded = false;
+                }
             }
         });
         web.setWebChromeClient(new WebChromeClient() {
@@ -185,13 +230,14 @@ public final class MainActivity extends Activity {
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
         setIntent(intent);
+        if (kiosk != null) kiosk.update(); // Apply enrollment even if the app was already foreground.
         // Android grants access when the user chooses this USB handler. Keep the
         // existing WebView/backend; the USB scan observes the authoritative grant.
     }
     @Override public void onConfigurationChanged(android.content.res.Configuration configuration) {
         if (qr != null) qr.cancel();
         super.onConfigurationChanged(configuration);
-        hideStatusBar();
+        kiosk.update();
     }
     private void showUsbStatus() {
         TextView details = new TextView(this);
@@ -228,26 +274,18 @@ public final class MainActivity extends Activity {
             }, "gsender-export").start();
         }
     }
-    private void hideStatusBar() {
-        // Reclaim the clock/notification strip while retaining Android navigation.
-        // The user can still reveal the status bar with an edge swipe.
-        if (Build.VERSION.SDK_INT >= 30) {
-            WindowInsetsController controller = getWindow().getInsetsController();
-            if (controller != null) {
-                controller.setSystemBarsBehavior(WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
-                controller.hide(WindowInsets.Type.statusBars());
-            }
-        } else {
-            getWindow().addFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
-        }
+    @Override public void onBackPressed() {
+        if (kiosk != null && kiosk.locked()) return;
+        super.onBackPressed();
     }
     @Override public void onWindowFocusChanged(boolean focus) {
         super.onWindowFocusChanged(focus);
-        if (focus) hideStatusBar();
+        if (focus && kiosk != null) kiosk.update();
         if (!focus && tiltSensor != null) tiltSensor.stop();
     }
     @Override protected void onPause() {
         resumed = false;
+        kiosk.pause();
         if (tiltSensor != null) tiltSensor.stop();
         if (qr != null) qr.pause();
         EngineService.foreground(false);
@@ -258,13 +296,14 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onResume() {
         super.onResume();
-        hideStatusBar();
         resumed = true;
+        kiosk.resume();
         if (qr != null) qr.resume();
         EngineService.foreground(true);
         if (web != null) web.evaluateJavascript("window.__usbKnobActive=true;window.dispatchEvent(new Event('usb-knob-visibility'));", null);
     }
     @Override protected void onDestroy() {
+        if (kiosk != null) kiosk.ready(false);
         if (tiltSensor != null) tiltSensor.stop();
         if (qr != null) qr.destroy();
         handler.removeCallbacks(poll);

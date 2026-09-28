@@ -1,4 +1,9 @@
-:root { --android-header-height: 48px; --android-nav-height: 52px; }
+/* Older Android WebViews cannot resolve dvh inside var()-based tray sizing.
+   Choose the supported viewport unit before evaluating those expressions. */
+:root { --android-header-height: 48px; --android-nav-height: 52px; --android-viewport-height: 100vh; }
+@supports (height: 100dvh) {
+    :root { --android-viewport-height: 100dvh; }
+}
 .android-build-badge { color: var(--content-primary, #111827); }
 .dark .android-build-badge { color: #fff; }
 /* Keep the action buttons in one compact row, including packaged launchers. */
@@ -371,7 +376,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
 .android-bottom-drawer [data-standalone-panel="true"] { display: none !important; }
 
 .android-bottom-drawer[data-compact-panel="true"] {
-    top: clamp(var(--android-header-height), var(--compact-panel-top), calc(100dvh - 224px));
+    top: clamp(var(--android-header-height), var(--compact-panel-top), calc(var(--android-viewport-height) - 224px));
 }
 .android-console-size-bar { display: flex; align-items: center; justify-content: space-between; padding: 4px 12px; border-bottom: 1px solid #94a3b8; flex-shrink: 0; font-size: 12px; }
 .android-console-size-bar > button { display: flex; align-items: center; justify-content: center; width: 40px; height: 32px; border-radius: 6px; }
@@ -1285,7 +1290,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     position: fixed !important;
     inset: 0 !important;
     width: 100vw !important;
-    height: 100dvh !important;
+    height: var(--android-viewport-height) !important;
     max-width: none !important;
     max-height: none !important;
     transform: none !important;
@@ -1299,7 +1304,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
 .android-macro-fullscreen {
     inset: 16px !important;
     width: calc(100vw - 32px) !important;
-    height: calc(100dvh - 32px) !important;
+    height: calc(var(--android-viewport-height) - 32px) !important;
     padding: 20px !important;
     border-radius: 12px !important;
     display: block !important;
@@ -1514,7 +1519,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
 }
 
 .android-bottom-drawer[data-compact-panel="true"][data-active-panel="Macros"] {
-    top: clamp(var(--android-header-height), var(--compact-panel-top), calc(100dvh - 354px));
+    top: clamp(var(--android-header-height), var(--compact-panel-top), calc(var(--android-viewport-height) - 354px));
 }
 
 /* Fill the wrapper so the visible action face is tall, not just its hit area. */
@@ -1737,7 +1742,7 @@ nav.android-bottom-nav > button { gap: 2px !important; }
     position: fixed !important;
     inset: 16px !important;
     width: calc(100vw - 32px) !important;
-    height: calc(100dvh - 32px) !important;
+    height: calc(var(--android-viewport-height) - 32px) !important;
     max-width: none !important;
     max-height: none !important;
     transform: none !important;

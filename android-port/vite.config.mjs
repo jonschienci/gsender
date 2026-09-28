@@ -1,3 +1,5 @@
+import currentUi from './scripts/current-ui.cjs';
+import wheelUi from './scripts/wheel-ui.cjs';
 import displayUi from './scripts/display-ui.cjs';
 import benchmarkUi from './scripts/benchmark-ui.cjs';
 import { defineConfig } from 'vite';
@@ -8,6 +10,7 @@ import jogTouchUi from './scripts/jog-touch-ui.cjs';
 import performanceUi from './scripts/performance-ui.cjs';
 import path from 'node:path';
 import {readFileSync} from 'node:fs';
+const wheelCss=readFileSync(new URL('./ui/speed-wheels.css',import.meta.url),'utf8');
 const jogLayoutCss=readFileSync(new URL('./ui/jog-layout.css',import.meta.url),'utf8');
 import react from '@vitejs/plugin-react';
 import tailwindcss from 'tailwindcss';
@@ -22,7 +25,7 @@ export default defineConfig({
     css: { postcss: { plugins: [tailwindcss(path.join(root, pendant ? 'src/pendant/tailwind.config.ts' : 'src/app/tailwind.config.ts'))] },
         preprocessorOptions: { stylus: { modules: true } },
         modules: { localsConvention: 'camelCaseOnly', generateScopedName: '[name]__[local]___[hash:base64:5]' } },
-    plugins: [{name:"android-display-updates",enforce:"pre",transform:displayUi.transform}, {name:'android-onboard-benchmark',enforce:'pre',transform:benchmarkUi.transform}, {name:'android-jog-touch',enforce:'pre',transform:jogTouchUi.transform}, { name: 'android-xy-pad', enforce: 'pre', transform: xyPadUi.transform }, { name: 'android-build-label', enforce: 'pre', transform: buildLabel.transform }, { name: 'android-performance', enforce: 'pre', transform: performanceUi.transform }, { name: 'android-connection-state', enforce: 'pre', transform: connectionUi.transform }, { name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
+    plugins: [{name:"android-display-updates",enforce:"pre",transform:displayUi.transform}, {name:'android-onboard-benchmark',enforce:'pre',transform:benchmarkUi.transform}, {name:'android-jog-touch',enforce:'pre',transform:jogTouchUi.transform}, { name: 'android-xy-pad', enforce: 'pre', transform: xyPadUi.transform }, { name: 'android-speed-wheels', enforce: 'pre', transform: pendant ? wheelUi.transform : () => null }, { name: 'android-build-label', enforce: 'pre', transform: buildLabel.transform }, { name: 'android-performance', enforce: 'pre', transform: performanceUi.transform }, { name: 'android-connection-state', enforce: 'pre', transform: connectionUi.transform }, { name: 'android-jog-haptics', enforce: 'pre', transform(code, id) {
         if (!id.endsWith('/pendant/src/components/JoggingCard.tsx')) return;
         const start = 'onStart: () => {';
         if (code.split(start).length !== 2) throw new Error('Pendant jog press handler changed');
@@ -36,7 +39,7 @@ export default defineConfig({
         return {code, map:null};
     } }, { name: 'android-tablet-viewport' , transformIndexHtml: { order: 'post', handler(html) {
         // Match the live preview: scoped layout overrides follow generated utilities.
-        html=html.replace('</head>','<style id="android-jog-layout">'+jogLayoutCss+'</style></head>');
+        html=html.replace('</head>','<style id="android-jog-layout">'+jogLayoutCss+(pendant ? wheelCss : '')+'</style></head>');
         html = html.replace(/(<meta[^>]*name="viewport"[^>]*content=")[^"]*/, '$1' + (pendant ? 'width=1280, user-scalable=no' : 'width=1280, user-scalable=no'));
         if (pendant) return html.replace('<head>', `<head><script>
             (() => {
@@ -48,7 +51,7 @@ export default defineConfig({
             })();
         <\/script>`);
         return html.replace('<head>', '<head>' + startup);
-    } } }, tsconfigPaths(), react(), patchCssModules(), nodePolyfills({include:['process'],globals:{global:true,process:true}}),
+    } } }, { name: 'android-current-ui', enforce: 'pre', transform: pendant ? currentUi.transform : () => null }, tsconfigPaths(), react(), patchCssModules(), nodePolyfills({include:['process'],globals:{global:true,process:true}}),
         { name: 'android-local-telemetry', load(id) { if (/\/sentry-config\.[jt]s$/.test(id)) return 'export {};'; } }],
     resolve: { alias: { 'app-root': root, app: path.join(root, 'src/app/src'), '@': path.join(root, 'src/app/src') } },
     build: { commonjsOptions: { include: [/node_modules/, /android-port\/ui\/(pad-vector|tilt-session)\.cjs$/] }, target: 'chrome87', outDir: path.join(root,'android-port/build/payload', pendant ? 'pendant' : 'app'), emptyOutDir: true, sourcemap: false },

@@ -1446,6 +1446,14 @@ class GrblHalController {
 			}
 		}, 500);
 
+		// Removing runner listeners does not cancel lodash trailing callbacks.
+		// Stop them before close/destroy releases the controller state.
+		this.cancelPendingReports = () => {
+			emitDescriptions.cancel();
+			emitGroups.cancel();
+			queryParserState.cancel();
+		};
+
 		this.queryTimer = setInterval(() => {
 			if (this.isClose()) {
 				// Serial port is closed
@@ -1889,6 +1897,8 @@ class GrblHalController {
 	}
 
 	destroy() {
+		this.ready = false;
+		this.cancelPendingReports?.();
 		this.jogStreamer?.abort("destroy");
 		if (this.queryTimer) {
 			clearInterval(this.queryTimer);
@@ -1992,6 +2002,8 @@ class GrblHalController {
 	}
 
 	close(callback, currentLineRunning) {
+		this.ready = false;
+		this.cancelPendingReports?.();
 		const { port } = this.options;
 
 		// Assertion check
@@ -2000,9 +2012,6 @@ class GrblHalController {
 			callback(new Error(err));
 			return;
 		}
-
-		// Stop status query
-		this.ready = false;
 
 		// A stream must never outlive the connection it is writing to.
 		this.jogStreamer.abort("close");

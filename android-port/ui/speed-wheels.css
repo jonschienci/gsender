@@ -1,0 +1,993 @@
+.android-feed-overrides .android-feed-spindle {grid-template-columns:minmax(0,1fr) minmax(0,1fr) 112px!important;grid-template-rows:auto!important;gap:12px!important;padding:6px!important}
+.android-feed-overrides .android-feed-slider {grid-column:1!important;grid-row:1!important}
+.android-feed-overrides .android-spindle-speed {grid-column:2!important;grid-row:1!important}
+.android-feed-overrides .android-spindle-controls>div:first-child {grid-column:3!important;grid-row:1!important}
+.android-feed-overrides .android-range-controls {display:grid!important;grid-template-columns:30px minmax(0,1fr) 30px;gap:5px!important;background:transparent!important;box-shadow:none!important}
+.android-feed-overrides .android-range-controls>.android-speed-wheel {grid-column:1/4;grid-row:1;width:100%;height:100px}
+.android-feed-overrides .android-slider-value-input {grid-column:2;grid-row:2;width:100%!important;min-width:0!important}
+.android-feed-overrides .android-range-controls>button:first-child {grid-column:1;grid-row:2}
+.android-feed-overrides .android-range-controls>button:nth-last-child(2) {grid-column:1;grid-row:3;justify-self:end}
+.android-feed-overrides .android-range-controls>button:last-child {grid-column:3;grid-row:3}
+.android-speed-wheel {position:relative;overflow:hidden;touch-action:none;user-select:none;cursor:ns-resize;border:1px solid #8ba2b8;border-radius:12px;background:linear-gradient(#b6c3d0,#eef3f8 45%,#e0e9f1 55%,#aebcc9);box-shadow:inset 0 8px 12px #0003,inset 0 -8px 12px #0003;outline-offset:3px}
+.dark .android-speed-wheel {background:linear-gradient(#17202a,#52677b 45%,#465d72 55%,#17202a);border-color:#647b90}
+.android-wheel-ticks {position:absolute;inset:-12px 15%;background:repeating-linear-gradient(to bottom,transparent 0 10px,#51667d88 10px 11px,transparent 11px 12px);mask-image:linear-gradient(transparent,#000 20% 80%,transparent)}
+.dark .android-wheel-ticks {background-image:repeating-linear-gradient(to bottom,transparent 0 10px,#bfd1e077 10px 11px,transparent 11px 12px)}
+.android-wheel-center {position:absolute;left:0;right:0;top:calc(50% - 16px);height:32px;border-block:1px solid #689ac9;background:#689ac922;display:flex;align-items:center;justify-content:space-between;padding:0 4px;color:#3f85c7;font-size:12px}
+.android-wheel-value {position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:5px;font-weight:600;font-size:20px;color:#172b3d;text-shadow:0 1px 3px #eef3f8;background:linear-gradient(90deg,transparent 20%,#e4edf5cc 40% 60%,transparent 80%)}
+.dark .android-wheel-value {color:#eef6ff;text-shadow:0 1px 3px #17202a;background:linear-gradient(90deg,transparent 20%,#34495ecc 40% 60%,transparent 80%)}
+.android-wheel-value small {font-size:11px}
+.android-speed-wheel[aria-disabled=true] {opacity:.45;cursor:default}
+
+/* iOS-style numeric picker: a centered selection with fading adjacent values. */
+.android-speed-wheel {background:#f1f4f7!important;box-shadow:none;border-color:#cbd5df;border-radius:12px}
+.dark .android-speed-wheel {background:#202832!important;border-color:#475569}
+.android-wheel-center {top:calc(50% - 14px);height:28px;left:6px;right:6px;border:0;border-radius:7px;background:#94a3b82b;padding:0}
+.android-wheel-options {position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;pointer-events:none;perspective:160px;color:#24364a;font-variant-numeric:tabular-nums}
+.dark .android-wheel-options {color:#e5eef7}
+.android-wheel-options>div {height:25px;min-height:25px;line-height:25px;font-size:18px}
+.android-wheel-options>div.selected {font-size:22px;font-weight:600;color:#3f85c7}
+.dark .android-wheel-options>div.selected {color:#8fc5f5}
+.android-wheel-unit {position:absolute;right:12px;top:calc(50% - 8px);font-size:11px;color:#64748b}
+.dark .android-wheel-unit {color:#adbed0}
+.android-feed-overrides .android-range-controls {grid-template-columns:28px minmax(0,1fr) 28px 28px!important}
+.android-feed-overrides .android-range-controls>.android-speed-wheel {grid-column:1/5!important;height:124px}
+.android-feed-overrides .android-range-controls>button:nth-last-child(2) {grid-column:3!important;grid-row:2!important}
+.android-feed-overrides .android-range-controls>button:last-child {grid-column:4!important;grid-row:2!important}
+.android-feed-overrides .android-range-controls>button {width:28px!important;min-width:28px!important}
+/* Narrow the two number-picker surfaces without changing the value controls. */
+.android-feed-overrides .android-range-controls > .android-speed-wheel {
+    width: 50% !important;
+    justify-self: center;
+}
+/* Wheel with side controls: increase at the top, decrease at the bottom,
+   then reset beside the matching-width value field. */
+.android-feed-overrides .android-range-controls {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) 28px minmax(0, 1fr) !important;
+    grid-template-rows: 62px 62px 28px !important;
+    gap: 0 6px !important;
+    align-items: stretch !important;
+}
+.android-feed-overrides .android-range-controls > .android-speed-wheel {
+    grid-column: 2 !important;
+    grid-row: 1 / 3 !important;
+    width: 100% !important;
+    height: 124px !important;
+}
+.android-feed-overrides .android-range-controls > .android-slider-value-input {
+    grid-column: 2 !important;
+    grid-row: 3 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    margin-top: 5px;
+    height: 28px !important;
+}
+.android-feed-overrides .android-range-controls > button:last-child {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+    align-self: start !important;
+}
+.android-feed-overrides .android-range-controls > button:nth-last-child(2) {
+    grid-column: 3 !important;
+    grid-row: 2 !important;
+    align-self: end !important;
+}
+.android-feed-overrides .android-range-controls > button:first-child {
+    grid-column: 3 !important;
+    grid-row: 3 !important;
+    align-self: start !important;
+    margin-top: 5px;
+}
+.android-feed-overrides .android-range-controls {padding-bottom:7px!important}
+.android-feed-overrides .android-range-controls > div:has(>button) {grid-column:3!important;width:28px!important}
+.android-feed-overrides .android-range-controls > div:has(>button):first-child {grid-row:3!important;align-self:start!important;margin-top:5px}
+.android-feed-overrides .android-range-controls > div:has(>button):nth-last-child(2) {grid-row:2!important;align-self:end!important}
+.android-feed-overrides .android-range-controls > div:has(>button):last-child {grid-row:1!important;align-self:start!important}
+.android-feed-overrides .android-range-controls > div > button {width:28px!important;min-width:28px!important;height:28px!important;min-height:28px!important;padding:4px!important}
+/* Full-height wheels with an inline edit popout. */
+.android-feed-overrides .android-range-controls {position:relative;grid-template-rows:28px 48px 48px 28px!important;padding-bottom:2px!important}
+.android-feed-overrides .android-range-controls > .android-speed-wheel {grid-row:1/5!important;height:152px!important}
+.android-feed-overrides .android-range-controls > div:has(>button[aria-label^="Increase"]) {grid-column:3!important;grid-row:1!important;align-self:start!important}
+.android-feed-overrides .android-range-controls > div:has(>button[aria-label^="Decrease"]) {grid-column:3!important;grid-row:3!important;align-self:end!important}
+.android-feed-overrides .android-range-controls > div:has(>button[aria-label^="Reset"]) {grid-column:3!important;grid-row:4!important;margin-top:3px!important;align-self:start!important}
+.android-feed-overrides .android-range-controls > .android-wheel-edit {grid-column:3!important;grid-row:1/5!important;align-self:center!important;justify-self:center!important;margin:0!important;width:28px!important;height:28px!important;min-height:28px!important;border:1px solid #64748b;border-radius:6px;background:#e5edf5;color:#24364a;font-size:20px;z-index:2}
+.dark .android-feed-overrides .android-wheel-edit {background:#283542;color:#d9e9f8}
+.android-feed-overrides .android-range-controls > .android-slider-value-input {grid-column:2!important;grid-row:1/5!important;align-self:center!important;height:32px!important;margin:0!important;z-index:5;background:#eef4fa!important;border:2px solid #689ac9!important;text-align:center!important;box-shadow:0 2px 8px #0005}
+.dark .android-feed-overrides .android-range-controls > .android-slider-value-input {background:#293a4b!important;color:#e5f2ff!important}
+.android-feed-overrides .android-range-controls > .android-wheel-edit {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    transform: translateY(-6px);
+    line-height: 1 !important;
+}
+.android-feed-overrides .android-wheel-edit svg {display:block;width:16px;height:16px;flex:none}
+.android-feed-overrides .android-range-controls > .android-wheel-edit {
+    align-self: start !important;
+    margin-top: 62px !important;
+    transform: none;
+}
+/* Match the complete side-button stack, including reset. */
+.android-feed-overrides .android-range-controls > .android-speed-wheel {
+    height: 100% !important;
+    align-self: stretch !important;
+}
+.android-feed-overrides .android-range-controls > .android-wheel-edit {
+    align-self: center !important;
+    margin-top: 0 !important;
+}
+.android-feed-overrides .android-range-controls > div:has(>button[aria-label^="Reset"]) {
+    margin-top: 0 !important;
+}
+/* Left-edge graduations and a shared sight-glass bezel. */
+.android-speed-wheel::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    left: 6px;
+    top: 8px;
+    bottom: 8px;
+    width: 12px;
+    pointer-events: none;
+    background:
+        repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 25px) left center / 12px 100% no-repeat,
+        repeating-linear-gradient(to bottom, currentColor 0 1px, transparent 1px 5px) left center / 5px 100% no-repeat;
+    color: #647b90;
+    opacity: .7;
+    mask-image: linear-gradient(transparent, #000 20% 80%, transparent);
+}
+.dark .android-speed-wheel::before { color: #b4c9dc; }
+.android-feed-overrides .android-range-controls::after {
+    content: '';
+    grid-column: 2 / 4;
+    grid-row: 1 / 5;
+    align-self: center;
+    height: 36px;
+    margin: 0 -3px;
+    border: 2px solid #7c93a9;
+    border-radius: 8px;
+    background: linear-gradient(to bottom, #ffffff24, transparent 45%, #689ac90c);
+    box-shadow: inset 0 1px 2px #ffffff40, 0 1px 3px #0003;
+    z-index: 4;
+    pointer-events: none;
+}
+.dark .android-feed-overrides .android-range-controls::after { border-color:#8ca6bd; }
+.android-feed-overrides .android-range-controls > .android-wheel-edit {
+    border-color: transparent !important;
+    background: transparent !important;
+    z-index: 5;
+}
+/* Flat sight-glass frame. */
+.android-feed-overrides .android-range-controls::after {
+    background: transparent;
+    box-shadow: none;
+}
+.android-jog-card[data-speed-page] > .android-jog-toolbar,
+.android-jog-card[data-speed-page] > .android-jog-area {display:none!important}
+.android-jog-card[data-speed-page] {position:relative!important}
+.android-jog-speed-page {position:absolute;inset:10px 8px 30px;display:flex;align-items:center;min-width:0}
+.android-jog-speed-page .android-feed-spindle {width:100%;grid-template-columns:minmax(0,1fr) minmax(0,1fr) 84px!important;gap:8px!important;padding:0!important}
+.android-jog-speed-page .android-range-controls {grid-template-columns:0 minmax(0,1fr) 28px 0!important;column-gap:4px!important}
+.android-jog-speed-page .android-spindle-controls>div:first-child {padding:4px!important}
+.android-jog-speed-page .android-wheel-unit {right:5px;font-size:9px}
+.android-jog-speed-page .android-wheel-options>div.selected {font-size:19px}
+.android-jog-card[data-speed-page] > .android-jog-speed-page {
+    position:absolute!important;inset:12px 8px 30px!important;
+    width:auto!important;height:auto!important;min-height:0!important;max-height:none!important;
+    margin:0!important;padding:0!important;overflow:visible!important;
+    display:flex!important;align-items:center!important;
+}
+.android-jog-card[data-speed-page] {overflow:hidden!important}
+/* Keep the same container dimensions while another page is selected. */
+.android-jog-card[data-speed-page] > .android-jog-toolbar {display:flex!important;visibility:hidden;pointer-events:none}
+.android-jog-card[data-speed-page] > .android-jog-fit {display:block!important;visibility:hidden;pointer-events:none}
+/* The wheel is the only painted surface; no rectangular slider backplate. */
+.android-jog-card .android-jog-speed-page .android-range-controls {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    border: 0 !important;
+}
+.android-jog-card .android-jog-speed-page .android-range-slider {
+    background: transparent !important;
+    box-shadow: none !important;
+}
+/* Fill the third jog page vertically, with a small perimeter inset. */
+.android-jog-card[data-speed-page] > .android-jog-speed-page {inset:12px 8px 36px!important;align-items:stretch!important}
+.android-jog-speed-page .android-feed-spindle {height:100%!important;align-items:stretch!important;grid-template-rows:minmax(0,1fr)!important}
+.android-jog-speed-page .android-feed-slider,
+.android-jog-speed-page .android-spindle-speed {height:100%;min-height:0;display:flex;flex-direction:column}
+.android-jog-speed-page .android-range-slider {height:100%!important;min-height:0;gap:0!important}
+.android-jog-card .android-jog-speed-page .android-range-controls {flex:1;min-height:0;grid-template-rows:28px minmax(0,1fr) 28px 28px!important}
+.android-jog-speed-page .android-feed-slider::after,
+.android-jog-speed-page .android-spindle-speed::after {display:block;flex:none;padding:7px 0 0;text-align:center;font-size:12px;font-weight:600;line-height:16px;color:#334155}
+.android-jog-speed-page .android-feed-slider::after {content:'Feed Rate'}
+.android-jog-speed-page .android-spindle-speed::after {content:'Spindle Speed'}
+.dark .android-jog-speed-page .android-feed-slider::after,
+.dark .android-jog-speed-page .android-spindle-speed::after {color:#dbe7f3}
+.android-jog-speed-page .android-spindle-controls>div:first-child {align-self:center}
+.android-jog-card[data-speed-page] > .android-jog-speed-page {
+    align-self: stretch !important;
+    justify-self: stretch !important;
+}
+/* Align the spindle command group with the wheel tops. */
+.android-jog-speed-page .android-spindle-controls > div:first-child {
+    align-self: start !important;
+    margin-top: 2px !important;
+}
+/* Stack spindle direction icons above their labels. */
+.android-jog-speed-page .android-spindle-controls > div:first-child > div > div:last-child {
+    flex-direction: column !important;
+    gap: 4px !important;
+    min-height: 58px !important;
+    padding: 6px 4px !important;
+}
+/* Taller spindle direction buttons. */
+.android-jog-speed-page .android-spindle-controls > div:first-child > div > div:last-child {
+    min-height: 80px !important;
+    padding: 10px 4px !important;
+}
+.android-jog-card .android-jog-speed-page .android-feed-spindle .android-spindle-controls > div:first-child > div > div:last-child {
+    height: 80px !important;
+    min-height: 80px !important;
+    max-height: none !important;
+    padding: 10px 4px !important;
+    flex-direction: column !important;
+}
+/* Wider wheel surfaces and controls, with consistent separation. */
+.android-jog-card[data-speed-page] > .android-jog-speed-page {inset-inline:12px!important}
+.android-jog-card .android-jog-speed-page .android-feed-spindle {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 74px!important;
+    column-gap:14px!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls {
+    grid-template-columns:minmax(0,1fr) 36px!important;
+    column-gap:8px!important;
+    padding-inline:0!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-speed-wheel,
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-slider-value-input {grid-column:1!important}
+.android-jog-card .android-jog-speed-page .android-range-controls > div:has(>button),
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-wheel-edit {grid-column:2!important;width:36px!important}
+.android-jog-card .android-jog-speed-page .android-range-controls > div > button,
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-wheel-edit {width:36px!important;min-width:36px!important;height:32px!important;min-height:32px!important}
+.android-jog-card .android-jog-speed-page .android-range-controls {grid-template-rows:32px minmax(0,1fr) 36px 32px!important}
+.android-jog-card .android-jog-speed-page .android-range-controls::after {grid-column:1/3!important}
+/* Wider spacing and a matching 36px drag per increment. */
+.android-wheel-options > div {height:36px!important;min-height:36px!important;line-height:36px!important}
+.android-speed-wheel::before {
+    background:
+      repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 36px) left center / 12px 100% no-repeat,
+      repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 9px) left center / 5px 100% no-repeat;
+}
+/* More deliberate wheel movement: 54px between increments. */
+.android-wheel-options > div {height:54px!important;min-height:54px!important;line-height:54px!important}
+.android-speed-wheel::before {
+    background:
+      repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 54px) left center / 12px 100% no-repeat,
+      repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 13.5px) left center / 5px 100% no-repeat;
+}
+/* One major tick centered on each 54px number row. */
+.android-speed-wheel::before {
+    top: 0;
+    bottom: 0;
+    width: 12px;
+    background: repeating-linear-gradient(to bottom,
+        currentColor 0 1px, transparent 1px 54px);
+    background-size: 12px 54px;
+    background-position: left calc(50% - 27px);
+    background-repeat: repeat-y;
+}
+.android-jog-speed-page .android-feed-slider::after,
+.android-jog-speed-page .android-spindle-speed::after {display:none!important}
+.android-jog-speed-page .android-wheel-heading,
+.android-jog-speed-page .android-wheel-live {
+    width:calc(100% - 44px);align-self:flex-start;flex:none;text-align:center;
+    color:#334155;font-size:12px;font-weight:600;line-height:16px;
+}
+.android-jog-speed-page .android-wheel-heading {padding-bottom:8px}
+.android-jog-speed-page .android-wheel-live {padding-top:8px;display:flex;flex-direction:column;gap:2px;font-variant-numeric:tabular-nums}
+.android-wheel-live small {font-size:10px;font-weight:400;opacity:.7}
+.dark .android-jog-speed-page .android-wheel-heading,
+.dark .android-jog-speed-page .android-wheel-live {color:#dbe7f3}
+.android-jog-speed-page .android-wheel-heading {order:0}
+.android-jog-speed-page .android-range-controls {order:1}
+.android-jog-speed-page .android-wheel-live {order:2}
+/* One continuous selection surface across the sight glass. */
+.android-wheel-center {background:transparent!important;border:0!important}
+.android-jog-card .android-jog-speed-page .android-range-controls::after {
+    background:rgba(104,154,201,.12);
+    box-shadow:none;
+}
+.dark .android-jog-card .android-jog-speed-page .android-range-controls::after {
+    background:rgba(104,154,201,.16);
+}
+/* Place live values between the headings and wheels. */
+.android-jog-speed-page .android-wheel-heading {order:0;padding-bottom:3px}
+.android-jog-speed-page .android-wheel-live {order:1;padding-top:0;padding-bottom:8px}
+.android-jog-speed-page .android-range-controls {order:2}
+/* Minus above, plus below; larger adjustment targets. */
+.android-jog-card .android-jog-speed-page .android-range-controls {
+    grid-template-rows:44px minmax(0,1fr) 48px 32px!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > div:has(>button[aria-label^="Decrease"]) {
+    grid-row:1!important;align-self:start!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > div:has(>button[aria-label^="Increase"]) {
+    grid-row:3!important;align-self:end!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > div > button[aria-label^="Increase"],
+.android-jog-card .android-jog-speed-page .android-range-controls > div > button[aria-label^="Decrease"] {
+    height:44px!important;min-height:44px!important;
+}
+.android-jog-speed-page .android-wheel-live > small {display:none}
+/* Wheels replace the separate increment/decrement controls. */
+.android-jog-card .android-jog-speed-page .android-range-controls > div:has(>button[aria-label^="Increase"]),
+.android-jog-card .android-jog-speed-page .android-range-controls > div:has(>button[aria-label^="Decrease"]) {
+    display: none !important;
+}
+/* Reset spans the wheel width directly beneath it. */
+.android-jog-card .android-jog-speed-page .android-range-controls {
+    grid-template-rows:minmax(0,1fr) 32px!important;
+    row-gap:6px!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-speed-wheel,
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-wheel-edit,
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-slider-value-input,
+.android-jog-card .android-jog-speed-page .android-range-controls::after {
+    grid-row:1!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > div:has(>button[aria-label^="Reset"]) {
+    grid-column:1!important;grid-row:2!important;
+    width:100%!important;margin:0!important;align-self:stretch!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > div > button[aria-label^="Reset"] {
+    width:100%!important;min-width:0!important;height:32px!important;
+}
+/* Larger selected values, with a dedicated unit column to prevent overlap. */
+.android-jog-speed-page .android-wheel-options {
+    left:14px;right:30px;
+}
+.android-jog-speed-page .android-wheel-options > div.selected {
+    font-size:24px;font-weight:600;letter-spacing:-.6px;white-space:nowrap;
+}
+.android-jog-speed-page .android-wheel-unit {
+    right:4px;top:50%;transform:translateY(-50%);
+    font-size:11px;line-height:16px;font-weight:600;
+}
+/* Reserve room for five-digit RPM values at the larger type size. */
+.android-jog-card .android-jog-speed-page .android-feed-spindle {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 64px!important;
+    column-gap:10px!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls {
+    grid-template-columns:minmax(0,1fr) 32px!important;column-gap:6px!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls > .android-wheel-edit {
+    width:32px!important;min-width:32px!important;
+}
+.android-jog-speed-page .android-wheel-heading,
+.android-jog-speed-page .android-wheel-live {width:calc(100% - 38px)}
+/* Fixed major scale with five minor divisions per increment. */
+.android-jog-speed-page .android-wheel-options > .android-wheel-scale-number,
+.android-jog-speed-page .android-wheel-options > .android-wheel-selected-value {
+    position:absolute;
+}
+.android-jog-speed-page .android-wheel-options > .android-wheel-selected-value {
+    top:50%;transform:translateY(-50%);
+}
+.android-speed-wheel::before {
+    background:
+      repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 54px) left calc(50% - 27px + var(--wheel-tick-offset,0px)) / 12px 54px repeat-y,
+      repeating-linear-gradient(to bottom,currentColor 0 1px,transparent 1px 10.8px) left calc(50% - 5.4px + var(--wheel-tick-offset,0px)) / 5px 10.8px repeat-y;
+}
+/* Tap the selected value to edit; sight glass follows only the wheel. */
+.android-jog-card .android-jog-speed-page .android-range-controls::after {
+    grid-column:1!important;margin-inline:-3px!important;
+}
+/* Symmetric sight-glass overhang independent of grid alignment. */
+.android-jog-card .android-jog-speed-page .android-range-controls::after {
+    grid-column:1!important;
+    justify-self:center!important;
+    box-sizing:border-box!important;
+    width:calc(100% + 10px)!important;
+    margin-inline:0!important;
+}
+/* Slightly larger wheel units. */
+.android-jog-speed-page .android-wheel-unit {font-size:12px;line-height:17px}
+/* Larger wheel headings and full portrait card-height wheel page. */
+.android-jog-speed-page .android-wheel-heading {
+    font-size:16px;line-height:20px;font-weight:600;
+}
+@media (orientation:portrait) {
+    .android-jog-card[data-speed-page] > .android-jog-speed-page {
+        grid-area:auto!important;
+        inset:12px 12px 32px!important;
+    }
+}
+/* More width for the spindle direction controls. */
+.android-jog-card .android-jog-speed-page .android-feed-spindle {
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr) 88px!important;
+}
+.android-jog-card .android-jog-speed-page .android-range-controls {
+    grid-template-columns:minmax(0,1fr) 20px!important;
+}
+.android-jog-speed-page .android-wheel-heading,
+.android-jog-speed-page .android-wheel-live {width:calc(100% - 26px)}
+.android-toolchange-contained {position:absolute;inset:8px;z-index:60;pointer-events:none}
+.android-toolchange-contained > .fixed {position:absolute!important;inset:0!important}
+.android-toolchange-contained > .fixed > .pointer-events-auto {width:100%!important;height:100%;display:flex;flex-direction:column;min-height:0}
+.android-toolchange-contained .h-\[420px\] {height:auto!important;flex:1;min-height:0;overflow:auto}
+.android-toolchange-contained .w-\[230px\] {width:28%!important;min-width:120px}
+.android-timeline-popout {position:absolute;bottom:10px;left:10px;width:min(310px,calc(100% - 82px));max-height:60%;z-index:55;display:flex;flex-direction:column;border:1px solid #94a3b8;border-radius:10px;background:#f1f5f9;box-shadow:0 3px 12px #0003;overflow:hidden;color:#334155}
+.dark .android-timeline-popout {background:#202832;border-color:#475569;color:#e2e8f0}
+.android-timeline-toggle {display:flex;justify-content:space-between;align-items:center;padding:7px 10px;font-size:12px;font-weight:600;flex-shrink:0}
+.android-timeline-content {overflow:auto;min-height:0;padding:0 6px 6px}
+.android-timeline-content .group {padding:5px 7px!important;gap:7px!important;box-shadow:none!important}
+.android-timeline-content .h-8.w-8 {height:24px;width:24px}
+.android-timeline-content .group button {width:28px!important}
+.android-timeline-content .group .gap-3 {gap:5px!important}
+.android-timeline-content .group .min-w-\[124px\] {min-width:0!important}
+/* Compact drawer anchored to the visualizer's left edge. */
+.android-timeline-popout {left:0;bottom:auto;top:12px;max-height:calc(100% - 24px);width:min(290px,calc(100% - 80px));border-radius:0 10px 10px 0}
+.android-timeline-popout[data-open="false"] {width:auto}
+.android-timeline-content {max-height:230px}
+/* Vertical edge tab when the tool timeline is tucked away. */
+.android-timeline-popout[data-open="false"] .android-timeline-toggle {
+    writing-mode:vertical-rl;
+    text-orientation:mixed;
+    padding:12px 7px;
+    gap:10px;
+    min-height:120px;
+}
+/* Keep the vertical handle on the right edge in either drawer state. */
+.android-timeline-popout {flex-direction:row;align-items:stretch;overflow:visible}
+.android-timeline-popout .android-timeline-toggle,
+.android-timeline-popout[data-open="false"] .android-timeline-toggle {
+    writing-mode:vertical-rl;text-orientation:mixed;padding:12px 7px;
+    gap:10px;min-height:120px;flex-shrink:0;border-left:1px solid #64748b55;
+}
+.android-timeline-popout .android-timeline-content {flex:1;padding:6px;overflow:auto}
+.android-timeline-squares {display:flex;flex-direction:column;gap:9px;padding:9px;overflow:auto;max-height:230px}
+.android-timeline-squares button {width:30px;height:30px;flex-shrink:0;border-radius:5px;border:2px solid transparent;color:white;font-size:11px;font-weight:700;text-shadow:0 1px 2px #0008}
+.android-timeline-squares button[aria-current="step"] {border-color:white;box-shadow:0 0 3px 1px white,0 0 10px 3px var(--tool-color)}
+/* Horizontal arrows within the vertical drawer handle. */
+.android-timeline-toggle > span {writing-mode:horizontal-tb;display:inline-block;font-size:20px;line-height:16px}
+/* Two-row cards matching the tool drawer sketch. */
+.android-timeline-content .group {
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto!important;
+ grid-template-rows:32px 28px!important;align-items:center!important;
+ padding:10px!important;gap:8px 10px!important;border-radius:12px!important;
+}
+.android-timeline-content .group > .absolute {position:absolute!important}
+.android-timeline-content .group > .h-8.w-8 {
+ grid-column:1;grid-row:1;width:max-content!important;min-width:52px;height:32px!important;padding:0 8px;
+}
+.android-timeline-content .group > .flex.min-w-0,
+.android-timeline-content .group > .flex.flex-shrink-0.self-stretch {display:contents!important}
+.android-timeline-content .group > .flex.min-w-0 > div:first-child {display:none!important}
+.android-timeline-content .group > .flex.min-w-0 > div:last-child {
+ grid-column:1;grid-row:2;min-width:0!important;width:max-content!important;
+}
+.android-timeline-content .group > .flex.min-w-0 > div:last-child > div {min-width:0!important;width:auto!important}
+.android-timeline-content .group > .flex.flex-shrink-0.self-stretch > span {
+ grid-column:2;grid-row:1;justify-self:end;font-size:11px!important;
+}
+.android-timeline-content .group button {
+ grid-column:2;grid-row:2;justify-self:end;width:32px!important;height:28px!important;min-height:28px!important;padding:3px!important;
+}
+.android-timeline-content .group button svg {width:20px;height:20px}
+/* Wider, shallower tool cards with larger remap targets. */
+.android-timeline-popout {width:min(330px,calc(100% - 80px))}
+.android-timeline-content .group {
+ grid-template-rows:30px 32px!important;
+ padding:6px 10px!important;row-gap:4px!important;
+}
+.android-timeline-content .group button {
+ width:40px!important;height:32px!important;min-height:32px!important;
+}
+.android-timeline-content .group button svg {width:23px;height:23px}
+
+/* Consistent tool badges without expanded-card colour strips. */
+.android-timeline-content .group > .absolute.left-0 {display:none!important}
+.android-timeline-squares button {width:56px;white-space:nowrap}
+.android-timeline-content .group > .h-8.w-8 {min-width:56px;white-space:nowrap}
+/* Match the selected tool glow in both drawer states. */
+.android-timeline-content .group.border-2 {
+ border:2px solid white!important;
+ box-shadow:0 0 3px 1px white,0 0 10px 3px var(--tool-color)!important;
+}
+.android-timeline-popout .android-timeline-content {padding:10px;scrollbar-width:thin}
+.dark .android-timeline-content,
+.dark .android-timeline-squares {color-scheme:dark;scrollbar-color:#718096 #202832}
+.dark .android-timeline-content::-webkit-scrollbar {width:8px}
+.dark .android-timeline-content::-webkit-scrollbar-track {background:#202832}
+.dark .android-timeline-content::-webkit-scrollbar-thumb {background:#718096;border:2px solid #202832;border-radius:6px}
+/* Highlight the tool badge consistently, rather than the entire card. */
+.android-timeline-content .group.border-2 {
+ border:1px solid #e5e7eb!important;box-shadow:none!important;
+}
+.dark .android-timeline-content .group.border-2 {border-color:#374151!important}
+.android-timeline-content .group.border-2 > .h-8.w-8 {
+ border:2px solid white;
+ box-shadow:0 0 3px 1px white,0 0 10px 3px var(--tool-color)!important;
+}
+.android-timeline-squares button {
+ width:30px;height:56px;writing-mode:vertical-rl;text-orientation:mixed;
+ display:flex;align-items:center;justify-content:center;
+}
+/* Let either timeline view use the available viewport height. */
+.android-timeline-popout {max-height:calc(100% - 24px)}
+.android-timeline-popout .android-timeline-content,
+.android-timeline-popout .android-timeline-squares {
+ max-height:none;min-height:0;overflow-y:auto;overscroll-behavior:contain;
+}
+.android-timeline-popout .android-timeline-toggle {min-height:0}
+.android-timeline-popout[data-open="false"] {max-height:calc(50% - 12px)}
+[data-timeline-carve="false"] .android-timeline-popout {display:none}
+.android-timeline-drawer-index {display:none}
+.android-timeline-content .android-timeline-original-index {display:none}
+.android-timeline-content .android-timeline-drawer-index {display:inline}
+/* Compact horizontal spacing in the collapsed timeline drawer. */
+.android-timeline-popout[data-open="false"] .android-timeline-squares {padding-left:5px;padding-right:5px}
+.android-timeline-popout[data-open="false"] .android-timeline-toggle {padding-left:3px;padding-right:3px}
+/* Shorter collapsed drawer with a tighter edge label. */
+.android-timeline-popout[data-open="false"] {max-height:calc(35% - 12px)}
+.android-timeline-popout[data-open="false"] .android-timeline-toggle {padding:5px 2px;gap:5px}
+/* Float job progress and a compact control stack along the viewport bottom. */
+.android-visualizer-dock .android-visualizer-card {grid-template-areas:"canvas"!important;grid-template-rows:minmax(0,1fr)!important}
+.android-visualizer-canvas > .android-job-progress {
+ position:absolute;bottom:12px;left:12px;right:106px;z-index:3;
+ padding:7px 10px;border-radius:10px;background:#f1f5f9e8;
+ box-shadow:0 2px 8px #0003;
+}
+.dark .android-visualizer-canvas > .android-job-progress {background:#202832e8}
+.android-visualizer-canvas > .android-job-rail {inset:auto 12px 12px auto;width:82px;height:auto;z-index:3}
+.android-job-rail .android-job-controls {padding:0;gap:6px!important;height:auto}
+.android-job-controls > div {flex:0 0 44px;width:82px;height:44px}
+.android-job-controls > div:last-child {margin-top:0}
+.android-job-controls > div > button {transform:none;width:82px!important;height:44px!important;min-width:0;min-height:0;font-size:14px!important}
+.android-visualizer-canvas > .android-job-rail {inset:auto 12px 12px auto!important;width:82px!important;height:auto!important}
+.android-visualizer-canvas .android-job-controls {padding:0!important;gap:6px!important;height:auto!important}
+.android-visualizer-canvas .android-job-controls > div {flex:0 0 44px!important;width:82px!important;height:44px!important;margin:0!important}
+.android-visualizer-canvas .android-job-controls > div > button {transform:none!important;width:82px!important;height:44px!important;min-width:0!important;min-height:0!important;font-size:14px!important}
+/* Larger floating job controls with a clearer separation. */
+.android-visualizer-canvas > .android-job-rail {width:104px!important}
+.android-visualizer-canvas .android-job-controls {gap:12px!important}
+.android-visualizer-canvas .android-job-controls > div {flex:0 0 56px!important;width:104px!important;height:56px!important}
+.android-visualizer-canvas .android-job-controls > div > button {width:104px!important;height:56px!important;font-size:16px!important}
+.android-visualizer-canvas > .android-job-progress {right:128px}
+/* Match each job button to the 60px floating progress panel. */
+.android-visualizer-canvas .android-job-controls > div {flex-basis:60px!important;height:60px!important}
+.android-visualizer-canvas .android-job-controls > div > button {height:60px!important}
+/* Single bottom row: progress, play/pause, stop. */
+.android-visualizer-canvas > .android-job-rail {width:220px!important}
+.android-visualizer-canvas .android-job-controls {flex-direction:row!important;gap:12px!important}
+.android-visualizer-canvas .android-job-controls > div {flex:0 0 104px!important}
+.android-visualizer-canvas > .android-job-progress {right:244px}
+.android-visualizer-canvas > .android-job-rail .android-job-controls {flex-direction:row!important;height:60px!important;align-items:center!important;flex-wrap:nowrap!important}
+/* Sight-glass frames for the coordinate readouts. */
+.android-position-card [role="button"][aria-label^="Edit "][aria-label$=" coordinate"] {
+ border:2px solid #7c93a9;border-radius:8px;padding:3px 6px;box-sizing:border-box;
+}
+.dark .android-position-card [role="button"][aria-label^="Edit "][aria-label$=" coordinate"] {border-color:#8ca6bd}
+/* Tighter inset around each DRO axis row. */
+.android-position-card .android-dro-axis {padding:2px!important}
+.android-dro-card.android-position-card .android-dro-axis,
+.android-position-card .android-dro-grid .android-dro-axis,
+body .android-position-card div.android-dro-axis {padding:2px!important}
+/* Reserve the full switch height so the first axis row cannot sit underneath it. */
+body .android-position-card .android-dro-card {grid-template-rows:44px minmax(0,1fr) 52px!important;row-gap:6px!important}
+/* Match XY and diagonal spacing to the Z-axis pair. */
+body .android-jog-card .android-jog-grid {gap:4px!important}
+/* Align the Z/A stack with the top row of XY jog buttons. */
+body .android-jog-card .android-jog-axes {padding-top:0!important}
+body .android-jog-card .android-jog-page-dots .android-jog-page-cycle {width:88px!important;height:28px!important;border-radius:999px;border:1px solid #94a3b8;background:#e2e8f0;display:flex;align-items:center;justify-content:center;gap:12px;padding:6px 14px!important}
+body .android-jog-card .android-jog-page-cycle span {width:6px;height:6px;border-radius:50%;background:#94a3b8}
+body .android-jog-card .android-jog-page-cycle span[data-active="true"] {background:#689ac9}
+.dark .android-jog-card .android-jog-page-dots .android-jog-page-cycle {background:#202832;border-color:#64748b}
+/* Compact page-cycle pill in the jog card corner. */
+body .android-jog-card .android-jog-page-dots {padding:0 2px 2px!important;min-height:20px!important}
+body .android-jog-card .android-jog-page-dots .android-jog-page-cycle {width:66px!important;height:20px!important;min-height:20px!important;padding:3px 8px!important;gap:9px}
+/* Slimmer top status bar without clipping its two-line connection label. */
+body header.android-pendant-header {height:42px!important;min-height:42px!important;padding-block:2px!important}
+body header.android-pendant-header button {height:36px!important;min-height:36px!important;padding-block:0!important}
+body header.android-pendant-header > div:first-child,
+body header.android-pendant-header > div:first-child > img {width:34px!important;height:34px!important}
+body header.android-pendant-header .android-connection-pill > span:first-child {height:32px!important}
+/* Wider, slightly shorter DRO action buttons. */
+body .android-position-card .android-dro-actions {grid-template-columns:80px minmax(0,1fr) 80px!important}
+body .android-position-card .android-dro-actions > button {width:80px!important;min-width:80px!important;height:38px!important;min-height:38px!important;justify-self:center}
+/* Equal corner inset across orientations for the compact page selector. */
+body .android-jog-card {position:relative}
+body .android-jog-card .android-jog-page-dots {position:absolute!important;right:4px!important;bottom:4px!important;padding:0!important;min-height:20px!important;z-index:5}
+body .android-jog-card .android-jog-page-dots .android-jog-page-cycle {width:56px!important;padding-inline:6px!important;gap:7px}
+body .android-jog-card .android-jog-page-dots {height:20px!important;display:flex!important;align-items:center!important}
+/* Consistent separation between the DRO and jog containers. */
+body .android-carve-grid {gap:8px!important}
+/* Four-pixel space around the visualizer; retain eight between DRO and jog. */
+body .android-carve-grid {padding:4px!important}
+@media (orientation:landscape) {body .android-carve-grid {column-gap:4px!important;row-gap:8px!important}}
+@media (orientation:portrait) {body .android-carve-grid {row-gap:4px!important;column-gap:8px!important}}
+/* Remove empty progress/feed grid tracks beneath the visualizer frame. */
+body .android-visualizer-dock .android-visualizer-card {grid-template-areas:"canvas"!important;grid-template-rows:minmax(0,1fr)!important;gap:0!important}
+/* Eight-pixel edge insets for non-jog controls. Jog geometry stays unchanged. */
+body .android-jog-card .android-jog-toolbar {padding:4px 0!important;margin-inline:0!important}
+body .android-jog-card .android-jog-page-dots {right:8px!important;bottom:8px!important}
+body .android-jog-card[data-speed-page] > .android-jog-speed-page {inset:8px 8px 36px!important}
+/* Center the complete jog-button group by its visible outer bounds. */
+body .android-jog-card .android-jog-fit .android-jog-area:not(:has(.android-xy-pad)) {margin-inline:auto!important;padding-left:5px!important;padding-right:5px!important}
+/* Shorter bottom navigation with larger, tighter icon/label stacks. */
+body nav.android-bottom-nav {height:46px!important;min-height:46px!important}
+body nav.android-bottom-nav > button {padding-block:2px!important;gap:0!important}
+body nav.android-bottom-nav > button > svg {width:24px!important;height:24px!important;flex-shrink:0}
+body nav.android-bottom-nav > button > span {font-size:13px!important;line-height:16px!important}
+/* Five-pixel corner inset for the jog page selector. */
+body .android-jog-card .android-jog-page-dots {right:5px!important;bottom:5px!important}
+/* Lift the complete jog-control group in landscape only. */
+@media (orientation:landscape) {
+ body .android-jog-card .android-jog-fit .android-jog-area:not(:has(.android-xy-pad)) {position:relative;top:-6px}
+}
+/* Uniform inner edge padding for the DRO container. */
+body .android-position-card .android-dro-card {padding:8px!important}
+/* Align actual action buttons to the same eight-pixel inner boundary. */
+body .android-position-card .android-dro-card {grid-template-rows:44px minmax(0,1fr) 38px!important}
+body .android-position-card .android-dro-actions {padding:0!important;height:38px!important;min-height:0!important;align-items:center!important}
+body .android-position-card .android-dro-actions > button:first-child {justify-self:start}
+body .android-position-card .android-dro-actions > button:last-child {justify-self:end}
+/* Shorter DRO actions, retaining the uniform edge inset. */
+body .android-position-card .android-dro-card {grid-template-rows:44px minmax(0,1fr) 32px!important}
+body .android-position-card .android-dro-actions {height:32px!important}
+body .android-position-card .android-dro-actions > button {height:32px!important;min-height:32px!important;padding-block:0!important}
+/* Shared corner radius for rectangular controls within jog and DRO cards. */
+body .android-jog-card button:not(.android-jog-page-cycle),
+body .android-position-card button,
+body .android-position-card .android-dro-axis,
+body .android-position-card [role="button"][aria-label$=" coordinate"],
+body .android-position-card input,
+body .android-jog-card input,
+body .android-jog-card .android-jog-step-switch,
+body .android-jog-card .android-jog-presets,
+body .android-position-card .android-coordinate-switch,
+body .android-position-card .android-coordinate-label,
+body .android-jog-card .android-speed-wheel,
+body .android-jog-card .android-range-controls::after {border-radius:8px!important}
+/* Override older per-control radii consistently. */
+body .android-carve-grid .android-jog-card button:not(.android-jog-page-cycle),
+body .android-carve-grid .android-position-card .android-dro-card button,
+body .android-carve-grid .android-position-card .android-dro-axis,
+body .android-carve-grid .android-position-card .android-coordinate-label,
+body .android-carve-grid .android-position-card [role="button"][aria-label$=" coordinate"],
+body .android-carve-grid .android-jog-card .android-jog-step-switch,
+body .android-carve-grid .android-jog-card .android-jog-presets {border-radius:8px!important}
+/* X arrows sit outside their labels, pointing away from the jog center. */
+body .android-jog-card button[aria-label="Jog X minus"] > div {flex-direction:row!important;gap:4px!important}
+body .android-jog-card button[aria-label="Jog X plus"] > div {flex-direction:row-reverse!important;gap:4px!important}
+/* Center X arrow/label pairs without changing their original typography. */
+body .android-jog-card button[aria-label="Jog X minus"] > div,
+body .android-jog-card button[aria-label="Jog X plus"] > div {justify-content:center!important;align-items:center!important;width:100%;height:100%}
+body .android-jog-card button[aria-label="Jog X minus"] > div > span,
+body .android-jog-card button[aria-label="Jog X plus"] > div > span {font-size:clamp(0.875rem,2.2vh,1.25rem)!important;flex:0 0 auto}
+body .android-jog-card button[aria-label="Jog X minus"] > div > svg,
+body .android-jog-card button[aria-label="Jog X plus"] > div > svg {flex-shrink:0}
+body .android-jog-card button[aria-label="Jog X minus"] > div > span,
+body .android-jog-card button[aria-label="Jog X plus"] > div > span {font-size:20px!important}
+@media (orientation:landscape) {
+ body .android-jog-card button[aria-label="Jog X minus"] > div > span,
+ body .android-jog-card button[aria-label="Jog X plus"] > div > span {font-size:16px!important}
+}
+/* Larger centered X pairs, with no oversized invisible icon area. */
+body .android-carve-grid .android-jog-card button[aria-label="Jog X minus"] > div,
+body .android-carve-grid .android-jog-card button[aria-label="Jog X plus"] > div {inset:0!important;width:auto!important;height:auto!important;padding:0!important;margin:0!important;gap:6px!important;align-items:center!important;justify-content:center!important}
+body .android-carve-grid .android-jog-card button[aria-label="Jog X minus"] > div > span,
+body .android-carve-grid .android-jog-card button[aria-label="Jog X plus"] > div > span {font-size:24px!important;line-height:1!important}
+body .android-carve-grid .android-jog-card button[aria-label="Jog X minus"] > div > svg,
+body .android-carve-grid .android-jog-card button[aria-label="Jog X plus"] > div > svg {width:24px!important;height:24px!important}
+@media (orientation:landscape) {
+ body .android-jog-card .android-jog-fit {overflow:visible!important}
+}
+/* Uniform typography, icons and centered content for every jog direction. */
+body .android-carve-grid .android-jog-card button.jog-btn > div {
+ position:absolute!important;inset:0!important;width:auto!important;height:auto!important;
+ display:flex!important;align-items:center!important;justify-content:center!important;
+ padding:0!important;margin:0!important;gap:6px!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > span {
+ font-size:24px!important;line-height:1!important;font-weight:600!important;flex:0 0 auto;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg {
+ width:24px!important;height:24px!important;stroke-width:2!important;flex-shrink:0;
+}
+/* Larger jog arrows; Y-minus keeps its arrow above its label. */
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg {
+ width:32px!important;height:32px!important;
+}
+body .android-carve-grid .android-jog-card button[aria-label="Jog Y minus"] > div {
+ flex-direction:column!important;
+}
+/* Y-minus label sits above its downward arrow. */
+body .android-carve-grid .android-jog-card button[aria-label="Jog Y minus"] > div {
+ flex-direction:column-reverse!important;
+}
+/* Emphasize direction arrows over jog labels. */
+body .android-carve-grid .android-jog-card button.jog-btn > div > span {
+ font-size:20px!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg {
+ width:36px!important;height:36px!important;stroke-width:2.75!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg {
+ min-width:36px!important;min-height:36px!important;max-width:none!important;max-height:none!important;
+}
+/* Tighter spacing between each jog arrow and label. */
+body .android-carve-grid .android-jog-card button.jog-btn > div {
+ gap:3px!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div {
+ gap:1px!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div {
+ gap:0!important;
+}
+/* Remove invisible SVG whitespace from the label/arrow layout. */
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg.lucide-chevron-up,
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg.lucide-chevron-down {
+ margin-block:-9px!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg.lucide-chevron-left,
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg.lucide-chevron-right {
+ margin-inline:-9px!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg.lucide-rotate-cw,
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg.lucide-rotate-ccw {
+ margin-block:-2px!important;
+}
+/* Directional label placement for Z-minus and rotary controls. */
+body .android-carve-grid .android-jog-card button[aria-label="Jog Z minus"] > div {
+ flex-direction:column-reverse!important;
+}
+body .android-carve-grid .android-jog-card button[aria-label="Jog A plus"] > div > svg,
+body .android-carve-grid .android-jog-card button[aria-label="Jog A minus"] > div > svg {
+ width:48px!important;height:48px!important;min-width:48px!important;min-height:48px!important;margin:0!important;
+}
+body .android-carve-grid .android-jog-card button[aria-label="Jog A plus"] > div > span,
+body .android-carve-grid .android-jog-card button[aria-label="Jog A minus"] > div > span {
+ position:absolute!important;left:50%;top:50%;transform:translate(-50%,-50%);
+ font-size:16px!important;line-height:1!important;
+}
+/* Match XY-page control bounds to the regular jog page. */
+body .android-jog-card .android-jog-fit .android-jog-area:has(.android-xy-pad) {
+ width:max-content!important;max-width:100%!important;margin-inline:auto!important;
+ padding:4px 5px!important;column-gap:12px!important;
+}
+body .android-jog-card .android-xy-pad {padding:0!important;margin:0!important}
+@media (orientation:landscape) {
+ body .android-jog-card .android-jog-fit .android-jog-area:has(.android-xy-pad) {position:relative;top:-6px}
+}
+/* Size both pages from the same available control height and axis column. */
+body .android-jog-card .android-jog-fit {container-type:size}
+body .android-jog-card .android-jog-fit .android-jog-area:has(.android-xy-pad) {
+ width:min(100%,calc(100cqh + 90.5px))!important;
+}
+body .android-jog-card .android-jog-fit {container-type:normal}
+body .android-jog-card .android-jog-fit .android-jog-area:has(.android-xy-pad) {width:414.6px!important}
+@media (orientation:landscape) {
+ body .android-jog-card .android-jog-fit .android-jog-area:has(.android-xy-pad) {width:397px!important}
+}
+/* Consistent visible arrow strokes, including the larger rotary icons. */
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg {
+ stroke-width:2.75!important;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > svg > * {
+ vector-effect:non-scaling-stroke;
+}
+body .android-carve-grid .android-jog-card button.jog-btn > div > span {
+ font-size:22px!important;
+}
+body .android-carve-grid .android-jog-card button[aria-label="Jog A plus"] > div > span,
+body .android-carve-grid .android-jog-card button[aria-label="Jog A minus"] > div > span {
+ font-size:18px!important;
+}
+/* Inset the wheel group and remove unused edit-button spacing. */
+body .android-jog-card[data-speed-page] > .android-jog-speed-page {left:20px!important}
+body .android-jog-card .android-jog-speed-page .android-feed-spindle {column-gap:12px!important}
+body .android-jog-card .android-jog-speed-page .android-range-controls {
+ grid-template-columns:minmax(0,1fr) 0px!important;column-gap:0!important;
+}
+body .android-jog-speed-page .android-wheel-heading,
+body .android-jog-speed-page .android-wheel-live {width:100%}
+/* Full-height wheel layout with an 8px vertical inset. */
+body .android-jog-card[data-speed-page] > .android-jog-speed-page {
+ top:8px!important;bottom:8px!important;
+}
+body .android-jog-speed-page .android-wheel-live {
+ font-size:18px!important;line-height:22px!important;
+}
+/* Extra breathing room between the two wheels only. */
+body .android-jog-card .android-jog-speed-page .android-feed-slider {
+ margin-right:8px!important;
+}
+/* The entire Tool Timeline edge bar is the drawer toggle target. */
+.android-timeline-popout .android-timeline-toggle {
+ align-self:stretch!important;cursor:pointer;pointer-events:auto;
+}
+.android-timeline-toggle > span {pointer-events:none}
+/* Editor sits between progress and Start/Pause in the viewport. */
+.android-visualizer-canvas > .android-floating-editor {
+ position:absolute;right:244px;bottom:12px;z-index:4;
+ width:104px!important;height:60px!important;padding:6px!important;
+ border:1px solid #689ac9;border-radius:10px;background:#3f85c7;color:white;
+ font-size:14px!important;line-height:18px;white-space:normal;
+}
+.android-visualizer-canvas > .android-job-progress {right:360px}
+.android-visualizer-canvas > .android-floating-editor {
+ width:88px!important;height:48px!important;bottom:18px;font-size:13px!important;
+}
+.android-visualizer-canvas > .android-job-progress {right:344px}
+/* Square editor control matching the progress panel's 60px height. */
+.android-visualizer-canvas > .android-floating-editor {
+ width:60px!important;height:60px!important;bottom:12px;
+}
+.android-visualizer-canvas > .android-job-progress {right:316px}
+.android-visualizer-canvas > .android-file-actions {
+ position:absolute;left:12px;bottom:12px;z-index:4;display:flex;gap:12px;
+}
+.android-visualizer-canvas > .android-file-actions > button {
+ height:60px!important;padding:8px 14px!important;display:flex;align-items:center;justify-content:center;gap:6px;
+ border:1px solid #689ac9;border-radius:10px;background:#3f85c7;color:white;font-size:14px!important;
+}
+.android-visualizer-canvas > .android-file-actions > button:disabled {
+ opacity:.45;cursor:not-allowed;
+}
+.android-loaded-file-info {display:flex;align-items:center;justify-content:flex-end;gap:10px;min-width:0;margin-left:12px;font-size:12px;line-height:18px;color:#475569}
+.android-loaded-file-info strong {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600}
+.android-loaded-file-info span {flex-shrink:0;font-size:11px;opacity:.8}
+.dark .android-loaded-file-info {color:#dbe7f3}
+.android-loaded-file-info {order:2}
+/* Larger loaded-file information in the visualizer toolbar. */
+.android-loaded-file-info {font-size:15px;line-height:20px}
+.android-loaded-file-info span {font-size:13px}
+body header.android-pendant-header .android-connection-button {width:148px!important;min-width:0!important}
+.android-inline-status {flex:1;min-width:0;overflow-x:auto;overflow-y:hidden}
+.android-inline-status > * {border:0!important;background:transparent!important;padding:0!important;min-width:max-content;height:36px!important;display:flex;align-items:center}
+body header.android-pendant-header button.android-connection-pill {width:148px!important;min-width:148px!important}
+.android-status-drawer {display:flex;align-items:center;justify-content:center;gap:10px;flex-shrink:0;padding:0 12px;border:1px solid #64748b;border-radius:10px;background:#e2e8f0;color:#334155;cursor:pointer}
+.dark .android-status-drawer {background:#263141;color:#e2e8f0}
+.android-status-drawer > span:last-child {font-size:24px;line-height:1}
+.android-status-spacer {flex:1;min-width:0}
+body header.android-pendant-header .android-status-drawer[data-open="true"] {flex:1;min-width:0;padding:0 6px;overflow-x:auto;overflow-y:hidden;background:#689ac91a;border-color:#689ac9}
+.android-status-drawer[data-open="true"] + .android-status-spacer {display:none}
+.android-status-drawer > div {display:flex!important;align-items:center!important;width:100%;min-width:max-content;border:0!important;background:transparent!important;padding:0!important;height:32px!important;gap:10px!important}
+.android-status-drawer {scrollbar-width:none}
+.android-status-drawer::-webkit-scrollbar {display:none}
+/* More compact connection/state control. */
+body header.android-pendant-header button.android-connection-pill {
+ width:128px!important;min-width:128px!important;padding-left:4px!important;padding-right:6px!important;gap:4px!important;
+}
+body header.android-pendant-header button.android-connection-pill > span:first-child {width:30px!important;min-width:30px!important}
+body header.android-pendant-header button.android-connection-pill {width:120px!important;min-width:120px!important;padding:0 3px 0 0!important;gap:2px!important}
+body header.android-pendant-header button.android-connection-pill > span:first-child {width:30px!important;min-width:30px!important;padding:0!important;margin:0!important}
+body header.android-pendant-header button.android-connection-pill > span:first-child svg {width:30px!important;height:30px!important}
+body header[data-android-connected="false"] .android-connection-status {color:#eab308!important;font-size:12px!important}
+body header.android-pendant-header {position:relative}
+.android-header-clock {position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font:14px ui-monospace,monospace;color:#64748b;pointer-events:none;padding:2px 6px;border-radius:4px;background:#f3f4f6;z-index:2}
+.dark .android-header-clock {color:#cbd5e1;background:#161b22}
+header:has(.android-status-drawer[data-open="true"]) .android-header-clock {top:0;transform:translateX(-50%);font-size:10px;padding:0 4px;line-height:12px}
+header:has(.android-status-drawer[data-open="true"]) .android-status-drawer {padding-top:10px!important}
+/* Trim the plug icon's internal whitespace as well as its wrapper. */
+body header.android-pendant-header button.android-connection-pill > span:first-child {
+ width:22px!important;min-width:22px!important;overflow:visible!important;
+}
+body header.android-pendant-header button.android-connection-pill {
+ gap:0!important;padding-left:0!important;
+}
+body header.android-pendant-header button.android-connection-pill > span:first-child svg {
+ flex-shrink:0;max-width:none!important;width:32px!important;height:32px!important;
+}
+/* Matching compact heights for connection and Status controls. */
+body header.android-pendant-header button.android-connection-pill,
+body header.android-pendant-header button.android-status-drawer {
+ height:30px!important;min-height:30px!important;
+}
+body header.android-pendant-header button.android-connection-pill > span:first-child {
+ height:28px!important;min-height:0!important;
+}
+body header.android-pendant-header button.android-status-drawer > div {
+ height:28px!important;
+}
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill {
+ height:30px!important;min-height:30px!important;padding:0 3px 0 0!important;
+}
+/* Fit the two-line connection label and match Status height. */
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill,
+body header.android-pendant-header button.android-status-drawer {
+ height:36px!important;min-height:36px!important;
+}
+/* Tight connection/Status spacing with a small icon inset. */
+body header.android-pendant-header button.android-status-drawer {margin-left:-6px!important}
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill {
+ padding-left:3px!important;
+}
+/* Equal outer insets around connection-button content. */
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill {
+ padding-inline:3px!important;
+}
+body header.android-pendant-header button.android-connection-pill > span:last-child {
+ padding-right:0!important;margin-right:0!important;
+}
+/* More breathing room after connection text, less space after the logo. */
+body header.android-pendant-header > .no-drag:nth-child(2) {
+ margin-left:-6px!important;
+}
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill {
+ padding-right:8px!important;
+}
+/* Keep the connection button clear of the logo/build label. */
+body header.android-pendant-header > .no-drag:nth-child(2) {
+ margin-left:0!important;
+}
+/* Status uses the clock's space while expanded. */
+header:has(.android-status-drawer[data-open="true"]) .android-header-clock {display:none!important}
+body header.android-pendant-header .android-status-drawer[data-open="true"] {padding-top:0!important}
+body header.android-pendant-header .android-header-actions > button:first-child {
+ width:76px!important;min-width:76px!important;padding-inline:6px!important;gap:4px!important;
+}
+/* Size connection content naturally so every state retains its insets. */
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill {
+ width:max-content!important;min-width:120px!important;max-width:none!important;
+ padding:3px 10px 3px 5px!important;gap:4px!important;
+ height:36px!important;min-height:36px!important;
+}
+body header.android-pendant-header button.android-connection-pill > span:last-child {
+ flex:0 0 auto!important;overflow:visible!important;
+}
+body header.android-pendant-header button.android-connection-pill .android-connection-title,
+body header.android-pendant-header button.android-connection-pill .android-connection-status {
+ white-space:nowrap!important;overflow:visible!important;text-overflow:clip!important;
+}
+/* A little more vertical room in the top bar. */
+body header.android-pendant-header {height:46px!important;min-height:46px!important}
+/* Keep the Unlock pulse inside the available header clearance. */
+body header.android-pendant-header,
+body header.android-pendant-header .android-header-actions {overflow:visible!important}
+@keyframes android-unlock-pulse {
+ 0%,100% {outline-offset:1px;outline-width:2px}
+ 50% {outline-offset:3px;outline-width:2px}
+}
+body header.android-pendant-header .unlock-attention,
+body header.android-pendant-header .unlock-attention-home {
+ position:relative;z-index:2;animation:android-unlock-pulse 1.2s ease-in-out infinite!important;
+}
+/* Reserve the machine header above every popup, including its hit targets. */
+body header.android-pendant-header {z-index:10050!important;pointer-events:auto!important}
+body [role="dialog"] {
+ top:54px!important;max-height:calc(var(--android-viewport-height) - 62px)!important;
+ transform:translateX(-50%)!important;overflow:auto;
+}
+body .android-gcode-editor-dialog,
+body [role="dialog"]:has(.macro-code-highlight) {
+ inset:54px 16px 16px!important;height:calc(var(--android-viewport-height) - 70px)!important;
+ transform:none!important;
+}
+/* Larger tap areas for each jog increment. */
+body .android-jog-toolbar .android-jog-step-switch > button {padding-inline:16px!important;min-width:40px!important}
+/* Fit coordinate frames to the digits, matching the axis-zero control height. */
+body .android-position-card .android-dro-axis > [role="button"][aria-label$=" coordinate"] {
+ flex:0 1 auto!important;max-width:100%;
+ justify-self:center;align-self:center;margin-inline:auto!important;
+ height:86%!important;min-height:0!important;padding:0 10px!important;
+}
+.android-close-files {display:flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #94a3b8;border-radius:8px;background:transparent;color:inherit;flex-shrink:0}
+
+/* Keep reset icons legible on the active light and dark button surfaces. */
+.android-jog-card .android-jog-speed-page .android-range-controls > div > button[aria-label^="Reset"] {
+    color: #3f85c7 !important;
+    background: #f1f5f9 !important;
+}
+.dark .android-jog-card .android-jog-speed-page .android-range-controls > div > button[aria-label^="Reset"] {
+    color: #b4d9f8 !important;
+    background: #283542 !important;
+}
+
+
+:root { --android-header-height:46px; --android-nav-height:46px; }
