@@ -1,5 +1,9 @@
 'use strict';
 const path = require('node:path');
+const moduleCache = require('node:module');
+// Optional acceleration: an absent, stale or unwritable cache never blocks startup.
+try { const cache = moduleCache.enableCompileCache?.(path.resolve(__dirname, '../code-cache')); console.log('GSENDER_STARTUP compile_cache=' + (cache?.status ?? 'unavailable')); } catch { console.log('GSENDER_STARTUP compile_cache=unavailable'); }
+const startupAt = require('node:perf_hooks').performance.now();
 const fs = require('node:fs');
 process.env.NODE_ENV = 'production';
 process.env.GSENDER_LOCAL_TOKEN = require('node:crypto').randomBytes(32).toString('hex');
@@ -36,6 +40,8 @@ try {
     createServer({ host: '127.0.0.1', port: 8765, configFile: path.join(process.env.GSENDER_USER_DATA, 'settings.json'),
         allowRemoteAccess: false, verbosity: 0 }, (err, result) => {
         if (err) return fail(err);
+        try { moduleCache.flushCompileCache?.(); } catch {}
+        console.log('GSENDER_STARTUP backend_ready_ms=' + Math.round(require('node:perf_hooks').performance.now()-startupAt));
         native.send(JSON.stringify({ host: 'ready', port: result.port, token: process.env.GSENDER_LOCAL_TOKEN }));
     });
 } catch (err) { fail(err); }

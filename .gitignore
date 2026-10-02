@@ -35,3 +35,6 @@ cypress/reports/
 cypress/Reports/
 cypress/downloads/
 
+
+# Local user machining files for simulator benchmarks, never publish automatically.
+/android-port/benchmark/fixtures/local/

@@ -554,7 +554,7 @@ export default function ConnectionWidget({ machineStatus = 'Disconnected', statu
                 {connectionState === ConnectionState.DISCONNECTED && (
                     <button
                         key="disconnected"
-                        style={{ borderColor: statusColor }}
+                        aria-label={"CNC connection: " + connectionState} title={"CNC connection: " + connectionState}
                         type="button"
                         onClick={openSheet}
                         className={cn(
@@ -575,7 +575,7 @@ export default function ConnectionWidget({ machineStatus = 'Disconnected', statu
                 {connectionState === ConnectionState.CONNECTING && (
                     <div
                         key="connecting"
-                        style={{ borderColor: statusColor }}
+                        aria-label={"CNC connection: " + connectionState} title={"CNC connection: " + connectionState}
                         className={cn(
                             PILL_BASE,
                             'conn-anim-shimmer',
@@ -599,7 +599,7 @@ export default function ConnectionWidget({ machineStatus = 'Disconnected', statu
                 {connectionState === ConnectionState.ERROR && (
                     <button
                         key="error"
-                        style={{ borderColor: statusColor }}
+                        aria-label={"CNC connection: " + connectionState} title={"CNC connection: " + connectionState}
                         type="button"
                         onClick={openSheet}
                         className={cn(
@@ -622,7 +622,7 @@ export default function ConnectionWidget({ machineStatus = 'Disconnected', statu
                 {connectionState === ConnectionState.CONNECTED && (
                     <button
                         key="connected"
-                        style={{ borderColor: statusColor }}
+                        aria-label={"CNC connection: " + connectionState} title={"CNC connection: " + connectionState}
                         type="button"
                         onPointerDown={startHold}
                         onPointerUp={endHold}

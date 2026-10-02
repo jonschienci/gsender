@@ -1,3 +1,5 @@
+import {useWorkspaceState} from 'app/hooks/useWorkspaceState';
+import {coordinateCommandValue} from '../../../../android-port/ui/readout-value.mjs';
 import HoldAxisButton from './HoldAxisButton';
 import type { CSSProperties } from 'react';
 import useRotaryEnabled from './useRotaryEnabled';
@@ -80,8 +82,10 @@ export default function DROCard() {
         workflowState !== WORKFLOW_STATE_RUNNING &&
         (activeState === GRBL_ACTIVE_STATE_IDLE ||
             activeState === GRBL_ACTIVE_STATE_JOG);
+    const {units:coordinateUnits}=useWorkspaceState();
+    const controllerUnits=useTypedSelector(s=>s.controller.modal.units);
     const canGoTo = canZero;
-    const canHome = (canGoTo && homingEnabled) || isHomingAlarm;
+    const canHome = isConnected && workflowState !== WORKFLOW_STATE_RUNNING && homingEnabled && (activeState === GRBL_ACTIVE_STATE_IDLE || isHomingAlarm);
     const [goXYHolding, setGoXYHolding] = useState(false);
     const goXYTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const cancelGoXYHold = () => {
@@ -220,6 +224,7 @@ export default function DROCard() {
                             aria-label={homeMenuOpen ? `Home ${label} axis` : `Go to ${label} axis`}
                             data-home-axis={homeMenuOpen ? label : undefined}
                             actionKey={`${homeMenuOpen ? 'home' : 'goto'}-${label}`}
+                            activation={homeMenuOpen ? 'tap' : 'hold'}
                             onActivate={() => {
                                 if (homeMenuOpen) { setHomeMenuOpen(false); if (canHome) homeAxis(label); }
                                 else gotoZero(label);
@@ -266,7 +271,7 @@ export default function DROCard() {
                             ZERO
                         </HoldAxisButton>
                         {editingAxis === label && <form data-dro-editor onClick={event => event.stopPropagation()} className="android-dro-value-editor" aria-label={mode === 'work' ? `Set ${label} work coordinate` : `${label} machine coordinate`}
-                            onSubmit={(event) => { event.preventDefault(); const value = Number(axisValue); if (canZero && mode === 'work' && axisValue.trim() && Number.isFinite(value)) { zeroWCS(label, value); setEditingAxis(null); } }}>
+                            onSubmit={(event) => { event.preventDefault(); const value = Number(axisValue); if (canZero && mode === 'work' && axisValue.trim() && Number.isFinite(value)) { zeroWCS(label, coordinateCommandValue(value,label,coordinateUnits,controllerUnits)); setEditingAxis(null); } }}>
                             <input key={mode} autoFocus readOnly={mode === 'machine'} aria-label={`${label} coordinate value`} inputMode="decimal" value={axisValue} onChange={event => setAxisValue(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setEditingAxis(null); }} />
                             {mode === 'machine' ? <>
                                 <span className="android-dro-readonly-label">Machine</span>

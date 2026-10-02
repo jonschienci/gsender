@@ -15,7 +15,8 @@ type Props = {
 
 export default function VerticalWheel({value, min, max, step, disabled = false,
     unit = '%', onValueChange, onValueCommit, onEditValue, ...props}: Props) {
-    const drag = useRef<{id: number; y: number; value: number; moved: boolean; selected: boolean} | null>(null);
+    const drag = useRef<{id: number; y: number; value: number; moved: boolean; selected: boolean; direction: number} | null>(null);
+    const [flash, setFlash] = useState<{direction:number; id:number} | null>(null);
     const current = useRef(value[0]);
     const [local, setLocal] = useState(value[0]);
     useEffect(() => {
@@ -33,8 +34,14 @@ export default function VerticalWheel({value, min, max, step, disabled = false,
         };
     }, [disabled]);
     const update = (value: number) => {
-        const minor = step / 5;
-        const next = Number(Math.min(max, Math.max(min, Math.round(value / minor) * minor)).toFixed(3));
+        // Manual values stay exact until the wheel moves. Wheel marks are
+        // anchored at zero, never at the most recently entered custom value.
+        const first = Math.ceil(min / step) * step;
+        const last = Math.floor(max / step) * step;
+        const lower = first <= last ? first : min;
+        const upper = first <= last ? last : max;
+        const next = Number(Math.min(upper, Math.max(lower, Math.round(value / step) * step)).toFixed(3));
+        if (next === current.current) return;
         current.current = next;
         setLocal(next);
         onValueChange?.([next]);
@@ -45,12 +52,17 @@ export default function VerticalWheel({value, min, max, step, disabled = false,
         aria-label={props['aria-label']} aria-valuemin={min} aria-valuemax={max}
         aria-valuenow={local} aria-valuetext={`${local} ${unit}`}
         aria-orientation="vertical" aria-disabled={disabled} tabIndex={disabled ? -1 : 0}
-        style={{'--wheel-tick-offset': `${-fraction * 54}px`} as React.CSSProperties}
+        style={{
+            '--wheel-tick-offset': `${-fraction * 54}px`,
+            '--wheel-min-offset': `${(min - local) / step * 54}px`,
+            '--wheel-max-offset': `${(local - max) / step * 54}px`,
+        } as React.CSSProperties}
         onPointerDown={event => {
             if (disabled || event.button !== 0 || drag.current) return;
             event.preventDefault();
             const rect = event.currentTarget.getBoundingClientRect();
             drag.current = {id: event.pointerId, y: event.clientY, value: current.current,
+                direction: event.clientY <= rect.top + 40 ? -1 : event.clientY >= rect.bottom - 40 ? 1 : 0,
                 moved: false, selected: Math.abs(event.clientY - rect.top - rect.height / 2) <= 20};
             event.currentTarget.setPointerCapture(event.pointerId);
         }}
@@ -69,6 +81,15 @@ export default function VerticalWheel({value, min, max, step, disabled = false,
             if (disabled) return;
             if (!gesture.moved && gesture.selected) onEditValue?.();
             else if (gesture.moved) onValueCommit?.([current.current]);
+            else if (gesture.direction) {
+                setFlash(previous => ({direction:gesture.direction, id:(previous?.id ?? 0)+1}));
+                const index = current.current / step;
+                const next = gesture.direction > 0
+                    ? (Math.floor(index) + 1) * step
+                    : (Math.ceil(index) - 1) * step;
+                update(next);
+                onValueCommit?.([current.current]);
+            }
         }}
         onPointerCancel={() => { drag.current = null; }}
         onLostPointerCapture={() => { drag.current = null; }}
@@ -76,12 +97,23 @@ export default function VerticalWheel({value, min, max, step, disabled = false,
             if (disabled) return;
             if (event.key === 'Enter') { event.preventDefault(); onEditValue?.(); return; }
             const delta = event.key === 'ArrowUp' ? step : event.key === 'ArrowDown' ? -step : 0;
-            if (delta) { event.preventDefault(); update(current.current + delta); onValueCommit?.([current.current]); }
+            if (delta) {
+                event.preventDefault();
+                // From a custom value, go to the next mark in the requested
+                // direction (123% -> 125% up, or 120% down).
+                const index = current.current / step;
+                const next = delta > 0 ? (Math.floor(index) + 1) * step : (Math.ceil(index) - 1) * step;
+                update(next);
+                onValueCommit?.([current.current]);
+            }
         }}>
+        {flash && <div key={flash.id} aria-hidden="true"
+            className={'android-wheel-edge-flash ' + (flash.direction < 0 ? 'edge-top' : 'edge-bottom')} />}
         <div className="android-wheel-center" aria-hidden="true" />
         <div className="android-wheel-options" aria-hidden="true">
             {[-3,-2,-1,0,1,2,3].map(offset => {
                 const number = base + offset * step;
+                if (number < min || number > max) return null;
                 const distance = offset - fraction;
                 return <div key={offset} className="android-wheel-scale-number" style={{
                     top: `calc(50% + ${distance * 54}px)`,

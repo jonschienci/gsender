@@ -9,12 +9,13 @@ test('DRO editing stays open during status updates; homing chooses only its name
  globalThis.ResizeObserver=class {observe(){}disconnect(){}};globalThis.IS_REACT_ACT_ENVIRONMENT=true;
  const React=require('react'),{render,act,fireEvent,cleanup}=require('@testing-library/react');
  let rotary=true;const actions=[];
- const state={connection:{isConnected:true},controller:{workflow:{state:'idle'},state:{status:{activeState:'Idle'}},settings:{settings:{$22:1}},wpos:{x:1,y:2,z:3,a:4},mpos:{x:101,y:102,z:103,a:104}}};
+ const state={connection:{isConnected:true},controller:{modal:{units:'G21'},workflow:{state:'idle'},state:{status:{activeState:'Idle'}},settings:{settings:{$22:1}},wpos:{x:1,y:2,z:3,a:4},mpos:{x:101,y:102,z:103,a:104}}};
  const compile=file=>{
   const code=buildSync({entryPoints:[file],bundle:true,packages:'external',external:['app/*'],platform:'browser',format:'cjs',jsx:'automatic',write:false}).outputFiles[0].text;
   const m=new Module(path.join(__dirname,path.basename(file)+'.compiled.cjs'),module);m.filename=m.id;m.paths=module.paths;const original=m.require.bind(m);
   m.require=id=>{
    if(id==='app/hooks/useTypedSelector')return {useTypedSelector:fn=>fn(state)};
+   if(id==='app/hooks/useWorkspaceState')return {useWorkspaceState:()=>({units:'mm'})};
    if(id==='app/constants')return {GRBL_ACTIVE_STATE_IDLE:'Idle',GRBL_ACTIVE_STATE_JOG:'Jog',GRBL_ACTIVE_STATE_ALARM:'Alarm',WORKFLOW_STATE_RUNNING:'running'};
    if(id==='app/store'){const store={get:()=>rotary,on(){},removeListener(){}};return {__esModule:true,default:store,...store};}
    if(id==='app/features/DRO/utils/DRO')return Object.fromEntries(['gotoZero','goXYAxes','homeMachine','homeAxis','zeroAllAxes','zeroWCS'].map(name=>[name,(...args)=>actions.push([name,...args])]));
@@ -43,7 +44,7 @@ test('DRO editing stays open during status updates; homing chooses only its name
    assert.equal(actions.length,0,'opening the popup must not home all axes');
    assert.equal(home.getAttribute('aria-expanded'),'true');
    const button=view.getByRole('button',{name:'Home '+axis+' axis',exact:true});
-   await press(button);
+   await press(button,20);
    assert.deepEqual(actions.pop(),['homeAxis',axis]);assert.equal(actions.length,0);
   }
   const home=view.getByRole('button',{name:'Home',exact:true});

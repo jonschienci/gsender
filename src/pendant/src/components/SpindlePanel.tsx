@@ -637,6 +637,12 @@ export default function SpindlePanel({ mode }: Props) {
     const spindleReverse = spindleModal === 'M4';
     const laserIsOn = spindleModal !== 'M5';
     const clickable = canClick();
+    const setLaserMode=useRef((enabled:boolean)=>{});
+    setLaserMode.current=(enabled:boolean)=>{
+        if(!clickable || workflow.state !== 'idle' || enabled===isLaserMode)return;
+        actions.handleModeToggle();
+    };
+    useEffect(()=>{const change=(event:Event)=>setLaserMode.current(Boolean((event as CustomEvent).detail?.enabled));window.addEventListener('android-set-laser-mode',change);return()=>window.removeEventListener('android-set-laser-mode',change);},[]);
 
     const { enableDarkMode = false } = useWorkspaceState();
     const isDark = enableDarkMode;
@@ -851,7 +857,7 @@ export default function SpindlePanel({ mode }: Props) {
                             defaultPercentage={[isLaserMode ? 0 : Math.min(state.spindleMax || 30000, Math.max(state.spindleMin || 1, 1000))]}
                             min={isLaserMode ? 0 : state.spindleMin || 1}
                             max={isLaserMode ? 100 : state.spindleMax || 30000}
-                            step={isLaserMode ? 1 : 100}
+                            step={isLaserMode ? 5 : 500}
                             controlUnit={isLaserMode ? '%' : ' RPM'}
                             unitString={isLaserMode ? '%' : 'RPM'}
                             resetDescription="speed to default"

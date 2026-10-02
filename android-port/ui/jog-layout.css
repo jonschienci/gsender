@@ -1,3 +1,7 @@
+/* Fixed tablet viewports otherwise retain Android's double-tap click delay.
+   Child jog/pad controls keep touch-action:none; scrolling and pinch handlers
+   remain available. App double/hold gestures use their own event handlers. */
+html { touch-action: manipulation; }
 /* Older Android WebViews cannot resolve dvh inside var()-based tray sizing.
    Choose the supported viewport unit before evaluating those expressions. */
 :root { --android-header-height: 48px; --android-nav-height: 52px; --android-viewport-height: 100vh; }

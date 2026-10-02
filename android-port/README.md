@@ -2,11 +2,15 @@
 
 Android host for gSender's existing desktop and pendant interfaces, Node backend, and direct USB serial connection to a CNC controller. The Android-specific code lives in this directory; upstream source is adapted only at bundle time.
 
-Current build: [Build 60](BUILD-60.md), incorporating the completed pendant UI, tool timeline drawer, floating job controls and job-aware jog pages. It retains Build 59 kiosk support. The [three-tablet performance report](benchmarks/gSender-Android-Build-55-Benchmark-Report.pdf) remains the measured Build 55 baseline; Build 60 has not been rebenchmarked.
+Current build: [Build 66](BUILD-66.md), incorporating the latest approved portrait UI, upstream parser allocation improvements, separate live-marker rendering, faster ordinary touch activation, compact backend dependencies, compile caching and staged payload installation. The K90 installation and quick skull benchmark are documented in the build note. No sustained 30 fps guarantee is implied.
+
+The [parser and K90 responsiveness investigation](PENDING-PARSER-UI-PERFORMANCE.md) records the original Chrome comparison and the selected upstream Android ideas implemented in Build 66.
+
+Backend implementation details: [job-start correction, passive logs and local skull benchmark](PENDING-REAL-JOB-DIAGNOSTICS.md), introduced in Build 61 and retained in Build 63.
 
 ## Target and status
 
-Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through USB OTG. The build system supports arm64-v8a and armeabi-v7a when matching runtime libraries are supplied; the distributed Build 60 APK contains armeabi-v7a only and requires Android API 26 or newer. ARM64-only devices need a separately built ARM64 runtime. Machine control, EEPROM editing, and reconnect across app restarts have been confirmed on earlier development builds. This branch ports that work onto upstream `dev`; it is a development build, not a validated production machine-control release. Current provenance is recorded in `upstream.json`.
+Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through USB OTG. The build system supports arm64-v8a and armeabi-v7a when matching runtime libraries are supplied; the distributed Build 66 APK contains armeabi-v7a only and requires Android API 26 or newer. ARM64-only devices need a separately built ARM64 runtime. Machine control, EEPROM editing, and reconnect across app restarts have been confirmed on earlier development builds. This branch ports that work onto upstream `dev`; it is a development build, not a validated production machine-control release. Current provenance is recorded in `upstream.json`.
 
 Use an up-to-date **Android System WebView**, updated through Google Play. On a newly configured ZTE K87CA, Build 57 installed but showed a blank screen with WebView 83.0.4103.106; its launch check is pending a WebView update. Samsung SM-X133 passed a cold launch after updating to Android 16 / One UI 8.5 with the 2026-07-05 security patch and Google Play system update 2026-08-01. ZTE work is deferred. See [Build 57](BUILD-57.md) for device status and validation limits.
 
@@ -46,14 +50,14 @@ the Mac on the tablet. `adb devices -l` must show `device` beside each intended
 serial number. Use `-r` to preserve the existing installation's app data:
 
 ```sh
-adb -s TABLET_SERIAL install -r /path/to/gSender-Android-build-60.apk
+adb -s TABLET_SERIAL install -r /path/to/gSender-Android-build-66.apk
 ```
 
-To install Build 60 on every connected device already authorized for debugging:
+To install Build 66 on every connected device already authorized for debugging:
 
 ```sh
 GSENDER_ADB="/path/to/platform-tools/adb"
-GSENDER_APK="/path/to/gSender-Android-build-60.apk"
+GSENDER_APK="/path/to/gSender-Android-build-66.apk"
 "$GSENDER_ADB" devices | awk '$2 == "device" {print $1}' | while IFS= read -r serial; do
   "$GSENDER_ADB" -s "$serial" install -r "$GSENDER_APK"
 done
@@ -69,9 +73,21 @@ Keep the signing key private and preserve it for updates. An APK signed with ano
 
 For each new distributed build, increment the version code and version strings and name the APK `gSender-Android-build-N.apk`. The installed app name automatically includes the version code, for example **gSender Android Build 23**, so the tablet identifies the installed build.
 
+## Packaged startup check
+
+With the CNC disconnected, check a specific tablet and preserve app data:
+
+```sh
+python3 android-port/scripts/android-launch-check.py --adb /path/to/platform-tools/adb \
+  --serial TABLET_SERIAL --apk /path/to/gSender-Android-build-66.apk \
+  --output /path/to/check-results --launches 2
+```
+
+This checks the installed APK hash, backend readiness, page-load completion and fatal startup logs. It temporarily enables only the startup log tag and restores it afterward. It does not certify physical motion or interactive frame rate. `--defer-webview true` is a diagnostic comparison; the release default is false. Keep the generated backend source maps/metafiles with the matching APK for stack-trace analysis; they are not shipped on the tablet.
+
 ## Managed kiosk
 
-Build 60 retains the Android kiosk support introduced in Build 59. Five taps on **Build** within two seconds exit or re-enter fullscreen/kiosk mode. Managed lock-task enrollment is an explicit step on each tablet; installation alone provides fullscreen mode. See [setup, operation and validation](KIOSK.md).
+Build 64 retains the Android kiosk support introduced in Build 59. Five taps on **Build** within two seconds exit or re-enter fullscreen/kiosk mode. Managed lock-task enrollment is an explicit step on each tablet; installation alone provides fullscreen mode. See [setup, operation and validation](KIOSK.md).
 
 ## Use
 

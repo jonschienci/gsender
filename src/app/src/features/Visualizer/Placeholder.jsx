@@ -8,19 +8,23 @@ export function VisualizerPlaceholder() {
     useEffect(() => {
         const token = pubsub.subscribe(
             'placeholder:invalidLines',
-            (msg, invalidLines) => {
+            (msg, payload) => {
+                // Accept old event publishers while retaining the true count
+                // when the parser sends a bounded sample of invalid lines.
+                const invalidLines = Array.isArray(payload) ? payload : payload?.invalidLines || [];
+                const invalidLineCount = Array.isArray(payload) ? payload.length : payload?.invalidLineCount ?? invalidLines.length;
                 const showWarningsOnLoad = store.get(
                     'widgets.visualizer.showWarning',
                     false,
                 );
                 if (showWarningsOnLoad) {
-                    if (invalidLines.length > 0) {
+                    if (invalidLineCount > 0) {
                         // Put it in the modal somehow
                         const lineSample = invalidLines.slice(0, 5);
                         const description = (
                             <div className={'flex flex-col gap-2'}>
                                 <p>
-                                    Detected {invalidLines.length} invalid lines
+                                    Detected {invalidLineCount} invalid lines
                                     on file load. Your job may not run
                                     correctly.
                                 </p>

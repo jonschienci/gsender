@@ -1,0 +1,13 @@
+.android-z-height-scale {
+    position:absolute;top:10px;right:8px;bottom:84px;width:108px;
+    z-index:1;pointer-events:none;user-select:none;overflow:hidden;
+    color:#475569;--z-job:#3f85c7;--z-current:#047857;--z-outside:#c2410c;
+    background:linear-gradient(90deg,transparent,#ffffffdb 34%,#fffffff0);
+    border-radius:6px;
+}
+.dark .android-z-height-scale {
+    color:#bdc8d5;--z-job:#80b6e8;--z-current:#66e1b0;--z-outside:#ffad78;
+    background:linear-gradient(90deg,transparent,#171b23d9 34%,#171b23eb);
+}
+.android-z-height-scale svg {display:block;overflow:visible;fill:currentColor;font-variant-numeric:tabular-nums;}
+.android-visualizer-card[data-show-job-controls="false"] .android-z-height-scale {bottom:12px;}

@@ -1,7 +1,7 @@
 import cn from 'classnames';
 import { ToolChange } from './types';
 import Button from 'app/components/Button';
-import { TbSwitch3 } from 'react-icons/tb';
+import { TbGripVertical } from 'react-icons/tb';
 import { useEffect, useState } from 'react';
 import { lookupToolName } from 'app/features/ATC/utils/ATCFunctions.ts';
 import pubsub from 'pubsub-js';
@@ -159,7 +159,7 @@ export function ToolTimelineItem({
                             disabled={remapDisabled}
                             size="custom"
                         >
-                            <TbSwitch3 size={32} />
+                            <TbGripVertical size={32} />
                         </Button>
                     )}
                 </div>

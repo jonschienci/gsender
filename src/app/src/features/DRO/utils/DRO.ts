@@ -1,4 +1,5 @@
 import controller from 'app/lib/controller';
+import { toast } from 'app/lib/toaster';
 import store from 'app/store';
 import get from 'lodash/get';
 import { METRIC_UNITS } from 'app/constants';
@@ -154,5 +155,20 @@ export function homeMachine() {
 }
 
 export function homeAxis(axis: string) {
-    controller.command('gcode', `$H${axis}`);
+    const selected = axis.toUpperCase();
+    if (!/^[XYZABC]$/.test(selected)) return;
+    const state = reduxStore.getState();
+    if (String(state.controller.type).toLowerCase() === 'grblhal') {
+        const mask = Number(state.controller.settings?.settings?.$22);
+        if (!Number.isInteger(mask) || !(mask & 1) || !(mask & 2)) {
+            toast.error('Enable single-axis homing in the controller homing settings ($22) first.');
+            return;
+        }
+        // Use the dedicated homing path, including its state/ATC event handling.
+        controller.command('homing', selected);
+    } else {
+        // Legacy Grbl's homing handler ignores an axis argument: never use it
+        // here or an individual-axis request would become a full homing cycle.
+        controller.command('gcode', `$H${selected}`);
+    }
 }

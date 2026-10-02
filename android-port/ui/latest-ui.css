@@ -1,0 +1,1411 @@
+/* Design changes on top of the frozen Build 61 source. */
+.android-z-height-scale {background:linear-gradient(90deg,rgba(255,255,255,0) 0%,rgba(255,255,255,.72) 36%,rgb(255,255,255) 100%)!important;}
+.dark .android-z-height-scale {background:linear-gradient(90deg,rgba(23,27,35,0) 0%,rgba(23,27,35,.78) 36%,rgb(23,27,35) 100%)!important;}
+/* Anchor the ruler at the viewport edge; reuse bounds, cut and crosshair colours. */
+.android-z-height-scale,
+.dark .android-z-height-scale {
+ right:0; border-radius:0; color:#72849d;
+ --z-job:#3f85c7; --z-current:#374151; --z-outside:#c2410c;
+}
+.dark .android-z-height-scale {--z-current:#ffffff;--z-outside:#ffad78;}
+body .android-z-height-scale {color:#72849d!important;--z-job:#3f85c7!important;--z-current:#374151!important;}
+.dark body .android-z-height-scale {--z-current:#ffffff!important;}
+.android-z-height-scale .z-current-readout-box {fill:#f8fafc;fill-opacity:.92;stroke:#72849d;stroke-width:1.5;}
+.dark .android-z-height-scale .z-current-readout-box {fill:#111827;}
+body .android-job-stats-trigger {border:2px solid #7c93a9!important;border-radius:8px!important;padding:3px 8px!important;}
+.dark body .android-job-stats-trigger {border-color:#8ca6bd!important;}
+body .android-visualizer-canvas .android-job-stats-pane {position:absolute!important;inset:0!important;transform:none;width:100%!important;height:100%!important;max-height:100%!important;max-width:100%!important;box-sizing:border-box;z-index:30;overflow:auto;padding:20px!important;border-radius:0;background:#f8fafc;color:#334155;display:block;}
+.dark body .android-visualizer-canvas .android-job-stats-pane {background:#202832;color:#e2e8f0;}
+.android-job-stats-pane > button {position:absolute;right:8px;top:8px;width:36px;height:36px;font-size:26px;}
+.android-job-stats-pane > h2 {font-size:20px;font-weight:600;}
+.android-job-stats-pane > section,.android-job-stats-summary {margin-top:16px;}
+/* Compact job statistics, keeping the visualizer-sized panel. */
+body .android-visualizer-canvas .android-job-stats-pane {padding:12px!important;font-size:12px;}
+.android-job-stats-pane > h2 {font-size:16px;line-height:22px;margin:0;}
+.android-job-stats-pane .android-job-stats-filename {margin:2px 40px 8px 0!important;font-size:12px!important;}
+.android-job-stats-pane .android-job-stats-summary {grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;margin-top:6px;}
+.android-job-stats-pane .android-job-stats-summary > div {padding:6px 8px;border-radius:6px;}
+.android-job-stats-pane .android-job-stats-summary span {font-size:11px;margin-bottom:2px;}
+.android-job-stats-pane .android-job-stats-summary strong {font-size:15px;}
+.android-job-stats-pane > section {margin-top:10px;}
+.android-job-stats-pane h3 {font-size:13px;margin-bottom:4px;}
+.android-job-stats-pane th,.android-job-stats-pane td {padding:4px!important;}
+.android-job-stats-pane dl {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));column-gap:20px;}
+.android-job-stats-pane dl > div {grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;padding:3px 0;}
+.android-job-stats-pane p {font-size:11px;line-height:1.3;margin-top:4px;}
+.android-progress-times {position:absolute;inset:0;display:flex;align-items:center;justify-content:space-between;gap:6px;padding:0 10px;color:#172b24;font-size:11px;line-height:1.2;pointer-events:none;}
+.android-progress-times > span {display:flex;flex-direction:column;background:#f1f5f9e8;border-radius:4px;padding:2px 4px;}
+.android-progress-times > span:last-child {text-align:right;}
+.android-progress-times strong {font-size:13px;font-variant-numeric:tabular-nums;}
+.android-progress-times > b {background:#f1f5f9e8;padding:3px;border-radius:4px;}
+
+.android-visualizer-job-state {font-size:15px;line-height:20px;font-weight:600;margin-right:12px;flex-shrink:0;}
+.android-visualizer-job-state[data-state="paused"] {color:#f59e0b;}
+.dark .android-visualizer-job-state[data-state="paused"] {color:#f59e0b;}
+.android-visualizer-job-state[data-state="running"] {color:#22c55e;}
+.android-visualizer-frame:has(.android-machine-status-host[data-state="paused"]) {border:2px solid #f59e0b!important;}
+.dark .android-visualizer-frame:has(.android-machine-status-host[data-state="paused"]) {border-color:#f59e0b!important;}
+.android-visualizer-frame:has(.android-machine-status-host[data-state="running"]) {border:2px solid #22c55e!important;}
+.android-visualizer-frame:has(.android-visualizer-job-state[data-machine-state="Alarm"]) {border:2px solid #ef4444!important;}
+
+.android-visualizer-toolbar {position:relative;}
+.android-visualizer-toolbar .android-visualizer-job-state {
+ position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);margin:0;
+}
+
+.android-file-actions .android-job-stats-trigger {width:auto!important;max-width:100%;height:44px;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:2px;padding:4px 12px!important;}
+.android-file-actions .android-job-stats-trigger strong {font-size:14px;}
+.android-file-actions .android-job-stats-trigger span {font-size:11px;}
+.android-visualizer-canvas > .android-file-actions > .android-job-stats-trigger {
+ width:320px!important;min-width:0;max-width:100%;flex:0 1 320px;margin-left:0;order:0;
+ padding:8px 18px!important;
+}
+.android-file-actions .android-job-stats-trigger strong {display:block;width:100%;min-width:0;overflow:hidden;white-space:nowrap;}
+
+.android-file-actions > .android-inline-editor, .android-visualizer-canvas > .android-floating-editor {width:40px!important;height:40px!important;min-width:40px;padding:6px!important;display:flex;align-items:center;justify-content:center;flex:0 0 40px;}
+.android-file-actions {align-items:center;}
+.android-visualizer-canvas > .android-file-actions > .android-inline-editor {height:40px!important;padding:4px!important;}
+.android-inline-editor svg, .android-floating-editor svg {width:28px;height:28px;flex-shrink:0;}
+
+.android-visualizer-canvas > .android-file-actions > .android-inline-editor, .android-visualizer-canvas > .android-floating-editor {width:60px!important;height:60px!important;min-width:60px;flex-basis:60px;padding:12px!important;}
+.android-progress-stats-host > button {display:none!important;}
+.android-visualizer-canvas > .android-job-progress {border:2px solid #7c93a9;cursor:pointer;}
+.dark .android-visualizer-canvas > .android-job-progress {border-color:#8ca6bd;}
+.android-job-progress [role="button"]:focus-visible {outline:2px solid #689ac9;outline-offset:4px;}
+.android-progress-filename {min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;}
+/* Compact bottom visualizer controls consistently across job states. */
+.android-visualizer-canvas > .android-file-actions > button,
+.android-visualizer-canvas > .android-file-actions > .android-inline-editor,
+.android-visualizer-canvas > .android-floating-editor,
+.android-visualizer-canvas .android-job-controls > div,
+.android-visualizer-canvas .android-job-controls > div > button {
+ height:48px!important;min-height:48px!important;
+}
+.android-visualizer-canvas > .android-file-actions > .android-inline-editor,
+.android-visualizer-canvas > .android-floating-editor {width:48px!important;min-width:48px!important;flex-basis:48px!important;padding:8px!important;}
+.android-visualizer-canvas > .android-job-rail .android-job-controls {height:48px!important;}
+.android-visualizer-canvas > .android-file-actions > button {padding-top:4px!important;padding-bottom:4px!important;}
+.android-visualizer-canvas > .android-job-progress {height:48px;box-sizing:border-box;padding:4px 8px;}
+.android-job-progress .pendant-progress-track {height:22px!important;}
+.android-job-progress .pendant-progress-track > div > div {height:18px!important;font-size:10px!important;}
+/* Keep the bottom controls close to the visualizer edges. */
+.android-visualizer-canvas > .android-file-actions {left:6px!important;bottom:6px!important;}
+.android-visualizer-canvas > .android-job-progress {left:6px!important;bottom:6px!important;right:310px!important;}
+.android-visualizer-canvas > .android-job-rail {right:6px!important;bottom:6px!important;}
+.android-visualizer-canvas > .android-floating-editor {right:238px!important;bottom:6px!important;}
+.android-visualizer-canvas > .android-job-progress {right:294px!important;}
+
+body header.android-pendant-header > .no-drag:nth-child(2) > div > div:first-child > button.android-connection-pill,
+body header.android-pendant-header button.android-connection-pill {
+ width:38px!important;min-width:38px!important;max-width:38px!important;padding:3px!important;gap:0!important;justify-content:center;border-color:#689ac9!important;
+}
+body header.android-pendant-header button.android-connection-pill > span:last-child {display:none!important;}
+body header.android-pendant-header .android-connection-button {width:auto!important;min-width:0!important;}
+/* Equal content insets and a slimmer progress track. */
+.android-visualizer-canvas > .android-job-progress {padding:6px!important;}
+.android-job-progress > [role="button"] {padding:0!important;gap:4px!important;}
+.android-job-progress > [role="button"] > div:first-child {line-height:14px!important;}
+.android-job-progress > [role="button"] > div:last-child {height:14px!important;min-height:14px!important;}
+.android-job-progress .pendant-progress-track {height:14px!important;}
+.android-job-progress .pendant-progress-track > div > div {height:12px!important;font-size:9px!important;}
+
+/* One outline, including the lower-left progress extension. */
+.android-stats-surface {position:absolute;inset:0;width:100%;height:100%;z-index:29;pointer-events:none;overflow:visible;}
+.android-stats-surface path {fill:#f8fafc;stroke:#7c93a9;stroke-width:2;}
+.dark .android-stats-surface path {fill:#202832;stroke:#8ca6bd;}
+body .android-visualizer-canvas > .android-job-stats-pane {
+ inset:8px 8px 66px!important;width:auto!important;height:auto!important;
+ min-height:0!important;max-height:none!important;max-width:none!important;
+ background:transparent!important;border:0!important;border-radius:10px!important;
+ box-shadow:none!important;overflow:auto!important;animation:none!important;padding:12px!important;
+}
+.android-visualizer-canvas:has(> .android-job-stats-pane) > .android-job-progress {
+ z-index:31;background:transparent!important;border-color:transparent!important;box-shadow:none!important;
+}
+.android-visualizer-canvas:has(> .android-job-stats-pane)::after {display:none!important;}
+body .android-visualizer-canvas > .android-job-stats-pane {transform:none!important;translate:none!important;}
+.android-visualizer-canvas > svg.android-stats-surface {z-index:29!important;opacity:1!important;visibility:visible!important;}
+.android-visualizer-canvas > .android-file-actions > .android-job-stats-trigger {
+ justify-content:center!important;gap:2px!important;padding-top:8px!important;padding-bottom:8px!important;
+}
+.android-file-actions .android-job-stats-trigger strong {line-height:16px!important;}
+.android-file-actions .android-job-stats-trigger span {line-height:12px!important;}
+/* Overlay the status on the full visualizer instead of reserving a toolbar row. */
+.android-visualizer-frame {position:relative;}
+.android-visualizer-frame > .android-visualizer-toolbar {
+ position:absolute!important;top:0;left:0;right:0;z-index:5;
+ background:transparent!important;border:0!important;pointer-events:none;
+}
+.android-visualizer-toolbar > div:first-child {display:none!important;}
+.android-visualizer-toolbar button {pointer-events:auto;}
+.android-visualizer-frame > .android-visualizer-canvas {border-radius:inherit!important;}
+body .android-visualizer-dock .android-visualizer-frame > .android-visualizer-toolbar,
+.dark body .android-visualizer-dock .android-visualizer-frame > .android-visualizer-toolbar {background:transparent!important;border:0!important;}
+/* Tighter spacing before the editor control. */
+.android-visualizer-canvas > .android-job-progress {right:290px!important;}
+/* More prominent machine status over the visualizer. */
+.android-visualizer-toolbar .android-visualizer-job-state {font-size:19px!important;line-height:24px!important;}
+.android-visualizer-toolbar .android-visualizer-job-state {top:calc(50% + 4px)!important;}
+/* One shared green for controls, axes, readiness and job progress. */
+:root {--android-green:#00a348;}
+body [class*="bg-green-"] {background-color:var(--android-green)!important;}
+body [class*="text-green-"] {color:var(--android-green)!important;}
+body [class*="border-green-"] {border-color:var(--android-green)!important;}
+.android-jog-readiness[data-state="ready"] {background:var(--android-green)!important;}
+.android-visualizer-frame:has(.android-machine-status-host[data-state="running"]) {border-color:var(--android-green)!important;}
+.android-job-progress .pendant-progress-track > div {background:var(--android-green)!important;}
+
+.android-machine-status-host[data-state="running"] .android-visualizer-job-state {color:var(--android-green)!important;}
+
+/* Pause uses calibration amber in both themes. */
+body .android-job-controls [class*="bg-orange-"] {background-color:#f59e0b!important;}
+.android-machine-status-host[data-state="paused"] .android-visualizer-job-state {color:#f59e0b!important;}
+/* Slightly brighter selected switch blue. */
+body .android-coordinate-thumb,
+body .android-jog-toolbar .android-jog-step-switch > button[aria-pressed="true"],
+body .android-jog-toolbar .android-jog-presets > button.bg-robin-500 {background:#7CA7D0!important;}
+/* Current coordinate switches paint the selected label, not a thumb. */
+body .android-coordinate-switch .android-coordinate-active {background:#7CA7D0!important;}
+/* Override the dark-theme utility on the enabled Start button. */
+html body .android-visualizer-canvas .android-job-controls button[class*="bg-green-"] {background-color:#00A348!important;}
+/* Full-container progress fill with larger overlay information. */
+body .android-visualizer-canvas > .android-job-progress {padding:0!important;overflow:hidden;}
+body .android-job-progress > [role="button"] {position:relative;height:100%;display:block!important;padding:0!important;}
+body .android-job-progress > [role="button"] > div:first-child {
+ position:relative;z-index:2;height:100%;display:flex;align-items:center;justify-content:space-between;
+ gap:10px;padding:0 12px;font-size:14px!important;line-height:18px!important;color:#fff!important;
+ text-shadow:0 1px 2px #0009;
+}
+body .android-job-progress > [role="button"] > div:last-child {
+ position:absolute;inset:0;height:100%!important;min-height:0!important;z-index:0;
+}
+body .android-job-progress .pendant-progress-track {height:100%!important;border:0!important;border-radius:6px!important;}
+body .android-job-progress .pendant-progress-track > div {border-radius:0!important;}
+body .android-job-progress .pendant-progress-track > div > div {display:none!important;}
+body .android-job-progress .android-progress-filename {flex:1;font-size:15px!important;}
+body .android-job-progress > [role="button"] > div:first-child > span:not(:first-child) {flex-shrink:0;}
+body .android-job-progress > [role="button"] > div:first-child {
+ display:grid!important;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:20px 16px;
+ align-content:center;column-gap:10px;row-gap:2px;padding:2px 10px;font-size:12px!important;line-height:16px!important;
+}
+.android-progress-heading {grid-column:1 / -1;display:flex;align-items:center;justify-content:space-between;gap:10px;min-width:0;font-size:16px;line-height:20px;}
+body .android-job-progress .android-progress-filename {font-size:16px!important;}
+.android-progress-heading strong {flex-shrink:0;font-size:16px;}
+body .android-job-progress > [role="button"] > div:first-child {font-size:14px!important;line-height:18px!important;grid-template-rows:20px 18px;}
+
+/* Brief edge feedback for single-step wheel taps. */
+.android-speed-wheel .android-wheel-edge-flash {
+ position:absolute;left:0;right:0;height:40px;z-index:8;pointer-events:none;
+ animation:android-wheel-edge-flash 360ms ease-out both;
+}
+.android-wheel-edge-flash.edge-top {
+ top:0;border-radius:inherit;background:linear-gradient(to bottom,rgba(255,255,255,.7),rgba(255,255,255,0));
+}
+.android-wheel-edge-flash.edge-bottom {
+ bottom:0;border-radius:inherit;background:linear-gradient(to top,rgba(255,255,255,.7),rgba(255,255,255,0));
+}
+@keyframes android-wheel-edge-flash {from {opacity:1} to {opacity:0}}
+
+/* Stop the repeating scale exactly at the wheel's selectable limits. */
+.android-speed-wheel::before {
+ clip-path:inset(max(0px, calc(50% + var(--wheel-min-offset) - 1px)) 0 max(0px, calc(50% + var(--wheel-max-offset) - 1px)) 0);
+}
+
+/* Slightly larger jog-page cycle target; retain its 5px corner inset. */
+body .android-jog-card .android-jog-page-dots {height:26px!important;min-height:26px!important;}
+body .android-jog-card .android-jog-page-dots .android-jog-page-cycle {width:66px!important;height:26px!important;min-height:26px!important;padding:4px 8px!important;gap:9px;}
+.android-feed-overrides .android-laser-controls > div:first-child::before {content:'Laser';}
+body .android-feed-overrides .android-laser-controls > div:first-child::before {content:'Laser'!important;}
+
+/* Compact spindle/laser actions while retaining icon-above-label layout. */
+body .android-jog-card .android-jog-speed-page .android-feed-spindle .android-spindle-controls > div:first-child > div > div:last-child {
+ height:68px!important;min-height:68px!important;padding:6px 4px!important;
+}
+body .android-jog-card .android-jog-speed-page .android-feed-spindle:has(.android-laser-controls) {
+ grid-template-rows:minmax(0,1fr) 62px!important;row-gap:6px!important;
+}
+body .android-jog-card .android-jog-speed-page .android-feed-spindle:has(.android-laser-controls) > .android-feed-slider {grid-row:1 / 3!important;}
+body .android-feed-overrides .android-laser-duration {
+ grid-column:2!important;grid-row:2!important;position:relative;display:grid!important;
+ grid-template-columns:minmax(0,1fr);grid-template-rows:20px 36px;gap:4px;padding:0!important;min-width:0;
+}
+body .android-laser-duration > span:first-child {width:auto!important;text-align:center;font-size:13px;line-height:20px;}
+body .android-laser-duration > input {width:100%!important;height:36px!important;min-width:0;padding:4px 32px 4px 8px!important;grid-row:2;}
+body .android-laser-duration > span:last-child {position:absolute;right:8px;bottom:4px;line-height:36px;font-size:12px;pointer-events:none;}
+/* Bring the duration caption closer to its field. */
+body .android-feed-overrides .android-laser-duration {row-gap:0!important;align-content:end;}
+body .android-laser-duration > span:last-child {bottom:0;}
+body .android-laser-duration > input {text-align:center!important;padding-inline:28px!important;appearance:textfield;}
+body .android-laser-duration > input::-webkit-inner-spin-button,
+body .android-laser-duration > input::-webkit-outer-spin-button {appearance:none;margin:0;}
+body .android-laser-duration > span:last-child {
+ top:auto!important;bottom:0!important;height:36px!important;display:flex!important;
+ align-items:center!important;line-height:1!important;margin:0!important;padding:0!important;
+}
+body .android-jog-card .android-jog-speed-page .android-feed-spindle .android-spindle-controls > div:first-child > div > div:last-child {
+ height:60px!important;min-height:60px!important;padding:4px!important;
+}
+body .android-feed-overrides .android-spindle-controls > div:first-child {position:relative;}
+body .android-feed-overrides .android-spindle-controls .android-coolant-toggle {
+ position:absolute;top:calc(100% + 8px);left:0;width:100%;height:48px;min-height:48px;
+ display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;
+ border:1px solid #64748b;border-radius:8px;background:#e2e8f0;color:#334155;font-size:12px;
+}
+.dark .android-feed-overrides .android-spindle-controls .android-coolant-toggle {background:#202832;color:#dbe7f3;}
+body .android-coolant-toggle[aria-pressed="true"] {border-color:var(--android-green);color:var(--android-green);}
+body .android-coolant-toggle:disabled {opacity:.4;}
+/* Tighter label/value spacing above the feed and spindle/laser wheels. */
+body .android-jog-speed-page .android-wheel-heading {padding:0 0 1px!important;margin:0!important;}
+body .android-jog-speed-page .android-wheel-live {padding:0 0 3px!important;margin:0!important;gap:0!important;}
+body .android-dro-axis [aria-label^="Edit "][role="button"] {display:flex!important;align-items:center;justify-content:center;gap:7px;}
+.android-dro-unit {font-family:inherit;font-size:15px;line-height:1;flex-shrink:0;opacity:.85;}
+/* Edit the value directly inside a visualizer coordinate readout. */
+body form.android-dro-value-editor[data-readout-inline="true"] {padding:0!important;margin:0!important;border:0!important;border-radius:2px!important;box-shadow:none!important;background:#f8fafc!important;gap:0!important;}
+.dark body form.android-dro-value-editor[data-readout-inline="true"] {background:#111827!important;}
+body form[data-readout-inline="true"] > button, body form[data-readout-inline="true"] > span {display:none!important;}
+body form.android-dro-value-editor[data-readout-inline="true"] > input {width:100%!important;height:100%!important;min-width:0!important;max-width:none!important;max-height:none!important;flex:1!important;padding:0!important;margin:0!important;font:400 18px 'Roboto Mono',monospace!important;text-align:center!important;border:1px solid #7ca7d0!important;border-radius:2px!important;box-sizing:border-box!important;}
+body form.android-dro-value-editor[data-readout-inline="true"] {border-radius:5px!important;}
+body form.android-dro-value-editor[data-readout-inline="true"]::before {content:attr(data-readout-axis);position:absolute;inset:0 0 50%;display:flex;align-items:center;justify-content:center;font:400 18px 'Roboto Mono',monospace;color:#1f2937;pointer-events:none;z-index:1;}
+.dark body form.android-dro-value-editor[data-readout-inline="true"]::before {color:#f8fafc;}
+body form.android-dro-value-editor[data-readout-inline="true"] > input {padding-top:20px!important;border-radius:5px!important;}
+/* Keep readout editing outlined with the existing subdued border. */
+body form.android-dro-value-editor[data-readout-inline="true"] > input,
+body form.android-dro-value-editor[data-readout-inline="true"] > input:focus,
+body form.android-dro-value-editor[data-readout-inline="true"] > input:focus-visible {border-color:#72849d!important;outline:none!important;box-shadow:none!important;--tw-ring-shadow:0 0 #0000!important;--tw-ring-offset-shadow:0 0 #0000!important;}
+/* SVG readout buttons must not draw a second browser focus outline. */
+.android-position-readout [role="button"],
+.android-position-readout [role="button"]:focus,
+.android-position-readout [role="button"]:focus-visible,
+.z-current-readout-box[role="button"],
+.z-current-readout-box[role="button"]:focus,
+.z-current-readout-box[role="button"]:focus-visible,
+body form.android-dro-value-editor[data-readout-inline="true"]:focus-within {outline:0!important;box-shadow:none!important;filter:none!important;}
+/* Empty DRO shell for the current layout preview. Keep editor logic mounted for visualizer readouts. */
+body .android-position-card .android-dro-card > * {visibility:hidden!important;pointer-events:none!important;}
+.android-global-numpad {grid-template-columns:repeat(4,minmax(0,1fr))!important;}
+.android-numpad-calculation {grid-column:1 / -1;text-align:right;padding:2px 6px;color:inherit;font-size:16px;overflow-wrap:anywhere;}
+.android-global-numpad .android-numpad-done {grid-column:span 2;}
+[data-readout-actions] {display:grid;grid-template-columns:repeat(3,92px);gap:6px;padding:6px;border-radius:8px;background:#e5e7eb;border:1px solid #72849d;}
+.dark [data-readout-actions] {background:#202832;}
+[data-readout-actions] button {height:44px;border:1px solid #72849d;border-radius:6px;font-size:13px;line-height:16px;background:#f8fafc;color:#1f2937;padding:3px;}
+.dark [data-readout-actions] button {background:#2d3946;color:#f4f7fa;}
+[data-readout-actions] button:disabled {opacity:.4;}
+[data-readout-actions] {grid-template-columns:92px;}
+/* Fade the toolpath behind the lower controls and intercept taps in that band. */
+.android-visualizer-canvas::after {content:'';position:absolute;left:0;right:0;bottom:0;height:78px;z-index:2;pointer-events:auto;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.9) 40%,#fff 100%);}
+.dark .android-visualizer-canvas::after {background:linear-gradient(to bottom,rgba(23,27,35,0),rgba(23,27,35,.9) 40%,#171b23 100%);}
+.android-visualizer-canvas > .android-job-rail,
+.android-visualizer-canvas > .android-file-actions,
+.android-visualizer-canvas > .android-floating-editor,
+.android-visualizer-canvas > .android-job-progress {z-index:3;}
+/* The right-hand ruler shield catches taps rather than passing them to XY readouts. */
+.android-z-height-scale {pointer-events:auto!important;}
+.android-z-height-scale svg {pointer-events:none;}
+.android-z-height-scale .z-current-readout-box[role="button"] {pointer-events:all;}
+/* Keep job controls above the viewport's bottom fade shield. */
+body .android-visualizer-canvas > .android-job-rail {z-index:4!important;}
+body .android-visualizer-canvas .android-job-controls {position:relative;z-index:4!important;}
+/* Extend the lower fade to overlap the end of the Z ruler's edge fade. */
+.android-visualizer-canvas::after {height:120px;background:linear-gradient(to bottom,rgba(255,255,255,0),rgba(255,255,255,.9) 30%,#fff 55%);}
+.dark .android-visualizer-canvas::after {background:linear-gradient(to bottom,rgba(23,27,35,0),rgba(23,27,35,.9) 30%,#171b23 55%);}
+.android-visualizer-canvas::before {content:'';position:absolute;right:0;bottom:0;width:108px;height:84px;z-index:1;pointer-events:auto;background:linear-gradient(90deg,rgba(255,255,255,0),rgba(255,255,255,.72) 36%,#fff);}
+.dark .android-visualizer-canvas::before {background:linear-gradient(90deg,rgba(23,27,35,0),rgba(23,27,35,.78) 36%,#171b23);}
+/* Slightly tighter edge fades while preserving ruler and control placement. */
+.android-visualizer-canvas::after {height:104px;}
+.android-z-height-scale {background:linear-gradient(90deg,rgba(255,255,255,0) 24%,rgba(255,255,255,.72) 58%,#fff 100%)!important;}
+.dark .android-z-height-scale {background:linear-gradient(90deg,rgba(23,27,35,0) 24%,rgba(23,27,35,.78) 58%,#171b23 100%)!important;}
+.android-visualizer-canvas::before {background:linear-gradient(90deg,rgba(255,255,255,0) 24%,rgba(255,255,255,.72) 58%,#fff 100%);}
+.dark .android-visualizer-canvas::before {background:linear-gradient(90deg,rgba(23,27,35,0) 24%,rgba(23,27,35,.78) 58%,#171b23 100%);}
+.android-visualizer-canvas::before {clip-path:inset(0 0 0 24%);}
+/* Bottom buttons are 48px tall with a 6px inset; leave 10px of fade above them. */
+.android-visualizer-canvas::after {height:64px;}
+/* Join the ruler fade to the slightly taller bottom fade. */
+.android-visualizer-canvas::after {height:72px;}
+body .android-z-height-scale {bottom:72px!important;}
+.android-visualizer-canvas::before {height:72px;}
+/* Extend the Z fade flush to the viewport top. */
+body .android-z-height-scale {top:0!important;}
+
+/* Rotary work-position dial, above the bottom job controls. */
+.android-rotary-dial {position:absolute;left:8px;bottom:80px;width:180px;height:180px;z-index:3;color:#334155;border-radius:50%;background:radial-gradient(circle,#fff 35%,rgba(255,255,255,.92) 65%,transparent 72%);}
+.dark .android-rotary-dial {color:#fff;background:radial-gradient(circle,#171b23 35%,rgba(23,27,35,.92) 65%,transparent 72%);}
+.android-rotary-dial svg {width:100%;height:100%;}
+.android-rotary-dial .rotary-readout rect {fill:#f8fafc;stroke:#72849d;stroke-width:1;cursor:pointer;outline:none;}
+.dark .android-rotary-dial .rotary-readout rect {fill:#111827;}
+.android-rotary-dial text {font:400 18px 'Roboto Mono',monospace;fill:currentColor;pointer-events:none;}
+/* Compact rotary dial tucked above the bottom controls. */
+.android-rotary-dial {left:4px;bottom:62px;width:144px;height:144px;}
+
+/* Running jobs expose readouts as information, without editable outlines. */
+body.readouts-locked .android-visualizer-canvas [aria-label^="Edit visualizer "] {stroke:none!important;stroke-width:0!important;cursor:default!important;}
+
+.android-numpad-hold {position:relative;overflow:hidden;touch-action:none;}
+.android-numpad-hold::before {content:'';position:absolute;inset:0;background:#174b80;transform:scaleX(0);transform-origin:left;pointer-events:none;}
+.android-numpad-hold[data-holding="true"]::before {transform:scaleX(1);transition:transform 650ms linear;}
+.android-numpad-hold span {position:relative;z-index:1;}
+
+/* Explicit state hooks also work in older Android WebViews without :has(). */
+.android-visualizer-frame.android-stats-open .android-timeline-popout {visibility:hidden!important;}
+header.android-pendant-header[data-status-open="true"] .android-header-clock {display:none!important;}
+.android-visualizer-frame[data-alarm="true"] {border:2px solid #ef4444!important;}
+
+/* Reserve the job buttons before allocating any room to a file name. */
+.android-visualizer-canvas > .android-file-actions[data-file-loaded="true"] {
+ right:238px!important;min-width:0;max-width:calc(100% - 244px);gap:8px;
+}
+.android-file-actions > button:not(.android-job-stats-trigger) {flex-shrink:0;white-space:nowrap;}
+.android-file-actions .android-job-stats-trigger {overflow:hidden;}
+.android-file-actions .android-job-stats-trigger > span {max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.android-filename-ticker {display:block;width:100%;min-width:0;overflow:hidden;white-space:nowrap;contain:paint;}
+.android-filename-track {display:inline-flex;width:max-content;white-space:nowrap;gap:32px;}
+.android-filename-track > span {flex:none;font:inherit!important;opacity:1!important;}
+.android-filename-ticker[data-scrolling="true"] .android-filename-track {
+ animation:android-filename-scroll var(--filename-duration) linear 2s infinite;will-change:transform;
+}
+@keyframes android-filename-scroll {to {transform:translateX(var(--filename-distance));}}
+@media (prefers-reduced-motion:reduce) {
+ .android-filename-ticker[data-scrolling="true"] .android-filename-track {animation:none;will-change:auto;}
+}
+/* Alarm details stay near the state label, clear of machine action controls. */
+.android-visualizer-toolbar .android-alarm-trigger {pointer-events:auto;cursor:pointer;padding:2px 8px;border-radius:5px;}
+.android-alarm-trigger > span {font-size:14px;}
+.android-alarm-details {position:absolute;top:38px;left:50%;transform:translateX(-50%);width:min(420px,calc(100% - 24px));max-height:220px;overflow:auto;pointer-events:auto;z-index:10;padding:12px 40px 12px 14px;border:1px solid #ef4444;border-radius:8px;background:#fff7f7;color:#7f1d1d;box-shadow:0 3px 10px #0003;font-size:14px;line-height:1.4;}
+.android-alarm-details > button {position:absolute;right:4px;top:4px;width:32px;height:32px;font-size:24px;}
+.android-alarm-details > p {margin-top:4px;}
+.dark .android-alarm-details {background:#352024;color:#fecaca;}
+
+.android-job-stats-trigger strong .android-filename-ticker,
+.android-job-stats-trigger strong .android-filename-track {font:inherit!important;opacity:1!important;}
+@media (orientation:landscape) {
+ /* Fixed minimum track heights must not push job buttons under the bottom bar. */
+ .android-carve-grid[data-short-landscape="true"] {grid-template-rows:minmax(0,44fr) minmax(0,56fr);}
+}
+
+/* The benchmark is a full-screen overlay, not a centered dialog box. */
+body .android-benchmark-overlay[role="dialog"] {inset:54px 0 0!important;transform:none!important;max-height:none!important;}
+body .android-benchmark-overlay > section {min-width:0;max-width:100%;}
+
+.android-visualizer-canvas.android-stats-open > .android-job-progress {z-index:31;background:transparent!important;border-color:transparent!important;box-shadow:none!important;}
+.android-visualizer-canvas.android-stats-open::after {display:none!important;}
+body .android-visualizer-canvas > .android-job-stats-pane {transform:none!important;translate:none!important;}
+.android-visualizer-canvas > svg.android-stats-surface {z-index:29!important;opacity:1!important;visibility:visible!important;}
+
+/* Statistics take priority over the tool timeline drawer. */
+.android-visualizer-canvas:has(> .android-job-stats-pane) :is(.android-timeline-popout,.android-timeline-popout) {visibility:hidden!important;pointer-events:none!important;}
+
+/* Manual tool change occupies the former DRO card. */
+.android-position-card:has(.android-toolchange-contained) {position:relative;overflow:hidden;}
+.android-position-card > .android-toolchange-contained {inset:0;z-index:10;}
+.android-position-card .android-toolchange-contained .w-\[230px\] {display:none!important;}
+.android-position-card .android-toolchange-contained .h-\[420px\] {min-height:0;overflow:auto;}
+.android-position-card .android-toolchange-contained .text-base {font-size:14px;}
+.android-position-card > .android-toolchange-contained {position:absolute;inset:0;pointer-events:none;}
+.android-position-card .android-toolchange-contained > .fixed {position:absolute!important;inset:0!important;}
+.android-position-card .android-toolchange-contained > .fixed > .pointer-events-auto {width:100%!important;height:100%;display:flex;flex-direction:column;min-height:0;}
+.android-position-card .android-toolchange-contained .h-\[420px\] {height:auto!important;flex:1;min-height:0;overflow:auto;}
+
+/* Tool pane replaces the former DRO area. */
+.android-position-card:has(.android-tool-pane) {position:relative;overflow:hidden;}
+.android-tool-pane {position:absolute;inset:0;display:flex;flex-direction:column;min-height:0;z-index:10;background:#f8fafc;color:#334155;border-radius:8px;overflow:hidden;}
+.dark .android-tool-pane {background:#202832;color:#e2e8f0;}
+.android-tool-pane [role="tablist"] {display:flex;gap:4px;padding:6px;border-bottom:1px solid #72849d;flex-shrink:0;}
+.android-tool-pane [role="tab"] {flex:1;padding:7px 4px;border-radius:6px;font-size:14px;background:transparent;}
+.android-tool-pane [role="tab"][aria-selected="true"] {background:#579bd5;color:white;}
+.android-tool-pane-body {position:relative;flex:1;min-height:0;overflow:auto;}
+.android-tool-pane .android-toolchange-contained {position:absolute;inset:0;pointer-events:none;}
+.android-tool-pane .android-toolchange-contained[hidden] {display:none;}
+.android-tool-pane-empty {padding:12px;}
+
+.android-tool-pane .android-toolchange-contained > .flex {height:auto;min-height:100%;pointer-events:auto;}
+.android-tool-pane .android-toolchange-contained {overflow:auto;}
+
+.android-prep-tools {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:8px;}
+.android-prep-tools > div {padding:12px!important;gap:8px!important;}
+.android-prep-tools svg {width:36px!important;height:36px!important;}
+/* Stacked preparation actions. */
+.android-prep-tools {grid-template-columns:minmax(0,1fr);gap:8px;}
+.android-prep-tools > div {display:flex!important;flex-direction:row!important;align-items:center!important;justify-content:flex-start!important;min-height:56px;height:auto!important;padding:10px 14px!important;gap:12px!important;text-align:left!important;}
+.android-prep-tools > div > p {display:none;}
+.android-prep-tools > div > svg {order:-1;width:28px!important;height:28px!important;flex-shrink:0;}
+
+/* Disconnected viewport contains only the status message. */
+body.android-disconnected .android-visualizer-canvas > * {display:none!important;}
+body.android-disconnected .android-visualizer-canvas::after {display:none!important;}
+body.android-disconnected .android-visualizer-canvas::before {content:'Disconnected';inset:0;width:auto;height:auto;display:flex;align-items:center;justify-content:center;background:none!important;clip-path:none;pointer-events:none;color:#eab308;font-size:22px;z-index:1;}
+/* One disconnected message, with a cue toward the connection control. */
+body.android-disconnected .android-machine-status-host {display:none!important;}
+body.android-disconnected .android-visualizer-canvas::after {content:'↖';display:block!important;position:absolute;left:32px;top:8px;right:auto;bottom:auto;width:28px;height:32px;background:none!important;color:#eab308;font-size:28px;line-height:32px;pointer-events:none;z-index:2;}
+
+body.android-disconnected .android-visualizer-canvas::after {content:'↑';left:var(--connection-arrow-x,64px);transform:translateX(-50%);top:0;text-align:center;}
+
+.android-misc-switches {display:flex;flex-direction:column;gap:12px;padding:16px;max-width:420px;width:100%;}
+.android-misc-switches label {display:flex;align-items:center;justify-content:space-between;font-size:16px;gap:24px;}
+.android-misc-switches [role="switch"] {width:52px;height:30px;border-radius:18px;background:#64748b;padding:3px;}
+.android-misc-switches [role="switch"] > span {display:block;width:24px;height:24px;border-radius:50%;background:white;}
+.android-misc-switches [aria-checked="true"] {background:#579bd5;}
+.android-misc-switches [aria-checked="true"] > span {transform:translateX(22px);}
+
+.android-tool-pane .android-console-command-row {position:static!important;inset:auto!important;width:100%!important;max-width:none!important;margin:0!important;box-sizing:border-box;display:flex!important;transform:none!important;}
+.android-tool-pane .android-console-command-row input {flex:1!important;width:0!important;min-width:0!important;max-width:none!important;}
+.android-position-card:has(.android-tool-pane[data-console-expanded="true"]) {overflow:visible!important;}
+.android-tool-pane[data-console-expanded="true"] {position:fixed!important;inset:54px 4px 52px!important;z-index:80;box-shadow:0 8px 24px #0005;border:1px solid #72849d;}
+.android-console-bar-actions {display:flex;gap:4px;align-items:center;}
+.android-console-bar-actions button {width:30px;height:30px;font-size:22px;border-radius:5px;border:1px solid #72849d;}
+
+.android-tool-pane [role="tab"] {display:flex;align-items:center;justify-content:center;gap:5px;}
+.android-tool-pane [role="tab"] > svg {flex-shrink:0;}
+
+.android-console-corner-expand {position:absolute;right:4px;top:4px;width:28px;height:28px;display:flex;align-items:center;justify-content:center;z-index:5;border-radius:4px;background:#e2e8f0;color:#334155;}
+.dark .android-console-corner-expand {background:#202832;color:#cbd5e1;}
+
+.android-tray-size-actions > button[aria-label="Minimize console"] {order:2;}
+/* Visible button surfaces for console tray sizing controls. */
+.android-console-size-bar .android-tray-size-actions {display:flex;align-items:center;gap:8px;}
+.android-console-size-bar .android-tray-size-actions > button {display:flex;align-items:center;justify-content:center;width:36px!important;height:32px!important;padding:5px!important;border:1px solid #94a3b8!important;border-radius:6px!important;background:#e2e8f0!important;color:#334155!important;}
+.dark .android-console-size-bar .android-tray-size-actions > button {background:#344252!important;border-color:#72849d!important;color:#f1f5f9!important;}
+.android-console-size-bar .android-tray-size-actions > button:active {filter:brightness(1.15);}
+/* Fit tray controls within its header and join the tray to bottom navigation. */
+.android-console-size-bar .android-tray-size-actions {gap:6px;}
+.android-console-size-bar .android-tray-size-actions > button {width:28px!important;height:22px!important;padding:2px!important;border-radius:4px!important;}
+.android-console-size-bar .android-tray-size-actions > button svg {width:16px;height:16px;}
+body .android-bottom-drawer {bottom:46px!important;}
+
+.android-rotary-dial svg {overflow:visible;}
+.android-rotary-dial text.rotary-tick-label {font-size:10px;}
+
+.dark .android-rotary-dial {--rotary-counter-bg:#171b23;}
+
+/* Hide viewport instruments and edge shields during file processing. */
+body.android-file-loading .android-z-height-scale,
+body.android-file-loading .android-rotary-dial,
+body.android-file-loading .android-visualizer-canvas::before,
+body.android-file-loading .android-visualizer-canvas::after,
+body.android-file-loading .android-position-readout {display:none!important;}
+.android-visualizer-canvas > .android-file-actions {gap:8px!important;}
+/* File controls stay content-sized, separate from the job control rail. */
+body .android-visualizer-canvas > .android-file-actions {right:auto!important;width:max-content!important;max-width:calc(100% - 240px)!important;gap:8px!important;}
+body .android-visualizer-canvas > .android-file-actions > .android-job-stats-trigger {flex:0 1 auto!important;width:max-content!important;min-width:0!important;max-width:var(--loaded-file-max)!important;overflow:hidden!important;}
+body .android-file-actions .android-job-stats-trigger strong {display:block;max-width:100%;white-space:nowrap;overflow:hidden!important;}
+
+.android-viewport-setup {position:absolute;left:152px;bottom:62px;display:flex;gap:8px;z-index:4;}
+.android-viewport-setup button,.android-center-position {height:36px;padding:6px 10px;border:1px solid #72849d;border-radius:6px;background:#f8fafc;color:#334155;display:flex;align-items:center;justify-content:center;}
+.android-viewport-setup button {position:relative;overflow:hidden;}
+.dark .android-viewport-setup button,.dark .android-center-position {background:#202832;color:#f1f5f9;}
+.android-center-position {position:absolute;left:8px;bottom:214px;width:36px;padding:6px;z-index:4;}
+
+.android-view-actions {position:absolute;left:8px;bottom:214px;display:flex;gap:8px;z-index:4;}
+.android-view-actions button {position:static;width:36px;height:36px;padding:6px;border:1px solid #72849d;border-radius:6px;background:#f8fafc;color:#334155;display:flex;align-items:center;justify-content:center;}
+.dark .android-view-actions button {background:#202832;color:#f1f5f9;}
+.android-view-actions button:disabled {opacity:.4;}
+/* Keep touch scrolling without a visible scrollbar in the timeline drawer. */
+:is(.android-timeline-popout,.android-timeline-popout),
+:is(.android-timeline-popout,.android-timeline-popout) * {scrollbar-width:none!important;}
+:is(.android-timeline-popout,.android-timeline-popout)::-webkit-scrollbar,
+:is(.android-timeline-popout,.android-timeline-popout) *::-webkit-scrollbar {display:none!important;width:0!important;height:0!important;}
+
+.android-rotary-dial {left:-4px;bottom:54px;}
+.android-rotary-dial {left:-16px;}
+.android-rotary-dial {background:radial-gradient(circle closest-side,#fff 52%,rgba(255,255,255,.92) 72%,transparent 84%);}
+.dark .android-rotary-dial {background:radial-gradient(circle closest-side,#171b23 52%,rgba(23,27,35,.92) 72%,transparent 84%);}
+.android-rotary-dial {left:-10px;}
+
+.android-load-file:has(.android-close-file-label) {width:52px!important;min-width:52px!important;flex:0 0 52px!important;padding:4px!important;}
+.android-close-file-label {display:block;text-align:center;line-height:1.1;}
+.android-probing-actions {display:flex;gap:8px;margin-bottom:8px;}
+.android-probing-actions button {position:relative;overflow:hidden;height:36px;padding:6px 12px;border:1px solid #72849d;border-radius:6px;display:flex;align-items:center;justify-content:center;background:#f8fafc;color:#334155;}
+.dark .android-probing-actions button {background:#202832;color:#f1f5f9;}
+
+.android-visualizer-canvas:has(.android-job-summary) :is(.android-timeline-popout,.android-timeline-popout) {visibility:hidden!important;pointer-events:none!important;}
+.android-view-actions {left:6px;flex-direction:column;gap:8px;}
+
+.android-view-actions .android-center-position {position:relative;overflow:hidden;touch-action:none;}
+.android-view-actions .android-center-position[aria-pressed="true"] {background:#3f85c7;color:white;border-color:#8ac7ff;}
+.android-center-position[data-holding="true"]::before {content:"";position:absolute;inset:0;background:#174e85;transform-origin:left;animation:android-track-hold .6s linear forwards;}
+.android-center-position svg {position:relative;}
+@keyframes android-track-hold {from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.android-view-actions .android-center-position {left:auto;bottom:auto;top:auto;right:auto;}
+.android-view-actions button[aria-label="Fit job in viewport"] {color:#3f85c7;border-color:#3f85c7;}
+.android-view-actions button[aria-label="Fit machine in viewport"] {color:#f97316;border-color:#f97316;}
+
+.android-misc-switches button:disabled {opacity:.4;}
+.android-position-card {position:relative;overflow:hidden;}
+
+.android-prep-dialog {position:fixed;inset:54px 4px 52px;z-index:75;display:flex;flex-direction:column;min-height:0;overflow:hidden;border:1px solid #72849d;border-radius:8px;background:#f8fafc;color:#334155;}
+.dark .android-prep-dialog {background:#202832;color:#e2e8f0;}
+.android-prep-dialog>header {display:flex;justify-content:space-between;padding:8px;}
+.android-prep-dialog>header button {width:36px;height:32px;}
+.android-prep-dialog>div {flex:1;min-height:0;overflow:auto;padding:8px;}
+
+/* Narrow portrait screens retain access to every tool tab and wizard action. */
+.android-tool-pane [role="tab"] {min-width:0;}
+.android-tool-pane .android-toolchange-contained .fixed > .pointer-events-auto > :first-child {flex-wrap:wrap;gap:4px;padding:6px;}
+.android-tool-pane .android-toolchange-contained .fixed > .pointer-events-auto > :first-child > :first-child {min-width:0;flex:1 1 160px;}
+.android-tool-pane .android-toolchange-contained .fixed > .pointer-events-auto > :first-child > :last-child {margin-left:auto;flex-shrink:0;}
+.android-tool-pane .android-toolchange-contained .fixed > .pointer-events-auto > :last-child {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding:6px;flex-shrink:0;}
+.android-tool-pane .android-toolchange-contained .fixed > .pointer-events-auto > :last-child > div {grid-column:1/-1;grid-row:1;overflow:hidden;}
+.android-tool-pane .android-toolchange-contained .fixed > .pointer-events-auto > :last-child > button {min-width:0;padding:6px 3px;justify-content:center;}
+.android-tool-pane .android-toolchange-contained .h-\[420px\] > .flex-1 {min-width:0;padding:8px;}
+@media (orientation:portrait) and (max-width:650px) {
+ .android-tool-pane [role="tablist"] {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px;padding:4px;}
+ .android-tool-pane [role="tab"] {padding:7px 2px;}
+ .android-view-actions {bottom:200px;}
+}
+/* This preparation workspace fills the app; global centered-modal rules must not offset it. */
+body .android-prep-dialog[role="dialog"] {inset:54px 4px 52px!important;transform:none!important;translate:none!important;width:auto!important;max-width:none!important;max-height:none!important;margin:0!important;}
+.android-prep-dialog>div>div>.grid.grid-cols-2 {grid-template-columns:minmax(0,1fr);}
+.android-prep-dialog>div>div>.grid.grid-cols-2>div:last-child {min-height:280px;}
+.android-prep-dialog>div>div>.flex.flex-row {flex-wrap:wrap;}
+
+.android-jog-speed-page[hidden] {display:none!important;}
+body .android-prep-dialog .grid.grid-cols-2 {grid-template-columns:minmax(0,1fr)!important;}
+body .android-prep-dialog .grid.grid-cols-2>div:last-child {min-height:280px;}
+body .android-prep-dialog button.bg-primary {background:#3f85c7!important;color:#fff!important;}
+
+/* Approved October 2 UI. */
+
+.android-visualizer-frame:has(.android-machine-status-host[data-state="paused"]) {border:4px solid #f59e0b!important;}
+
+.android-visualizer-frame:has(.android-machine-status-host[data-state="running"]) {border:4px solid #22c55e!important;}
+
+.android-visualizer-frame:has(.android-visualizer-job-state[data-machine-state="Alarm"]) {border:4px solid #ef4444!important;}
+
+
+/* ATC tool details need the full width of the compact Tools pane. */
+.android-tool-pane .android-atc-tool-overview {display:flex;flex-direction:column;gap:8px;flex-shrink:0;min-width:0;}
+
+.android-tool-pane .android-atc-tool-overview > div {width:100%;min-width:0;}
+
+.android-tool-pane .android-atc-table-button {width:100%;height:40px;flex-direction:row;gap:8px;border-radius:6px;font-size:14px;}
+
+.android-tool-pane .android-atc-tool-overview .justify-between {gap:10px;}
+
+.android-tool-pane .android-atc-tool-overview .grid {min-width:0;grid-template-columns:minmax(0,1fr) auto;gap:8px;}
+
+.android-tool-pane .android-atc-tool-overview .border.rounded {padding:10px;border-radius:6px;}
+
+.android-tool-pane .android-atc-tool-overview > button {width:100%!important;min-width:0!important;height:40px;flex-direction:row!important;gap:8px;border-radius:6px;font-size:14px;}
+
+/* Compact probing controls within the Tool pane, with one wizard scroll area. */
+#tool-panel-Probing {display:flex;flex-direction:column;padding:8px;gap:8px;overflow:hidden;}
+
+#tool-panel-Probing .android-probing-actions {margin:0;flex-shrink:0;}
+
+#tool-panel-Probing .android-probing-actions button {flex:1;height:36px;}
+
+#tool-panel-Probing > .h-full {height:auto;flex:1;min-height:0;padding:0;justify-content:flex-start;gap:8px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 {display:flex;flex-direction:column;min-height:0;gap:8px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 {flex-direction:column;gap:6px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 > .border {min-height:36px;flex:none;width:100%;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 > .border button {min-width:0;padding:6px 4px;font-size:13px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 > .flex-col {flex:none;gap:2px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .w-24 {width:100%;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .w-24 > button {min-height:36px;border-radius:6px;flex:none;}
+
+#tool-panel-Probing .truncate {white-space:normal;overflow:visible;}
+
+#tool-panel-Probing .px-5 {padding-left:10px;padding-right:10px;}
+
+#tool-panel-Probing .py-3 {padding-top:6px;padding-bottom:6px;}
+
+#tool-panel-Probing > .h-full {padding:0!important;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .w-24 {width:100%!important;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .w-24 > button {width:100%!important;min-height:36px!important;height:36px!important;}
+
+#tool-panel-Probing {padding:6px;gap:5px;}
+
+#tool-panel-Probing > .h-full {gap:5px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 {gap:5px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 {gap:3px;}
+
+#tool-panel-Probing .android-probing-actions {gap:6px;}
+
+#tool-panel-Probing .android-probing-actions button {font-size:15px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 > .border button {font-size:15px;padding:4px 2px;}
+
+#tool-panel-Probing .text-xs {font-size:14px;}
+
+#tool-panel-Probing .text-sm {font-size:15px;}
+
+#tool-panel-Probing .px-5 {padding-left:8px!important;padding-right:8px!important;}
+
+#tool-panel-Probing .py-4 {padding-top:6px!important;padding-bottom:6px!important;}
+
+#tool-panel-Probing .py-3 {padding-top:4px!important;padding-bottom:4px!important;}
+
+#tool-panel-Probing .gap-5 {gap:8px;}
+
+#tool-panel-Probing .gap-4 {gap:8px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 {display:grid;grid-template-columns:minmax(0,1fr) 76px;align-items:start;gap:6px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .w-24 {width:76px!important;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 > .flex-col {flex-direction:row;align-items:center;gap:4px;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 > .flex-col > span:first-child {display:none;}
+
+#tool-panel-Probing .pt-3 {padding-top:5px;}
+
+#tool-panel-Probing .pb-2 {padding-bottom:4px;}
+
+#tool-panel-Probing .gap-6 {display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr);gap:8px;align-content:start;}
+
+#tool-panel-Probing .gap-6 .mb-2 {margin-bottom:4px;}
+
+#tool-panel-Probing .gap-6 .grid-cols-2 {gap:4px;}
+
+#tool-panel-Probing .gap-6 .grid-cols-2 > button {padding:4px 2px;gap:2px;border-radius:6px;}
+
+#tool-panel-Probing .gap-6 .grid-cols-2 > button svg {width:22px;height:22px;}
+
+#tool-panel-Probing .gap-6 .grid-cols-2 > button span {font-size:11px;}
+
+#tool-panel-Probing [aria-hidden="true"].invisible {display:none;}
+
+#tool-panel-Probing > .h-full > .shrink-0 {display:grid!important;grid-template-columns:minmax(0,1fr) 76px!important;min-height:0!important;}
+
+#tool-panel-Probing > .h-full > .shrink-0 > .flex-1 {width:auto!important;min-width:0!important;}
+
+#tool-panel-Probing .w-1\/3.gap-6 {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)!important;gap:8px!important;}
+
+#tool-panel-Probing .w-1\/3.gap-6 .grid-cols-2 > button {min-height:42px!important;height:42px!important;}
+
+#tool-panel-Probing .w-1\/3.gap-6 {padding-top:3px!important;padding-bottom:3px!important;}
+
+#tool-panel-Probing .w-1\/3.gap-6 > div > .italic {font-size:12px;line-height:1.25;}
+
+#tool-panel-Probing .w-1\/3.gap-6 .grid-cols-2 + p {font-size:12px;line-height:1.2;}
+
+#tool-panel-Probing .h-11 {height:36px!important;min-height:36px!important;}
+
+#tool-panel-Probing .w-1\/3.gap-6 .grid-cols-2 > button span {line-height:1.1;}
+
+
+#tool-panel-Probing .android-probe-wizard {min-height:0!important;}
+
+#tool-panel-Probing .android-probe-wizard > .shrink-0 {padding:4px 6px!important;gap:6px!important;}
+
+#tool-panel-Probing .android-probe-step {padding:4px 6px!important;gap:5px!important;min-height:0;}
+
+#tool-panel-Probing .android-probe-step:first-child {display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr)!important;align-content:start;}
+
+#tool-panel-Probing .android-probe-step .mb-2 {margin-bottom:3px!important;}
+
+#tool-panel-Probing .android-probe-step .grid-cols-2 {gap:3px!important;}
+
+#tool-panel-Probing .android-probe-step .grid-cols-2 > button {height:38px!important;min-height:38px!important;padding:2px!important;gap:0!important;}
+
+#tool-panel-Probing .android-probe-step .grid-cols-2 > button svg {width:18px!important;height:18px!important;}
+
+#tool-panel-Probing .android-probe-step .grid-cols-2 > button span {font-size:11px!important;line-height:13px!important;}
+
+#tool-panel-Probing .android-probe-step .grid-cols-2 + p {display:none;}
+
+#tool-panel-Probing .android-probe-step [aria-hidden="true"] {display:none!important;}
+
+#tool-panel-Probing .android-probe-step .py-8 {padding:0!important;display:flex!important;gap:4px!important;}
+
+#tool-panel-Probing .continuity-indicator__shell {width:64px!important;height:64px!important;}
+
+#tool-panel-Probing .continuity-indicator {gap:2px!important;}
+
+#tool-panel-Probing .android-probe-step .gap-5 {gap:4px!important;}
+
+#tool-panel-Probing .android-probe-step .p-4 {padding:4px!important;}
+
+#tool-panel-Probing .android-probe-step .text-base {font-size:12px!important;line-height:15px!important;}
+
+#tool-panel-Probing .android-probe-step .py-3 {padding:3px 6px!important;}
+
+#tool-panel-Probing .probe-start-btn {height:36px!important;min-height:36px!important;font-size:16px!important;border-radius:6px!important;}
+
+#tool-panel-Probing .android-probe-step:last-child > .flex-1 {display:none;}
+
+#tool-panel-Probing .android-probe-wizard .h-11 {height:32px!important;min-height:32px!important;}
+
+#tool-panel-Probing .android-probe-step .grid-cols-2 > button[class*="border-green"] span {color:#fff!important;}
+
+
+/* Manual change wizard uses the same surfaces and controls as the Tool pane. */
+.android-tool-pane .android-toolchange-contained > .fixed > .pointer-events-auto {border:0!important;border-radius:0!important;box-shadow:none!important;background:#f8fafc!important;}
+
+.dark .android-tool-pane .android-toolchange-contained > .fixed > .pointer-events-auto {background:#202832!important;}
+
+.android-tool-pane .android-toolchange-contained > .fixed > .pointer-events-auto > .border-b {padding:7px 8px!important;background:transparent!important;border-color:#72849d!important;flex-shrink:0;}
+
+.android-tool-pane .android-toolchange-contained > .fixed > .pointer-events-auto > .border-b .text-base {font-size:14px!important;line-height:18px;}
+
+.android-tool-pane .android-manual-instructions {padding:8px!important;gap:8px!important;min-height:0;background:transparent!important;color:inherit;}
+
+.android-tool-pane .android-manual-instructions > .text-xs {font-size:12px;flex-wrap:wrap;}
+
+.android-tool-pane .android-manual-instructions [id^="step-"] {gap:6px;}
+
+.android-tool-pane .android-manual-instructions .leading-relaxed {font-size:14px!important;line-height:1.4!important;color:inherit!important;}
+
+.android-tool-pane .android-manual-instructions .tracking-widest {letter-spacing:.03em;}
+
+.android-tool-pane .android-manual-instructions > .rounded {padding:6px 8px;border:1px solid #d99b26;border-radius:6px;background:#d99b2615!important;color:#a46708!important;font-size:12px;line-height:1.35;}
+
+.dark .android-tool-pane .android-manual-instructions > .rounded {color:#eeb24b!important;}
+
+.android-tool-pane .android-manual-controls {padding:6px 8px!important;gap:6px!important;display:grid!important;grid-template-columns:1fr 1fr;flex-shrink:0;background:transparent!important;border-color:#72849d!important;}
+
+.android-tool-pane .android-manual-controls > div {grid-column:1/-1;grid-row:1;display:flex;gap:3px;padding-bottom:3px;min-width:0;}
+
+.android-tool-pane .android-manual-controls > div > div {flex:1;min-width:0;width:auto!important;}
+
+.android-tool-pane .android-manual-controls > button {height:36px;justify-content:center;padding:4px 8px!important;border-radius:6px;font-size:14px;}
+
+.android-tool-pane .android-manual-controls > button:last-child {background:#579bd5!important;}
+
+.android-tool-pane .android-manual-controls svg {width:16px;height:16px;}
+
+.android-tool-pane .android-manual-instructions,.android-tool-pane .android-manual-controls {background:#f8fafc!important;}
+
+.dark .android-tool-pane .android-manual-instructions,.dark .android-tool-pane .android-manual-controls {background:#202832!important;}
+
+
+.android-viewport-setup.android-compact-setup {left:6px;bottom:164px;gap:6px;}
+
+.android-compact-setup button {width:32px;height:38px;padding:3px;flex-direction:column;gap:0;font-size:10px;line-height:11px;}
+
+.android-view-actions:has(~ .android-rotary-dial) {bottom:254px;}
+
+.android-viewport-setup.android-compact-setup {bottom:208px;}
+
+.android-compact-setup button {width:36px;height:36px;}
+
+.android-viewport-setup.android-compact-setup {flex-direction:column;gap:8px;}
+
+.android-compact-setup button span {font-size:12px;line-height:13px;}
+
+.android-view-actions:has(~ .android-rotary-dial) {bottom:296px;}
+
+
+.android-tool-pane .android-manual-exit {width:auto;min-width:48px;height:28px;padding:2px 10px;border-radius:6px;font-size:14px;line-height:20px;color:inherit;}
+
+.android-crosshair-indicator {position:absolute;width:20px;height:20px;z-index:2;pointer-events:none;color:#00a348;}
+
+.android-crosshair-indicator svg {width:100%;height:100%;}
+
+.android-crosshair-indicator.starting {color:#d99b26;animation:android-spindle-blink .65s steps(2,end) infinite;}
+
+.android-crosshair-indicator.stopping {color:#ef4444;animation:android-spindle-blink .65s steps(2,end) infinite;}
+50%{opacity:.2}
+
+.android-machine-status-host:has(.android-unhomed-status) {display:flex;align-items:center;justify-content:center;gap:10px;}
+
+.android-unhomed-status {color:#d99b26;font-size:14px;line-height:22px;border:1px solid #d99b26;border-radius:6px;padding:0 6px;white-space:nowrap;}
+
+.android-compact-setup button.android-home-attention {background:#3b82f6;color:white;border-color:#60a5fa;outline:2px solid #60a5fa;animation:android-unlock-pulse 1.2s ease-in-out infinite;overflow:visible;}
+
+.android-compact-setup button:disabled {opacity:.4;}
+
+.android-home-group {display:flex;align-items:center;gap:8px;width:max-content;border-radius:6px;}
+
+.android-home-group.android-home-attention {outline:2px solid #60a5fa;animation:android-unlock-pulse 1.2s ease-in-out infinite;background:#202832;padding-right:8px;}
+
+.android-home-group.android-home-attention button {background:#3b82f6;color:white;border-color:#60a5fa;}
+
+.android-compact-setup .android-home-label {color:#60a5fa;font-size:14px;line-height:20px;white-space:nowrap;}
+
+/* Homing-required alarm draws attention to Home, not Unlock. */
+body:has(.android-home-group.android-home-attention) header.android-pendant-header .unlock-attention {animation:none!important;outline:none!important;box-shadow:none!important;}
+
+body .android-tool-config[role="dialog"] {position:absolute!important;inset:0!important;transform:none!important;width:100%!important;height:100%!important;max-height:none!important;max-width:none!important;z-index:30;display:flex;flex-direction:column;overflow:hidden!important;background:#f8fafc;color:#202832;border:1px solid #72849d;border-radius:8px;}
+
+.dark .android-tool-config[role="dialog"] {background:#202832;color:#e5eaf1;}
+
+.android-tool-config > header {display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:6px 10px;border-bottom:1px solid #72849d;gap:8px;}
+
+.android-tool-config h2 {font-size:16px;font-weight:600;margin:0;}
+
+.android-tool-config > header button {width:30px;height:30px;border:1px solid #72849d;border-radius:6px;font-size:22px;line-height:24px;}
+
+.android-tool-config-body {flex:1;min-height:0;overflow:auto;padding:8px;}
+
+.android-tool-config-body table {width:100%;font-size:14px;}
+
+.android-tool-config-body th,.android-tool-config-body td {padding:6px;min-width:0;}
+
+.android-tool-config-body button,.android-tool-config-body input {border-radius:6px;}
+
+.android-visualizer-canvas:has(.android-tool-config) .android-tool-timeline {visibility:hidden;}
+
+.android-visualizer-canvas:has(.android-tool-config) :is(.android-timeline-popout,.android-timeline-popout) {visibility:hidden!important;pointer-events:none!important;}
+
+.android-tool-config-body tr {display:grid!important;grid-template-columns:minmax(0,2fr) minmax(0,1fr) minmax(0,1fr) minmax(100px,1fr)!important;align-items:center;}
+
+.android-tool-config-body th,.android-tool-config-body td {display:flex!important;align-items:center;justify-content:center;}
+
+.android-tool-config-body th:first-child,.android-tool-config-body td:first-child {justify-content:flex-start;}
+
+.android-tool-config-body td:nth-child(2)>div:first-child {display:none!important;}
+
+.android-tool-config-body td:nth-child(2)>div:last-child {width:100%;padding:4px;}
+
+.android-tool-config-body button[data-state] {background:#72849d22;padding:8px;border:1px solid #72849d55;}
+
+.android-tool-config-body input {width:100%;height:32px;padding:4px 6px;border:1px solid #72849d;background:transparent;}
+
+.android-atc-settings-button {order:2;}
+
+.android-atc-settings-button>div,.android-atc-settings-button>div>div {width:100%;}
+
+.android-atc-settings-button button {width:100%!important;height:36px!important;display:flex;align-items:center;justify-content:center;gap:8px;border:1px solid #72849d;border-radius:6px;background:#344150;color:#e5eaf1;font-size:14px;}
+
+.android-atc-settings-body {flex:1;min-height:0;display:flex;flex-direction:column;padding:8px;overflow:hidden;}
+
+.android-atc-settings-body [role="tabpanel"] {margin-top:8px;}
+
+.android-atc-settings-body button,.android-atc-settings-body input,.android-atc-settings-body select {border-radius:6px;}
+
+/* Compact ATC settings, scoped to its visualizer pane. */
+.android-atc-settings-body [role="tabpanel"][data-state="active"] {overflow:auto;height:auto;}
+
+.android-atc-settings-body [role="tabpanel"] > .space-y-4 {height:auto;gap:8px;}
+
+.android-atc-settings-body .space-y-4 > :not([hidden]) ~ :not([hidden]) {margin-top:8px!important;}
+
+.android-atc-settings-body .space-y-3 > :not([hidden]) ~ :not([hidden]) {margin-top:6px!important;}
+
+.android-atc-settings-body .grid.grid-cols-1 {grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;align-items:start;}
+
+.android-atc-settings-body .bg-card {border-radius:6px;background:transparent;overflow:hidden;}
+
+.android-atc-settings-body .bg-card > .border-b {padding:8px!important;background:#72849d15;}
+
+.android-atc-settings-body .bg-card > .p-5 {padding:8px!important;min-height:0!important;gap:6px;justify-content:flex-start;}
+
+.android-atc-settings-body .gap-6 {gap:10px;}
+
+.android-atc-settings-body .gap-4 {gap:8px;}
+
+.android-atc-settings-body h3 {font-size:14px;line-height:18px;color:inherit;}
+
+.android-atc-settings-body label {font-size:12px;line-height:16px;}
+
+.android-atc-settings-body p {font-size:12px;line-height:17px;}
+
+.android-atc-settings-body input {height:30px;font-size:13px;padding:3px 6px;min-width:0;}
+
+.android-atc-settings-body button:not([role="switch"]) {min-height:30px;font-size:12px;}
+
+.android-atc-settings-body [role="switch"] {flex-shrink:0;}
+
+.android-atc-settings-body .min-w-\[6\.5rem\] {min-width:0;}
+
+.android-atc-settings-body .h-9.w-9.shrink-0 {display:none;}
+
+.android-atc-settings-body .basis-full.h-4 {height:auto;font-size:11px;line-height:14px;}
+
+.android-atc-settings-body .invisible {display:none;}
+
+body .android-atc-settings-body > [data-slot="tabs"],body .android-atc-settings-body > div {height:100%!important;min-height:0!important;flex:1!important;}
+
+body .android-atc-settings-body [role="tabpanel"][data-state="active"] {flex:1!important;height:0!important;min-height:0!important;max-height:none!important;overflow:auto!important;margin-top:8px!important;}
+
+body .android-atc-settings-body .grid.grid-cols-1 {display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important;}
+
+body .android-atc-settings-body .bg-card > .p-5 {padding:8px!important;min-height:0!important;}
+
+body .android-atc-settings-body .bg-card {background:#202832!important;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 {height:auto!important;gap:8px!important;}
+
+body .android-atc-settings-body [role="tabpanel"][data-state="inactive"] {display:none!important;}
+
+body .android-atc-settings-body .space-y-4 > :not([hidden]) ~ :not([hidden]) {margin-top:6px!important;}
+
+body .android-atc-settings-body .space-y-1 > :not([hidden]) ~ :not([hidden]) {margin-top:3px!important;}
+
+body .android-atc-settings-body .gap-4 {gap:6px!important;}
+
+body .android-atc-settings-body .bg-card > .border-b {padding:6px 8px!important;}
+
+/* Fit the ATC config and its Apply action within the available pane. */
+body .android-atc-settings-body [role="tabpanel"][data-state="active"] {overflow:hidden!important;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 {height:100%!important;display:flex;flex-direction:column;gap:6px!important;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 > .grid {flex-shrink:0;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 > .bg-card {flex:1;min-height:0;display:flex;flex-direction:column;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 > .bg-card > .p-5 {flex:1;min-height:0;}
+
+body .android-atc-settings-body .grid.grid-cols-1 {align-items:start!important;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 > div:last-child {flex-shrink:0;padding-top:4px!important;padding-bottom:0!important;margin-top:0!important;}
+
+body .android-atc-settings-body .space-y-4 > :not([hidden]) ~ :not([hidden]) {margin-top:4px!important;}
+
+body .android-atc-settings-body .bg-card > .p-5 {padding:6px 8px!important;}
+
+body .android-atc-settings-body [role="tabpanel"] > .space-y-4 > div:last-child {flex:0 0 36px!important;min-height:36px!important;}
+
+.android-crosshair-indicator-anchor .android-crosshair-indicator {position:static;}
+
+.android-crosshair-indicator-anchor .android-crosshair-indicator svg {width:24px;height:24px;overflow:visible;}
+
+/* Flat job controls: no outer glow on Play/Pause or Stop. */
+body .android-job-controls,body .android-job-controls > div,body .android-job-controls button {box-shadow:none!important;filter:none!important;}
+
+/* Rotary readout sits below the shortened Z ruler on the right. */
+.android-rotary-dial {left:auto;right:-10px;bottom:54px;}
+
+body .android-visualizer-canvas:has(.android-rotary-dial) .android-z-height-scale {bottom:206px!important;}
+
+/* Keep the ruler short while its background fade continues behind the dial. */
+body .android-visualizer-canvas:has(.android-rotary-dial) .android-z-height-scale {overflow:visible;background:none!important;}
+
+body .android-visualizer-canvas:has(.android-rotary-dial) .android-z-height-scale::before {content:"";position:absolute;inset:0 0 -134px;z-index:-1;pointer-events:none;background:linear-gradient(90deg,rgba(255,255,255,0) 24%,rgba(255,255,255,.72) 58%,#fff 100%);}
+
+body.dark .android-visualizer-canvas:has(.android-rotary-dial) .android-z-height-scale::before,.dark .android-visualizer-canvas:has(.android-rotary-dial) .android-z-height-scale::before {background:linear-gradient(90deg,rgba(23,27,35,0) 24%,rgba(23,27,35,.78) 58%,#171b23 100%);}
+
+body .android-timeline-popout {position:absolute;left:6px;right:116px;top:auto!important;bottom:62px!important;width:auto!important;max-height:240px!important;display:flex!important;flex-direction:column!important;border:1px solid #72849d;border-radius:6px;background:#202832;color:#e5eaf1;z-index:5;overflow:hidden;}
+
+body .android-timeline-squares {display:flex!important;flex-direction:row!important;gap:6px;padding:6px;overflow-x:auto;overflow-y:hidden;max-height:none!important;}
+
+body .android-timeline-squares button {flex:0 0 auto;width:auto!important;min-width:54px;height:30px!important;writing-mode:horizontal-tb!important;transform:none!important;rotate:none!important;border-radius:4px;padding:4px 6px;font-size:12px;color:white;}
+
+body .android-timeline-squares button[aria-current="step"] {outline:2px solid white;outline-offset:1px;}
+
+body .android-timeline-toggle {display:flex;align-items:center;justify-content:center;gap:8px;width:100%!important;writing-mode:horizontal-tb!important;transform:none!important;padding:2px 6px;font-size:11px;min-height:20px;border-top:1px solid #72849d66;}
+
+body .android-timeline-content {overflow:auto;padding:6px;min-height:0;}
+
+.android-tool-chapters {position:absolute;inset:0;pointer-events:none;z-index:3;overflow:hidden;border-radius:inherit;}
+
+.android-tool-chapters i {position:absolute;bottom:0;height:7px;width:2px;background:#e5eaf1cc;box-shadow:0 0 0 1px #171b2355;}
+
+body .android-visualizer-canvas > .android-job-progress {overflow:visible;}
+
+body .android-job-progress > [role="button"] {overflow:hidden;border-radius:inherit;}
+
+.android-tool-flags {position:absolute;left:0;right:0;top:0;height:0;z-index:4;}
+
+.android-tool-flag {position:absolute;bottom:0;width:0;border-left:2px solid var(--tool-color);}
+
+.android-tool-flag button {position:absolute;left:-2px;top:-24px;height:24px;min-width:44px;padding:2px 4px;border:1px solid #ffffff66;border-radius:4px 4px 4px 0;color:white;white-space:nowrap;font-size:10px;line-height:16px;cursor:pointer;}
+
+.android-tool-flag button[aria-current="step"] {outline:2px solid white;outline-offset:1px;}
+
+body .android-timeline-popout[data-flags="true"][data-open="false"] {display:none!important;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] {bottom:164px!important;}
+
+.android-visualizer-canvas:has(.android-job-stats-pane,.android-job-summary,.android-tool-config) .android-tool-flags {visibility:hidden;pointer-events:none;}
+
+.android-tool-flag button {top:-21px;height:21px;min-width:40px;padding:0 2px;font-size:12px;line-height:19px;letter-spacing:-.3px;}
+
+.android-tool-flag button {top:-36px;height:36px;width:30px;min-width:30px;padding:2px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;line-height:15px;letter-spacing:0;}
+
+.android-tool-flag button {top:-30px;height:30px;width:max-content;min-width:0;padding:0 2px;line-height:14px;}
+
+.android-tool-flag button {left:-1px;transform:translateX(-50%);border-radius:4px;}
+
+.android-tool-flag:first-child button {transform:none;left:-1px;}
+
+body .android-job-progress .android-tool-flags > .android-tool-flag {height:18px!important;min-height:18px!important;}
+
+.android-tool-flag {border-left-width:3px;}
+
+.android-tool-flag::after {content:"";position:absolute;left:-3px;top:100%;width:3px;height:53px;background:var(--tool-color);pointer-events:none;opacity:.85;}
+
+.android-tool-flag button {height:22px;top:-22px;line-height:20px;}
+
+/* Stems end at mid-height and sit behind the progress surface. */
+.android-tool-flag::after {height:24px;}
+
+.android-tool-flags {z-index:0;}
+
+body .android-job-progress > [role="button"] {z-index:1;}
+
+
+/* A shared frame and toggle label for the chapter flags. */
+.android-tool-flags::before {content:"";position:absolute;left:-4px;right:-4px;top:-68px;height:60px;border:1px solid #72849d;border-radius:6px;background:#202832;pointer-events:none;}
+
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {position:absolute;left:-3px;right:-3px;top:-67px;width:calc(100% + 6px);height:21px;min-height:21px;padding:1px 6px;display:flex;align-items:center;justify-content:center;gap:6px;border:0;border-bottom:1px solid #72849d66;border-radius:5px 5px 0 0;background:transparent;color:#e5eaf1;font-size:12px;line-height:18px;cursor:pointer;}
+
+/* Compact flags, with their frame meeting the progress bar. */
+.android-tool-flags::before {top:-54px;height:54px;box-sizing:border-box;border-radius:6px 6px 0 0;}
+
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {top:-53px;height:15px;min-height:15px;padding:0 6px;justify-content:flex-start;font-size:11px;line-height:14px;}
+
+.android-tool-flag button {top:-19px;height:19px;line-height:17px;padding:0 2px;}
+
+/* Bring chapter flags closer to the progress surface. */
+body .android-job-progress .android-tool-flags > .android-tool-flag {height:8px!important;min-height:8px!important;}
+
+.android-tool-flags::before {top:-44px;height:44px;}
+
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {top:-43px;}
+
+/* Extend the timeline frame behind the top half of the progress bar. */
+.android-tool-flags::before {height:68px;border-radius:6px;}
+
+/* Match the timeline frame to the progress bar width. */
+.android-tool-flags::before {left:0;right:0;}
+
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {left:1px;right:1px;width:calc(100% - 2px);}
+
+.android-tool-flags::before {left:-1.5px;right:-1.5px;}
+
+/* Keep the progress outline above the chapter flags and their frame. */
+body .android-visualizer-canvas > .android-job-progress::after {content:"";position:absolute;inset:-1.5px;border:1.5px solid #72849d;border-radius:inherit;z-index:6;pointer-events:none;}
+
+/* Timeline layers remain behind the progress surface; stems tuck into flags. */
+.android-tool-flags {z-index:0;}
+
+body .android-job-progress > [role="button"] {position:relative;z-index:2;}
+
+.android-tool-flag::after {top:-9.5px;height:41.5px;z-index:0;}
+
+.android-tool-flag button {z-index:1;}
+
+/* Tight, bold tool flags with a flush current-tool outline. */
+.android-tool-flag button {height:17px;top:-17px;line-height:15px;font-weight:700;}
+
+.android-tool-flag button[aria-current="step"] {outline-offset:0;}
+
+.android-tool-flag::after {top:-8.5px;height:40.5px;}
+
+
+/* Tool-coloured spans fade from each chapter stem to the next. */
+.android-tool-span {position:absolute;top:-26px;height:50px;background:linear-gradient(to right,color-mix(in srgb,var(--tool-color) 45%,transparent),transparent);pointer-events:none;}
+
+.android-tool-flag:first-of-type button {transform:none;left:-1px;}
+
+
+/* Solid duration segments, anchored at each tool-change stem. */
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {left:-3px;transform:none;width:calc(100% + 3px);min-width:0;box-sizing:border-box;padding:0; border-radius:3px;}
+
+/* Small gaps between duration flags without moving their chapter stems. */
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {width:100%;}
+
+
+/* Preserve readable tool labels when chapters are tightly spaced. */
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {min-width:max-content;padding:0 2px;}
+
+/* Expanded timeline rises from its flag strip to the viewport top. */
+body .android-timeline-popout[data-flags="true"][data-open="true"] {top:0!important;bottom:98px!important;left:6px;right:116px;max-height:none!important;border-radius:6px 6px 0 0;border-bottom:0;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] .android-timeline-content {flex:1;min-height:0;overflow:auto;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] > .android-timeline-toggle {display:none;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] {right:290px;}
+
+
+/* Replace the collapsed strip with a single expanded tray. */
+.android-tool-flags[data-open="true"] {visibility:hidden;pointer-events:none;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] {top:12px!important;bottom:54px!important;left:6px;right:290px;border-bottom:1px solid #72849d;border-radius:6px;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] .android-timeline-content {padding:12px 6px 6px;}
+
+body .android-timeline-popout[data-flags="true"][data-open="true"] > .android-timeline-toggle {display:flex;flex-shrink:0;justify-content:flex-start;}
+
+
+/* One timeline surface grows upward, keeping its bottom edge fixed. */
+.android-tool-flags[data-open="true"] {visibility:visible;pointer-events:auto;}
+
+.android-tool-flags::before {top:var(--timeline-top,-44px);height:calc(24px - var(--timeline-top,-44px));}
+
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {top:calc(var(--timeline-top,-44px) + 1px);}
+
+body .android-timeline-popout[data-flags="true"] {display:none!important;}
+
+body .android-job-progress .android-tool-expanded-content {position:absolute;top:calc(var(--timeline-top) + 24px);bottom:0;left:0;right:0;height:auto!important;min-height:0!important;overflow:auto;padding:8px 6px;}
+
+
+/* Retain chapter stems while the expanded list replaces flag boxes. */
+.android-tool-flags[data-open="true"] .android-tool-flag button {display:none;}
+
+/* Expanded timeline clears the status label and covers viewport controls. */
+.android-tool-flags[data-open="true"]::before {top:calc(var(--timeline-top) + 32px);height:calc(-8px - var(--timeline-top));}
+
+body .android-job-progress .android-tool-flags[data-open="true"] > .android-tool-flags-heading {top:calc(var(--timeline-top) + 33px);}
+
+body .android-job-progress .android-tool-flags[data-open="true"] .android-tool-expanded-content {top:calc(var(--timeline-top) + 56px);}
+
+body .android-visualizer-canvas > .android-job-progress:has(.android-tool-flags[data-open="true"]) {z-index:5;}
+
+/* Draw each stem once, avoiding doubled opacity at the old border join. */
+.android-tool-flag {border-left-color:transparent;}
+
+.android-tool-flag::after {width:3px;top:-8.5px;height:40.5px;opacity:1;border:0;border-radius:0;background:var(--tool-color);}
+
+/* Tool durations are slim pills with labels above their leading edge. */
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {height:8px;top:-8px;min-width:22px;border-radius:999px;padding:0;overflow:visible;}
+
+.android-tool-flag button > span {position:absolute;left:0;bottom:10px;font-size:12px;font-weight:700;line-height:14px;white-space:nowrap;color:#f1f5f9;}
+
+.android-tool-flag::after {top:-4px;height:36px;}
+
+.android-tool-flags:not([data-open="true"])::before {top:-49px;height:73px;}
+
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > .android-tool-flags-heading {top:-48px;}
+
+
+/* Unlabelled tray edge remains tappable; tool labels have collision spacing. */
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {border-bottom:0;}
+
+.android-tool-flags:not([data-open="true"])::before {top:-36px;height:60px;}
+
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > .android-tool-flags-heading {top:-36px;height:10px;min-height:10px;}
+
+
+/* Protruding corner tab and a full collapsed timeline hit area. */
+.android-tool-flags:not([data-open="true"])::before {pointer-events:auto;cursor:pointer;}
+
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {left:-1.5px;right:auto;width:26px;height:18px;min-height:18px;top:calc(var(--timeline-top) - 17px);padding:0;justify-content:center;border:1px solid #72849d;border-bottom:0;border-radius:5px 5px 0 0;background:#202832;font-size:17px;line-height:17px;z-index:20;}
+
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > .android-tool-flags-heading {top:-53px;}
+
+body .android-job-progress .android-tool-flags[data-open="true"] > .android-tool-flags-heading {top:calc(var(--timeline-top) + 15px);}
+
+/* Join the corner tab to the tray with a continuous, filleted outline. */
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {height:19px;min-height:19px;border-radius:6px 6px 0 0;}
+
+.android-tool-flags::before {border-top-left-radius:0;}
+
+.android-tool-flags-heading::before {content:"";position:absolute;left:0;right:0;bottom:-2px;height:3px;background:#202832;pointer-events:none;}
+
+.android-tool-flags-heading::after {content:"";position:absolute;left:100%;bottom:-1px;width:7px;height:7px;background:radial-gradient(circle at 100% 0,transparent 6px,#72849d 6px,#72849d 7px,#202832 7px);pointer-events:none;}
+
+.android-tool-flags-heading > span {position:relative;z-index:1;}
+
+
+/* Seal the tab join and reuse the chapter tray above loaded-file controls. */
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > .android-tool-flags-heading {top:-52px;}
+
+.android-tool-flags-heading::before {bottom:-3px;height:5px;}
+
+body .android-visualizer-canvas > .android-timeline-anchor {display:block!important;position:absolute;left:6px;right:290px;bottom:64px;height:0!important;min-height:0!important;padding:0!important;border:0!important;background:none!important;box-shadow:none!important;overflow:visible;}
+
+body .android-visualizer-canvas > .android-timeline-anchor::after {display:none;}
+
+.android-timeline-anchor .android-tool-flags::before {height:calc(0px - var(--timeline-top));}
+
+.android-timeline-anchor .android-tool-flags:not([data-open="true"])::before {height:36px;}
+
+.android-timeline-anchor .android-tool-flags[data-open="true"]::before {height:calc(-32px - var(--timeline-top));}
+
+.android-timeline-anchor .android-tool-flag::after {height:12px;}
+
+/* Match the tab's touch area to a viewport-centering button. */
+body .android-job-progress .android-tool-flags > .android-tool-flags-heading {width:36px;height:36px;min-height:36px;font-size:22px;line-height:34px;}
+
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > .android-tool-flags-heading {top:-71px;}
+
+body .android-job-progress .android-tool-flags[data-open="true"] > .android-tool-flags-heading {top:calc(var(--timeline-top) - 3px);}
+
+body .android-visualizer-canvas > .android-job-progress.android-timeline-anchor {bottom:64px!important;}
+
+body .android-job-progress .android-tool-flags > button.android-tool-flags-heading {height:36px!important;min-height:36px!important;}
+
+
+/* Keep the chapter strip in the expanded tray and finish stems at its edge. */
+.android-tool-flags[data-open="true"] .android-tool-flag button {display:flex;}
+
+body .android-job-progress .android-tool-flags[data-open="true"] .android-tool-expanded-content {bottom:38px;}
+
+.android-timeline-anchor .android-tool-flags::before {left:0;right:0;}
+
+body .android-timeline-anchor .android-tool-flags > button.android-tool-flags-heading {left:0;}
+
+.android-tool-flags-heading::before {left:0;right:-1px;bottom:-1px;height:2px;}
+
+.android-timeline-anchor .android-tool-flag::after {height:11px;}
+
+.android-tool-flags::before {overflow:hidden;}
+
+/* Clip chapter pills and selection outlines to the tray's horizontal edges. */
+.android-tool-flag {clip-path:inset(-40px calc(-1 * (100vw)) -40px 0);}
+
+.android-tool-flags {clip-path:inset(-2000px -1.5px -24px -1.5px);}
+
+.android-timeline-anchor .android-tool-flags {clip-path:inset(-2000px 0 0 0);}
+
+.android-tool-flag {clip-path:none;}
+
+/* Inset pills instead of clipping their rounded ends and outlines. */
+.android-tool-flags,.android-timeline-anchor .android-tool-flags {clip-path:none;}
+
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {left:0;width:calc(100% - 3px);}
+
+.android-tool-flag button > span {margin-left:0;}
+
+.android-tool-flags:not([data-open="true"])::before {top:-39px;height:63px;}
+
+.android-timeline-anchor .android-tool-flags:not([data-open="true"])::before {height:43px;}
+
+.android-timeline-anchor .android-tool-flags[data-open="true"]::before {height:calc(-28px - var(--timeline-top));}
+
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > .android-tool-flags-heading {top:-74px;}
+
+/* Only the current tool receives a pill outline. */
+.android-tool-flag button {border:0;outline:none;box-shadow:none;}
+
+.android-tool-flag button[aria-current="step"] {outline:2px solid white;outline-offset:0;}
+
+/* Join stems to the inset pills without changing chapter spacing. */
+.android-tool-flag::after {left:0;}
+
+/* Pill and stem share their left edge, with no centering offset. */
+.android-tool-flag {--pill-stem-left:0px;}
+
+.android-tool-flag::after {left:var(--pill-stem-left);transform:none;margin-left:0;}
+
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {left:var(--pill-stem-left);transform:none;margin-left:0;border-bottom-left-radius:0;}
+
+/* Preserve chapter stem positions and the fully rounded pill shape. */
+.android-tool-flag {--pill-stem-left:-3px;}
+
+.android-tool-flag button,.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {border-radius:999px;}
+
+/* Stems meet the tray bottom, with its outline drawn over their ends. */
+.android-timeline-anchor .android-tool-flag::after {height:16px;}
+
+.android-tool-flags::after {content:"";position:absolute;left:-1.5px;right:-1.5px;top:var(--timeline-top,-44px);height:calc(24px - var(--timeline-top,-44px));border:1px solid #72849d;border-top:0;border-radius:0 6px 6px 6px;box-sizing:border-box;z-index:19;pointer-events:none;}
+
+.android-tool-flags:not([data-open="true"])::after {top:-39px;height:63px;}
+
+.android-tool-flags[data-open="true"]::after {top:calc(var(--timeline-top) + 32px);height:calc(-8px - var(--timeline-top));}
+
+.android-timeline-anchor .android-tool-flags::after {left:0;right:0;}
+
+.android-timeline-anchor .android-tool-flags:not([data-open="true"])::after {height:43px;}
+
+.android-timeline-anchor .android-tool-flags[data-open="true"]::after {height:calc(-28px - var(--timeline-top));}
+
+/* Keep the first pill's selection outline inside the tray. */
+.android-tool-flag:first-child button,.android-tool-flag:first-of-type button {left:1px;width:calc(100% - 7px);}
+
+/* Keep the first stem joined to its padded pill. */
+.android-tool-flag:first-child::after,.android-tool-flag:first-of-type::after {left:1px;}
+
+
+/* Start expanded rows just inside the tray's top border. */
+body .android-job-progress .android-tool-flags[data-open="true"] .android-tool-expanded-content {top:calc(var(--timeline-top) + 33px);padding-top:3px;}
+
+/* Horizontal drag handles in the expanded tool timeline. */
+.android-tool-expanded-content button svg {transform:rotate(90deg);}
+
+/* Larger revolution-counter readout. */
+.rotary-turn-counter > text {font-size:13px!important;}
+
+.rotary-turn-counter > text:last-child {font-size:9px!important;}
+
+/* Broader, softer falloff around the rotary dial. */
+.android-rotary-dial {background:radial-gradient(circle closest-side,#fff 44%,rgba(255,255,255,.88) 62%,rgba(255,255,255,.45) 80%,transparent 98%);}
+
+.dark .android-rotary-dial {background:radial-gradient(circle closest-side,#171b23 44%,rgba(23,27,35,.88) 62%,rgba(23,27,35,.45) 80%,transparent 98%);}
+
+/* Extend the rotary fade slightly beyond its previous radius. */
+.android-rotary-dial {background:radial-gradient(circle closest-side,#fff 44%,rgba(255,255,255,.88) 66%,rgba(255,255,255,.45) 88%,transparent 110%);}
+
+.dark .android-rotary-dial {background:radial-gradient(circle closest-side,#171b23 44%,rgba(23,27,35,.88) 66%,rgba(23,27,35,.45) 88%,transparent 110%);}
+
+.android-rotary-dial,.dark .android-rotary-dial {background:none;}
+
+.android-rotary-dial::before {content:"";position:absolute;inset:-8px;border-radius:50%;z-index:-1;pointer-events:none;background:radial-gradient(circle closest-side,#fff 44%,rgba(255,255,255,.88) 62%,rgba(255,255,255,.45) 80%,transparent 98%);}
+
+.dark .android-rotary-dial::before {background:radial-gradient(circle closest-side,#171b23 44%,rgba(23,27,35,.88) 62%,rgba(23,27,35,.45) 80%,transparent 98%);}
+
+/* Grey-blue sightglass backgrounds for all viewport coordinate boxes. */
+.android-position-readout rect,.android-z-height-scale .z-current-readout-box,.android-rotary-dial .rotary-readout rect {fill:#e5edf5!important;fill-opacity:1;}
+
+.dark .android-position-readout rect,.dark .android-z-height-scale .z-current-readout-box,.dark .android-rotary-dial .rotary-readout rect {fill:#34495e!important;}
+
+body form.android-dro-value-editor[data-readout-inline="true"] {background:#e5edf5!important;}
+
+.dark body form.android-dro-value-editor[data-readout-inline="true"] {background:#34495e!important;}
+
+/* Place viewport framing controls nearer the top-left of the canvas. */
+.android-view-actions,.android-view-actions:has(~ .android-rotary-dial) {top:64px;bottom:auto;}
+
+/* Larger rotary angle labels. */
+.android-rotary-dial text.rotary-tick-label {font-size:12px;}
+
+.android-rotary-dial text.rotary-tick-label tspan:last-child {transform:translateX(2px);}
+
+/* Bright, flush progress outline with no offset gap. */
+body .android-visualizer-canvas > .android-job-progress:not(.android-timeline-anchor) {border-color:#a9bfd3!important;}
+
+body .android-visualizer-canvas > .android-job-progress:not(.android-timeline-anchor)::after {inset:0;border-color:#a9bfd3;border-width:1.5px;}
+
+/* The progress surface replaces the loaded-file control while a job is active. */
+.android-visualizer-canvas:has(> .android-job-progress:not(.android-timeline-anchor)) > .android-progress-stats-host {display:none!important;}
+
+/* A single opaque progress surface, without the old striped track decoration. */
+body .android-job-progress:not(.android-timeline-anchor) .pendant-progress-track {background-color:#e5edf5!important;box-shadow:none!important;}
+
+.dark body .android-job-progress:not(.android-timeline-anchor) .pendant-progress-track,body.dark .android-job-progress:not(.android-timeline-anchor) .pendant-progress-track {background-color:#202832!important;}
+
+body .android-visualizer-canvas > .android-job-progress:not(.android-timeline-anchor) {background:#202832!important;box-shadow:none!important;}
+
+/* Remove duplicate/outset outlines at the progress–timeline join. */
+body .android-visualizer-canvas > .android-job-progress:not(.android-timeline-anchor) {border-color:transparent!important;outline:none!important;}
+
+body .android-job-progress:not(.android-timeline-anchor) .android-tool-flags::before,
+body .android-job-progress:not(.android-timeline-anchor) .android-tool-flags::after {left:0;right:0;}
+
+body .android-job-progress:not(.android-timeline-anchor) .android-tool-flags > button.android-tool-flags-heading {left:0;}
+
+body .android-job-progress:not(.android-timeline-anchor) > [role="button"] {outline:none!important;box-shadow:none!important;}
+
+
+/* Match the tool pane frame to the adjacent jog card. */
+.android-tool-pane {border:1px solid #d1d5db;}
+
+.dark .android-tool-pane {border-color:#59687b;}
+
+
+/* Place Close File before the editor beside the loaded file. */
+.android-file-actions > .android-inline-editor {order:2;}
+
+.android-file-actions > .android-load-file:has(.android-close-file-label) {order:1;}
+
+
+.android-file-actions > .android-load-file:has(.android-close-file-label) {width:48px!important;min-width:48px!important;flex-basis:48px!important;display:flex;align-items:center;justify-content:center;padding:8px!important;}
+
+.android-close-file-label {width:28px;height:28px;flex-shrink:0;}
+
+
+/* Stronger connection hint in the disconnected viewport. */
+body.android-disconnected .android-visualizer-canvas::after {width:40px;height:46px;font-size:40px;line-height:44px;font-weight:800;-webkit-text-stroke:1px currentColor;}
+
+
+.android-connect-hint {position:absolute;top:48px;left:12px;color:#eab308;font-size:16px;line-height:22px;z-index:3;pointer-events:none;}
+
+body.android-disconnected .android-visualizer-canvas > .android-connect-hint {display:block!important;}
+
+
+/* Pulse the connection outline while disconnected, matching Unlock. */
+body.android-disconnected header.android-pendant-header button.android-connection-pill {
+ position:relative;z-index:2;outline:2px solid #eab308;outline-offset:0;
+ animation:android-unlock-pulse 1.2s ease-in-out infinite!important;
+ overflow:visible;
+}
+
+
+/* Center the two-line connection hint beneath the arrow. */
+.android-connect-hint {left:var(--connection-arrow-x,64px);transform:translateX(-50%);width:120px;text-align:center;white-space:normal;font-size:14px;line-height:19px;}
+
+.android-connect-hint {width:128px;font-size:12px;line-height:18px;text-wrap:balance;}

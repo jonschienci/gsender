@@ -3,7 +3,8 @@ import shutil, hashlib, zipfile, re
 root = Path(__file__).resolve().parents[2]
 payload = root / 'android-port/build/payload'
 shutil.rmtree(payload / 'node_modules', ignore_errors=True)
-shutil.copytree(root / 'android-port/runtime-deps/node_modules', payload / 'node_modules', dirs_exist_ok=True)
+if not (payload / 'bundled-dependencies.json').exists():
+    raise RuntimeError('Run build-backend.cjs before packaging')
 for name in ('images', 'assets'):
     shutil.copytree(root / 'src/app' / name, payload / 'app' / name, dirs_exist_ok=True)
 shutil.copyfile(root / 'src/app/favicon.ico', payload / 'app/favicon.ico')

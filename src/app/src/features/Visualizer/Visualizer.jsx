@@ -1133,13 +1133,14 @@ class Visualizer extends Component {
                         'parsedData.invalidLines',
                         [],
                     );
-                    if (invalidLines.length > 0) {
+                    const invalidLineCount = _get(data, 'parsedData.invalidLineCount', invalidLines.length);
+                    if (invalidLineCount > 0) {
                         // Put it in the modal somehow
                         const lineSample = invalidLines.slice(0, 5);
                         const description = (
                             <div className={'flex flex-col gap-2'}>
                                 <p>
-                                    Detected {invalidLines.length} invalid lines
+                                    Detected {invalidLineCount} invalid lines
                                     on file load. Your job may not run
                                     correctly.
                                 </p>

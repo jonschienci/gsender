@@ -150,6 +150,7 @@ export interface FileInfoState {
     spindleSet: Array<string>;
     movementSet: Array<string>;
     invalidGcode: Array<string>;
+    invalidLineCount?: number;
     estimatedTime: number;
     fileModal: string;
     bbox: BBox;

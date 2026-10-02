@@ -7,9 +7,9 @@ async function request(action='',body?:any){const r=await fetch('/api/benchmark'
 function nativeSample(){try{return {...JSON.parse(w.AndroidBenchmark?.sample()||'{}'),viewport:{width:innerWidth,height:innerHeight,dpr:devicePixelRatio},jsHeap:(performance as any).memory?.usedJSHeapSize};}catch{return {};}}
 const button={background:'#2563eb',color:'white',border:'1px solid #60a5fa',borderRadius:6,padding:'10px 18px',minHeight:44,cursor:'pointer'};
 export default function Benchmark({onCarve,onActive}:{onCarve:()=>void,onActive:(v:boolean)=>void}){
- const [visible,setVisible]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[reports,setReports]=useState<any[]>([]);
+ const [visible,setVisible]=useState(false),[busy,setBusy]=useState(false),[message,setMessage]=useState(''),[reports,setReports]=useState<any[]>([]),[localFixtures,setLocalFixtures]=useState<any[]>([]);
  const session=useRef<any>(null),cancelled=useRef(false);
- const refresh=async()=>{try{const result=await request();setReports(result.reports);if(result.active&&!session.current)setMessage('An interrupted screen is still running a benchmark. Close and reopen the app to stop it.');}catch(e){setMessage(String(e));}};
+ const refresh=async()=>{try{const result=await request();setReports(result.reports);setLocalFixtures(result.localFixtures||[]);if(result.active&&!session.current)setMessage('An interrupted screen is still running a benchmark. Close and reopen the app to stop it.');}catch(e){setMessage(String(e));}};
  useEffect(()=>{const open=()=>{setVisible(true);void refresh();};window.addEventListener('gsender-benchmark-open',open);
   if(new URLSearchParams(location.search).get('benchmark')==='onboard')open();
   w.__gsenderBenchmarkReadUI=()=>{const s=store.getState();return {workflow:s.controller.workflow.state,fileLoaded:s.file.fileLoaded,connection:s.connection.port,fileProcessing:s.file.fileProcessing,processingProgress:s.file.processingProgress};};
@@ -45,7 +45,7 @@ export default function Benchmark({onCarve,onActive}:{onCarve:()=>void,onActive:
   if(w.AndroidDownload){const reader=new FileReader();reader.onload=()=>w.AndroidDownload.save(name,String(reader.result).split(',')[1]);reader.readAsDataURL(blob);}else{const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
  }catch(e){setMessage(String(e));}}
  if(!visible)return null;
- return <div style={{position:'fixed',inset:0,zIndex:2147483000,background:busy?'transparent':'#0009',display:'flex',alignItems:busy?'flex-end':'center',justifyContent:'center',padding:12}} role="dialog" aria-label="Onboard benchmark">
+ return <div className="android-benchmark-overlay" style={{position:'fixed',inset:0,zIndex:2147483000,background:busy?'transparent':'#0009',display:'flex',alignItems:busy?'flex-end':'center',justifyContent:'center',padding:12}} role="dialog" aria-label="Onboard benchmark">
   <section style={{background:'#152238',color:'#fff',border:'1px solid #60a5fa',borderRadius:8,padding:18,width:busy?'100%':640,maxHeight:'90vh',overflow:'auto',boxShadow:'0 2px 12px #0008'}}>
    <h2 style={{fontSize:22,marginBottom:8}}>Benchmark · Build {w.__gsenderAndroidBuildNumber}</h2>
    <p style={{marginBottom:10}}>{busy?'SIMULATION — physical CNC connections blocked. Keep gSender open.': 'Runs offline on this tablet. Disconnect the CNC and knob and unload any job first. Reports are saved on the tablet, including interrupted runs.'}</p>
@@ -54,6 +54,7 @@ export default function Benchmark({onCarve,onActive}:{onCarve:()=>void,onActive:
     <div style={{display:'flex',gap:12,flexWrap:'wrap',marginBottom:14}}>
      <button style={button} onClick={()=>void run('quick')}>Quick check · about 3 min</button>
      <button style={button} onClick={()=>void run('full')}>Full suite · about 25 min</button>
+     {localFixtures.map(f=><button key={f.id} style={button} onClick={()=>void run('fixture:'+f.id)}>Test {f.label}</button>)}
      <button style={{...button,background:'#334155'}} onClick={()=>setVisible(false)}>Close</button>
     </div>
     <p style={{fontSize:14,marginBottom:12}}>Includes loading, streaming, panning and 2× viewport zoom. Full suite: contour, arcs, mountain relief and 5–40 MiB relief files. Automated animation measures rendering, not finger response time. Stops if available system memory falls below 256 MiB. Last 12 sessions retained.</p>

@@ -61,7 +61,6 @@ import {
     JOB_TYPES,
     JOB_STATUS,
     GRBL,
-    LIGHTWEIGHT_OPTIONS,
     GRBL_ACTIVE_STATE_CHECK,
     METRIC_UNITS,
 } from 'app/constants';
@@ -242,15 +241,6 @@ export function* initialize(): Generator<any, void, any> {
         }
     };
 
-    const shouldVisualizeSVG = () => {
-        return (
-            store.get(
-                'widgets.visualizer.liteOption',
-                LIGHTWEIGHT_OPTIONS.LIGHT,
-            ) === LIGHTWEIGHT_OPTIONS.LIGHT
-        );
-    };
-
     const parseGCode = async (
         content: string,
         size: number,
@@ -259,9 +249,6 @@ export function* initialize(): Generator<any, void, any> {
     ) => {
         const reduxState = reduxStore.getState();
         const isLaser = isLaserMode();
-        // Keep SVG path generation tied to lightweight option selection so
-        // users can switch to SVG view instantly after a file is loaded.
-        const shouldIncludeSVG = shouldVisualizeSVG();
         const profileWorker = store.get(
             'widgets.visualizer.debug.profileWorker',
             false,
@@ -421,7 +408,6 @@ export function* initialize(): Generator<any, void, any> {
             activeVisualizer: visualizer,
             isSecondary: visualizer === VISUALIZER_SECONDARY,
             isLaser,
-            shouldIncludeSVG,
             needsVisualization,
             isNewFile,
             accelerations,

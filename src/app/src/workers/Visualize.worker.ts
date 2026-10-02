@@ -50,8 +50,9 @@ interface WorkerData {
     jobId?: number;
     visualizer?: VISUALIZER_TYPES_T;
     isLaser?: boolean;
-    shouldIncludeSVG?: boolean;
     needsVisualization?: boolean;
+    svgOnly?: boolean;
+    rapidOpacity?: number;
     accelerations?: any;
     maxFeedrates?: any;
     atcEnabled?: boolean;
@@ -61,20 +62,6 @@ interface WorkerData {
     theme?: Map<string, string>;
     profile?: boolean;
     profileSampleEvery?: number;
-}
-
-interface SVGVertex {
-    x1: number;
-    y1: number;
-    x2: number;
-    y2: number;
-}
-
-interface Path {
-    motion: string;
-    path: string;
-    strokeWidth: number;
-    fill: string;
 }
 
 interface Modal {
@@ -344,8 +331,9 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         jobId = 0,
         visualizer,
         isLaser = false,
-        shouldIncludeSVG = false,
         needsVisualization = true,
+        svgOnly: svgOnlyRequested = false,
+        rapidOpacity = 0.5,
         // parsedData = {},
         // isNewFile = false,
         accelerations,
@@ -393,7 +381,10 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
     };
     let currentTool = 0;
     const toolchanges: number[] = [];
-    const shouldBuildColors = needsVisualization && Boolean(theme);
+    // svgOnly: pendant top-down mode — stream deduplicated 2D segment groups
+    // during parsing and skip the 3D vertex/color/frame buffers entirely.
+    const svgOnly = svgOnlyRequested && needsVisualization && !isSecondary && !isLaser;
+    const shouldBuildColors = needsVisualization && Boolean(theme) && !svgOnly;
     const asRgb = (color: THREE.Color): [number, number, number] => [
         color.r,
         color.g,
@@ -427,6 +418,113 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         pushFloat32_4Repeat(colorValues, r, g, b, opacity, count);
     };
 
+    // Adapted from upstream 1f46d3d74 (pendant cheap path). Keep XY geometry
+    // once across repeated depths, without building unused 3D/color/frame data.
+    // A 0.01mm hash grid locates candidates, but exact Float32 endpoints must
+    // match before dropping a line: close detail and hash collisions stay visible.
+    type Svg2DGroup = {
+        hexColor: string;
+        opacity: number;
+        positions: GrowableFloat32Buffer;
+        seen: Map<number, number>;
+    };
+    const svg2DGroups = new Map<string, Svg2DGroup>();
+    let svg2DKept = 0;
+    let svg2DDupeDrops = 0;
+    let svg2DDegenerateDrops = 0;
+    let svg2DCachedRgb: [number, number, number] | null = null;
+    let svg2DCachedOpacity = -1;
+    let svg2DCachedGroup: Svg2DGroup | null = null;
+    const rgbToHex = (rgb: [number, number, number]): string => {
+        const ch = (v: number) =>
+            Math.round(Math.min(1, Math.max(0, v)) * 255)
+                .toString(16)
+                .padStart(2, '0');
+        return `#${ch(rgb[0])}${ch(rgb[1])}${ch(rgb[2])}`;
+    };
+    const getSvg2DGroup = (motion: string, opacity: number): Svg2DGroup => {
+        const rgb = getMotionColor(motion);
+        // Motion colors change only on toolchange, so a one-entry cache keyed
+        // by array identity avoids per-segment hex/map work.
+        if (rgb === svg2DCachedRgb && opacity === svg2DCachedOpacity) {
+            return svg2DCachedGroup!;
+        }
+        const hexColor = rgbToHex(rgb);
+        const key = `${hexColor}|${Math.round(opacity * 100)}`;
+        let group = svg2DGroups.get(key);
+        if (!group) {
+            group = {
+                hexColor,
+                opacity,
+                positions: { data: new Float32Array(4096), length: 0 },
+                seen: new Map(),
+            };
+            svg2DGroups.set(key, group);
+        }
+        svg2DCachedRgb = rgb;
+        svg2DCachedOpacity = opacity;
+        svg2DCachedGroup = group;
+        return group;
+    };
+    const mixHash2 = (a: number, b: number): number => {
+        let h = Math.imul(a, 0x85ebca6b) ^ Math.imul(b, 0xc2b2ae35);
+        h ^= h >>> 15;
+        h = Math.imul(h, 0x27d4eb2f);
+        h ^= h >>> 13;
+        return h >>> 0;
+    };
+    const emitSvg2DSegment = (
+        motion: string,
+        opacity: number,
+        x1: number,
+        y1: number,
+        x2: number,
+        y2: number,
+    ): void => {
+        x1 = Math.fround(x1); y1 = Math.fround(y1);
+        x2 = Math.fround(x2); y2 = Math.fround(y2);
+        let qx1 = Math.round(x1 * 100);
+        let qy1 = Math.round(y1 * 100);
+        let qx2 = Math.round(x2 * 100);
+        let qy2 = Math.round(y2 * 100);
+        // Pure Z moves have no XY line; retain even very small XY moves.
+        if (x1 === x2 && y1 === y2) {
+            svg2DDegenerateDrops++;
+            return;
+        }
+        // Canonical endpoint order so opposite-direction passes dedupe too
+        if (qx1 > qx2 || (qx1 === qx2 && qy1 > qy2)) {
+            let t = qx1;
+            qx1 = qx2;
+            qx2 = t;
+            t = qy1;
+            qy1 = qy2;
+            qy2 = t;
+        }
+        const group = getSvg2DGroup(motion, opacity);
+        // 53-bit key: 32 bits from one endpoint hash + 21 from the other.
+        // Verify the candidate rather than treating a hash collision as hidden geometry.
+        const key =
+            mixHash2(qx1, qy1) * 0x200000 + (mixHash2(qx2, qy2) >>> 11);
+        const previous = group.seen.get(key);
+        if (previous !== undefined) {
+            const p = group.positions.data;
+            if ((p[previous] === x1 && p[previous + 1] === y1 &&
+                 p[previous + 2] === x2 && p[previous + 3] === y2) ||
+                (p[previous] === x2 && p[previous + 1] === y2 &&
+                 p[previous + 2] === x1 && p[previous + 3] === y1)) {
+                svg2DDupeDrops++;
+                return;
+            }
+            // Keep distinct sub-grid detail. A collision may retain extra
+            // duplicate lines, but can never remove a different visible line.
+        } else {
+            group.seen.set(key, group.positions.length);
+        }
+        svg2DKept++;
+        pushFloat32_4Repeat(group.positions, x1, y1, x2, y2, 1);
+    };
+
     // Laser specific state variables
     const spindleFrameSpeeds: GrowableFloat32Buffer = {
         data: new Float32Array(4096),
@@ -435,10 +533,6 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
     let maxSpindleSpeed = 0;
     let spindleSpeed = 0;
 
-    // SVG specific state variables
-    let SVGVertices: SVGVertex[] = [];
-    let paths: Path[] = [];
-    let currentMotion = '';
     let progress = 0;
     let currentLines = 0;
     let totalLines = 0;
@@ -501,48 +595,11 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         motionColor.G3 = rgb;
     };
 
-    // create path for the vertices of the last motion
-    const createPath = (motion: string) => {
-        const parts: string[] = ['M'];
-        for (let i = 0; i < SVGVertices.length; i++) {
-            parts.push(
-                SVGVertices[i].x1 +
-                ',' +
-                SVGVertices[i].y1 +
-                ',' +
-                SVGVertices[i].x2 +
-                ',' +
-                SVGVertices[i].y2 +
-                ',',
-            );
-        }
-        paths.push({
-            motion: motion,
-            path: parts.join(''),
-            strokeWidth: 10,
-            fill: 'none',
-        });
-    };
-
-    const svgInitialization = (motion: string) => {
-        // initialize
-        if (currentMotion === '') {
-            currentMotion = motion;
-            // if the motion has changed, determine whether to create path
-        } else if (currentMotion !== motion) {
-            // treat G1-G3 as the same motion
-            if (currentMotion === 'G0' || motion === 'G0') {
-                createPath(currentMotion);
-                // reset
-                SVGVertices = [];
-                currentMotion = motion;
-            }
-        }
-    };
-
     const onData = () => {
-        const vertexIndex = vertices.length / 3;
-        pushUint32_1(frames, vertexIndex);
+        if (!svgOnly) {
+            const vertexIndex = vertices.length / 3;
+            pushUint32_1(frames, vertexIndex);
+        }
 
         currentLines++;
         if (
@@ -564,13 +621,13 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         }
     };
 
-    // Split handlers for regular, laser, and SVG visualization
+    // Split handlers for regular and laser visualization
     // Each handle Line and Arc Curves differently
     const handlers = {
         normal: {
             addLine: (modal: Modal, v1: BasicPosition, v2: BasicPosition) => {
                 if (needsVisualization) {
-                    const { motion, units, tool } = modal;
+                    const { motion, tool } = modal;
                     registerToolChange(tool);
 
                     // Check if A-axis rotation is involved
@@ -584,7 +641,7 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
                             1,
                             Math.ceil(Math.abs((v2.a || 0) - (v1.a || 0)) / 5),
                         );
-                        const opacity = motion === 'G0' ? 0.5 : 1;
+                        const opacity = motion === 'G0' ? rapidOpacity : 1;
 
                         // Reusable scalars — no per-iteration object allocation
                         let prevX = 0, prevY = 0, prevZ = 0;
@@ -611,27 +668,25 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
                             if (i > 0) {
                                 // Add line segment from previous point to current point
                                 pushMotionColor(motion, opacity, 2);
-                                pushFloat32_6(
-                                    vertices,
-                                    prevX,
-                                    prevY,
-                                    prevZ,
-                                    currX,
-                                    currY,
-                                    currZ,
-                                );
-
-                                // SVG
-                                if (shouldIncludeSVG) {
-                                    const multiplier =
-                                        units === 'G21' ? 1 : 25.4;
-                                    svgInitialization(motion);
-                                    SVGVertices.push({
-                                        x1: prevX * multiplier,
-                                        y1: prevY * multiplier,
-                                        x2: currX * multiplier,
-                                        y2: currY * multiplier,
-                                    });
+                                if (svgOnly) {
+                                    emitSvg2DSegment(
+                                        motion,
+                                        opacity,
+                                        prevX,
+                                        prevY,
+                                        currX,
+                                        currY,
+                                    );
+                                } else {
+                                    pushFloat32_6(
+                                        vertices,
+                                        prevX,
+                                        prevY,
+                                        prevZ,
+                                        currX,
+                                        currY,
+                                        currZ,
+                                    );
                                 }
                             }
 
@@ -662,28 +717,27 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
                         v2.z = newV2.z;
 
                         // normal
-                        const opacity = motion === 'G0' ? 0.5 : 1;
+                        const opacity = motion === 'G0' ? rapidOpacity : 1;
                         pushMotionColor(motion, opacity, 2);
-                        pushFloat32_6(
-                            vertices,
-                            v1.x,
-                            v1.y,
-                            v1.z,
-                            v2.x,
-                            v2.y,
-                            v2.z,
-                        );
-
-                        // svg
-                        if (shouldIncludeSVG) {
-                            const multiplier = units === 'G21' ? 1 : 25.4; // We need to make path bigger for inches
-                            svgInitialization(motion);
-                            SVGVertices.push({
-                                x1: v1.x * multiplier,
-                                y1: v1.y * multiplier,
-                                x2: v2.x * multiplier,
-                                y2: v2.y * multiplier,
-                            });
+                        if (svgOnly) {
+                            emitSvg2DSegment(
+                                motion,
+                                opacity,
+                                v1.x,
+                                v1.y,
+                                v2.x,
+                                v2.y,
+                            );
+                        } else {
+                            pushFloat32_6(
+                                vertices,
+                                v1.x,
+                                v1.y,
+                                v1.z,
+                                v2.x,
+                                v2.y,
+                                v2.z,
+                            );
                         }
                     }
                 }
@@ -729,15 +783,26 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
                         if (i > 0) {
                             // Add line segment from previous point to current point
                             pushMotionColor(motion, 1, 2);
-                            pushFloat32_6(
-                                vertices,
-                                prevX,
-                                prevY,
-                                prevZ,
-                                currX,
-                                currY,
-                                currZ,
-                            );
+                            if (svgOnly) {
+                                emitSvg2DSegment(
+                                    motion,
+                                    1,
+                                    prevX,
+                                    prevY,
+                                    currX,
+                                    currY,
+                                );
+                            } else {
+                                pushFloat32_6(
+                                    vertices,
+                                    prevX,
+                                    prevY,
+                                    prevZ,
+                                    currX,
+                                    currY,
+                                    currZ,
+                                );
+                            }
                         }
 
                         prevX = currX;
@@ -783,7 +848,21 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
 
                     for (let i = 0; i < points.length; ++i) {
                         const point = points[i];
-                        pushFloat32_3(vertices, v2.x, point.x, point.y);
+                        if (svgOnly) {
+                            if (i > 0) {
+                                // 3D vertex is (v2.x, point.x, point.y) — top-down XY is (v2.x, point.x)
+                                emitSvg2DSegment(
+                                    motion,
+                                    1,
+                                    v2.x,
+                                    points[i - 1].x,
+                                    v2.x,
+                                    point.x,
+                                );
+                            }
+                        } else {
+                            pushFloat32_3(vertices, v2.x, point.x, point.y);
+                        }
                         pushMotionColor(motion, 1);
                     }
                 }
@@ -795,10 +874,9 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
                 v0: BasicPosition,
             ) => {
                 if (needsVisualization) {
-                    const { motion, plane, units, tool } = modal;
+                    const { motion, plane, tool } = modal;
                     registerToolChange(tool);
 
-                    const multiplier = units === 'G21' ? 1 : 25.4;
                     const isClockwise = motion === 'G2';
                     const radius = Math.sqrt(
                         (v1.x - v0.x) ** 2 + (v1.y - v0.y) ** 2,
@@ -826,51 +904,63 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
                     const points = arcCurve.getPoints(divisions);
                     const pointCount = Math.max(points.length - 1, 1);
 
-                    // svg
-                    if (shouldIncludeSVG) {
-                        svgInitialization(motion);
-                    }
-
                     for (let i = 0; i < points.length; ++i) {
                         const point = points[i];
                         const pointA = points[i - 1];
                         const pointB = points[i];
                         const z = ((v2.z - v1.z) / pointCount) * i + v1.z;
+                        const zA =
+                            ((v2.z - v1.z) / pointCount) * (i - 1) + v1.z;
 
                         if (plane === 'G17') {
                             // XY-plane
-                            pushFloat32_3(vertices, point.x, point.y, z);
-                            if (shouldIncludeSVG && i > 0) {
-                                SVGVertices.push({
-                                    x1: pointA.x * multiplier,
-                                    y1: pointA.y * multiplier,
-                                    x2: pointB.x * multiplier,
-                                    y2: pointB.y * multiplier,
-                                });
+                            if (svgOnly) {
+                                if (i > 0) {
+                                    emitSvg2DSegment(
+                                        motion,
+                                        1,
+                                        pointA.x,
+                                        pointA.y,
+                                        pointB.x,
+                                        pointB.y,
+                                    );
+                                }
+                            } else {
+                                pushFloat32_3(vertices, point.x, point.y, z);
                             }
                         } else if (plane === 'G18') {
                             // ZX-plane
-                            pushFloat32_3(vertices, point.y, z, point.x);
-                            if (shouldIncludeSVG && i > 0) {
-                                SVGVertices.push({
-                                    x1: pointA.y * multiplier,
-                                    y1: z * multiplier,
-                                    x2: pointB.y * multiplier,
-                                    y2: z * multiplier,
-                                });
+                            if (svgOnly) {
+                                if (i > 0) {
+                                    // 3D vertex is (point.y, z, point.x) — top-down XY is (point.y, z)
+                                    emitSvg2DSegment(
+                                        motion,
+                                        1,
+                                        pointA.y,
+                                        zA,
+                                        pointB.y,
+                                        z,
+                                    );
+                                }
+                            } else {
+                                pushFloat32_3(vertices, point.y, z, point.x);
                             }
                         } else if (plane === 'G19') {
                             // YZ-plane
-                            pushFloat32_3(vertices, z, point.x, point.y);
-                            if (shouldIncludeSVG && i > 0) {
+                            if (svgOnly) {
                                 if (i > 0) {
-                                    SVGVertices.push({
-                                        x1: z * multiplier,
-                                        y1: pointA.x * multiplier,
-                                        x2: z * multiplier,
-                                        y2: pointB.x * multiplier,
-                                    });
+                                    // 3D vertex is (z, point.x, point.y) — top-down XY is (z, point.x)
+                                    emitSvg2DSegment(
+                                        motion,
+                                        1,
+                                        zA,
+                                        pointA.x,
+                                        z,
+                                        pointB.x,
+                                    );
                                 }
+                            } else {
+                                pushFloat32_3(vertices, z, point.x, point.y);
                             }
                         }
                         pushMotionColor(motion, 1);
@@ -891,107 +981,6 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
             ) => {
                 const { addArcCurve: dAddArcCurve } = handlers.normal;
                 dAddArcCurve(modal, v1, v2, v0);
-            },
-        },
-        svg: {
-            addLine: (modal: Modal, v1: BasicPosition, v2: BasicPosition) => {
-                const { motion, units } = modal;
-                const multiplier = units === 'G21' ? 1 : 25.4;
-                // initialize
-                if (currentMotion === '') {
-                    currentMotion = motion;
-                    // if the motion has changed, determine whether to create path
-                } else if (currentMotion !== motion) {
-                    // treat G1-G3 as the same motion
-                    if (currentMotion === 'G0' || motion === 'G0') {
-                        createPath(currentMotion);
-                        // reset
-                        SVGVertices = [];
-                        currentMotion = motion;
-                    }
-                }
-                SVGVertices.push({
-                    x1: v1.x * multiplier,
-                    y1: v1.y * multiplier,
-                    x2: v2.x * multiplier,
-                    y2: v2.y * multiplier,
-                });
-            },
-            addArcCurve: (
-                modal: Modal,
-                v1: BasicPosition,
-                v2: BasicPosition,
-                v0: BasicPosition,
-            ) => {
-                const { motion, plane, units } = modal;
-                const multiplier = units === 'G21' ? 1 : 25.4;
-                const isClockwise = motion === 'G2';
-                const radius = Math.sqrt(
-                    (v1.x - v0.x) ** 2 + (v1.y - v0.y) ** 2,
-                );
-                let startAngle = Math.atan2(v1.y - v0.y, v1.x - v0.x);
-                let endAngle = Math.atan2(v2.y - v0.y, v2.x - v0.x);
-
-                // Draw full circle if startAngle and endAngle are both zero
-                if (startAngle === endAngle) {
-                    endAngle += 2 * Math.PI;
-                }
-
-                const arcCurve = new ArcCurve(
-                    v0.x, // aX
-                    v0.y, // aY
-                    radius, // aRadius
-                    startAngle, // aStartAngle
-                    endAngle, // aEndAngle
-                    isClockwise, // isClockwise
-                );
-                const divisions = 30;
-                const points = arcCurve.getPoints(divisions);
-                const pointCount = Math.max(points.length - 1, 1);
-                // initialize
-                if (currentMotion === '') {
-                    currentMotion = motion;
-                    // if the motion has changed, determine whether to create path
-                } else if (currentMotion !== motion) {
-                    // treat G1-G3 as the same motion
-                    if (currentMotion === 'G0' || motion === 'G0') {
-                        createPath(currentMotion);
-                        // reset
-                        SVGVertices = [];
-                        currentMotion = motion;
-                    }
-                }
-                for (let i = 1; i < points.length; ++i) {
-                    const pointA = points[i - 1];
-                    const pointB = points[i];
-                    const z = ((v2.z - v1.z) / pointCount) * i + v1.z;
-
-                    if (plane === 'G17') {
-                        // XY-plane
-                        SVGVertices.push({
-                            x1: pointA.x * multiplier,
-                            y1: pointA.y * multiplier,
-                            x2: pointB.x * multiplier,
-                            y2: pointB.y * multiplier,
-                        });
-                    } else if (plane === 'G18') {
-                        // ZX-plane
-                        SVGVertices.push({
-                            x1: pointA.y * multiplier,
-                            y1: z * multiplier,
-                            x2: pointB.y * multiplier,
-                            y2: z * multiplier,
-                        });
-                    } else if (plane === 'G19') {
-                        // YZ-plane
-                        SVGVertices.push({
-                            x1: z * multiplier,
-                            y1: pointA.x * multiplier,
-                            x2: z * multiplier,
-                            y2: pointB.x * multiplier,
-                        });
-                    }
-                }
             },
         },
     };
@@ -1018,19 +1007,21 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         atcEnabled,
     });
 
-    vm.on('data', (data: any) => {
+    // Direct per-line hook rather than vm.on('data'): the EventEmitter polyfill
+    // allocates an arguments array on every emit.
+    vm.onData = (data: number | null) => {
         if (profiler) {
             profiler.counts.vm_data_events =
                 (profiler.counts.vm_data_events || 0) + 1;
         }
 
-        if (isLaser && needsVisualization) {
+        if (isLaser && needsVisualization && !svgOnly) {
             updateSpindleStateFromLine(data);
             const spindleIsOn = vm.modal.spindle === 'M3' || vm.modal.spindle === 'M4';
             pushFloat32_1(spindleFrameSpeeds, spindleIsOn ? spindleSpeed : 0);
         }
         onData();
-    });
+    };
 
     markProfile(profiler, 'before_line_split');
     markProfile(profiler, 'after_line_split');
@@ -1085,10 +1076,6 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
     markProfile(profiler, 'after_typed_array_build');
     sampleHeap(profiler, 'after_typed_array_build');
 
-    // create path for the last motion
-    if (shouldIncludeSVG) {
-        createPath(currentMotion);
-    }
     let colorArray = new Float32Array(0);
     let savedColorsArray = new Float32Array(0);
     markProfile(profiler, 'before_color_build');
@@ -1159,10 +1146,12 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         profiler.counts.color_values_len = colorValues.length;
         profiler.counts.color_vertices_len = colorVertexCount;
         profiler.counts.toolchanges_len = toolchanges.length;
+        profiler.counts.svg2d_segments_kept = svg2DKept;
+        profiler.counts.svg2d_dupe_drops = svg2DDupeDrops;
+        profiler.counts.svg2d_degenerate_drops = svg2DDegenerateDrops;
         profiler.counts.spindle_frame_speeds_len = spindleFrameSpeeds.length;
-        profiler.counts.paths_len = paths.length;
         profiler.counts.estimates_len = estimates.length;
-        profiler.counts.invalid_lines_len = fileInfo.invalidLines?.length || 0;
+        profiler.counts.invalid_lines_len = fileInfo.invalidLineCount ?? 0;
         profiler.counts.spindle_tool_event_count = Object.keys(
             fileInfo.spindleToolEvents || {},
         ).length;
@@ -1184,7 +1173,6 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         jobId: number;
         visualizer?: VISUALIZER_TYPES_T;
         vertices: ArrayBuffer;
-        paths: Path[];
         frames: ArrayBuffer;
         verticesLen: number;
         framesLen: number;
@@ -1197,18 +1185,26 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         parsedData: {
             info: any;
             invalidLines: string[];
+            invalidLineCount: number;
         };
         spindleFrameSpeeds?: ArrayBuffer;
         spindleFrameLen?: number;
         isLaser?: boolean;
         isSecondary?: boolean;
         activeVisualizer?: VISUALIZER_TYPES_T;
+        svgSegmentGroups?: {
+            hexColor: string;
+            opacity: number;
+            positionsBuffer: ArrayBuffer;
+            positionsLen: number;
+            stride?: 4 | 6;
+        }[];
+        svgMeta?: { minZ: number; maxZ: number };
     } = {
         type: 'geometryReady',
         jobId,
         visualizer: effectiveVisualizer,
         vertices: compactVertices.buffer,
-        paths,
         frames: compactFrames.buffer,
         verticesLen: tVertices.length,
         framesLen: tFrames.length,
@@ -1221,6 +1217,7 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         parsedData: {
             info: fileInfo,
             invalidLines: fileInfo.invalidLines || [],
+            invalidLineCount: fileInfo.invalidLineCount ?? 0,
         },
         isSecondary,
         activeVisualizer: effectiveVisualizer,
@@ -1242,6 +1239,28 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         transferList.push(compactSpindleFrameSpeeds.buffer);
     }
 
+    if (svgOnly) {
+        geometryMessage.svgSegmentGroups = Array.from(
+            svg2DGroups.values(),
+        ).map((group) => {
+            const positions = toCompactFloat32Array(
+                toUsedFloat32View(group.positions),
+            );
+            transferList.push(positions.buffer);
+            return {
+                hexColor: group.hexColor,
+                opacity: group.opacity,
+                positionsBuffer: positions.buffer,
+                positionsLen: positions.length,
+                stride: 4 as const,
+            };
+        });
+        geometryMessage.svgMeta = {
+            minZ: fileInfo.bbox?.min?.z ?? 0,
+            maxZ: fileInfo.bbox?.max?.z ?? 0,
+        };
+    }
+
     markProfile(profiler, 'before_post_message');
     if (profiler) {
         profiler.bytes.vertices_transfer_bytes = compactVertices.byteLength;
@@ -1255,7 +1274,10 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
             (acc, buffer) => acc + buffer.byteLength,
             0,
         );
+        profiler.bytes.svg2d_transfer_bytes = geometryMessage.svgSegmentGroups?.reduce(
+            (sum, group) => sum + group.positionsBuffer.byteLength, 0) ?? 0;
         profiler.bytes.transfer_capacity_total_bytes =
+            Array.from(svg2DGroups.values()).reduce((sum, group) => sum + group.positions.data.byteLength, 0) +
             tVertices.buffer.byteLength +
             tFrames.buffer.byteLength +
             colorArray.buffer.byteLength +

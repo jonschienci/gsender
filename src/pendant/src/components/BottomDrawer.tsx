@@ -1,3 +1,4 @@
+import MiscPanel from '../../../../android-port/ui/MiscPanel';
 import { cacheRecentFile, readRecentFile } from '../utils/recentFileCache';
 import { createPortal } from 'react-dom';
 import GcodeEditor from 'app/features/Visualizer/GcodeEditor';
@@ -31,7 +32,6 @@ import {
 } from '../electron-bridge';
 import { applyGcodeFile } from '../utils/fileLoader';
 import { cancelGcodeProcessing } from '../utils/gcodeProcessing';
-import ATCPanel from './ATCPanel';
 import ConsolePanel from './ConsolePanel';
 import CoolantPanel from './CoolantPanel';
 import MacrosPanel from './MacrosPanel';
@@ -44,7 +44,7 @@ const ALL_TABS = [
     'Probe',
     'Spindle',
     'Macros',
-    'ATC',
+    'Misc',
     'Coolant',
     'Console',
 ] as const;
@@ -149,26 +149,11 @@ export default function BottomDrawer() {
     const consoleHistory = useTypedSelector(
         (s: RootState) => s.console.history,
     );
-    const { coolantFunctions = false, atcEnabled = false } =
-        useWorkspaceState();
-    const atcReport = useTypedSelector(
-        (s: RootState) => s.controller.settings.info?.NEWOPT?.ATC,
-    );
-    const atcEnabledOrCompiled = atcEnabled || atcReport === '1';
-    const TABS = ALL_TABS.filter(t => t !== 'File').filter(
-        (t) =>
-            (t !== 'Coolant' || coolantFunctions) &&
-            (t !== 'ATC' || atcEnabledOrCompiled),
-    );
-
+    const { coolantFunctions = false } = useWorkspaceState();
+    const TABS = ALL_TABS.filter(t => t !== 'File').filter(t => t !== 'Coolant' || coolantFunctions);
     useEffect(() => {
-        if (!coolantFunctions && activeTab === 'Coolant') {
-            setActiveTab('File');
-        }
-        if (!atcEnabledOrCompiled && activeTab === 'ATC') {
-            setActiveTab('File');
-        }
-    }, [coolantFunctions, atcEnabledOrCompiled, activeTab]);
+        if (!coolantFunctions && activeTab === 'Coolant') setActiveTab('File');
+    }, [coolantFunctions, activeTab]);
 
     useEffect(() => {
         const normalized = readRecentFiles();
@@ -417,7 +402,7 @@ export default function BottomDrawer() {
                     {(activeTab === 'Console' || activeTab === 'Macros') && (
                         <div className="android-console-size-bar">
                             <span>{activeTab}</span>
-                            <div className="android-tray-size-actions">
+                            <div className="android-tray-size-actions">{activeTab === 'Console' && <button aria-label="Minimize console" onClick={()=>setMode('closed')}><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M6 16h12"/></svg></button>}
                             <button
                                 aria-label={`${standaloneExpanded ? 'Collapse' : 'Expand'} ${activeTab.toLowerCase()}`}
                                 aria-expanded={standaloneExpanded}
@@ -670,12 +655,12 @@ export default function BottomDrawer() {
                     {/* ATC tab — always mounted */}
                     <div
                         className={
-                            activeTab === 'ATC'
+                            activeTab === 'Misc'
                                 ? 'flex-1 flex flex-col overflow-hidden min-h-0'
                                 : 'hidden'
                         }
                     >
-                        <ATCPanel mode={mode} />
+                        <MiscPanel />
                     </div>
 
                     {/* Coolant tab — always mounted */}

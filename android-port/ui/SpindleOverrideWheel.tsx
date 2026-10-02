@@ -18,7 +18,7 @@ export default function SpindleOverrideWheel() {
     };
     return <RangeSlider id="spindle-override" title="Spindle speed" inlineValue showText
         value={String(override)} percentage={[override]} defaultPercentage={[100]}
-        min={10} max={200} step={10} controlUnit="%" unitString="%"
+        min={10} max={200} step={5} controlUnit="%" unitString="%"
         resetDescription="spindle override to 100%" disabled={!enabled}
         onChange={([value]) => setOverride(value)} onButtonPress={apply} />;
 }

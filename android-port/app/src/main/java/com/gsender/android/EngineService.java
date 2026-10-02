@@ -20,6 +20,13 @@ public final class EngineService extends Service {
         EngineService current = instance;
         if (current != null) current.main.post(() -> { if (current.runtime != null) current.runtime.foregroundChanged(visible); });
     }
+    private static final java.util.ArrayDeque<String> startupEvents = new java.util.ArrayDeque<>();
+    static synchronized void record(String event) {
+        if (event.length() > 1500) event = event.substring(0,1500);
+        startupEvents.addLast(event); while (startupEvents.size() > 12) startupEvents.removeFirst();
+        android.util.Log.i("gSenderStartup", event);
+    }
+    static synchronized String diagnostics() { return String.join("\n", startupEvents); }
     private NativeRuntime runtime;
     private PowerManager.WakeLock wakeLock;
     private final Handler main = new Handler(Looper.getMainLooper());
@@ -64,44 +71,19 @@ public final class EngineService extends Service {
         }
         return START_NOT_STICKY;
     }
-    private File preparePayload() throws IOException {
-        File target = new File(getFilesDir(), "runtime");
+    private File preparePayload() throws Exception {
+        long start = SystemClock.elapsedRealtime();
         String version;
         try (InputStream input = getAssets().open("payload.sha256")) {
-            version = new String(read(input), StandardCharsets.UTF_8).trim();
+            ByteArrayOutputStream out = new ByteArrayOutputStream(); byte[] buffer = new byte[256];
+            int count; while ((count=input.read(buffer))!=-1) out.write(buffer,0,count);
+            version = out.toString("UTF-8").trim();
         }
-        File marker = new File(target, ".version");
-        if (marker.exists() && new String(java.nio.file.Files.readAllBytes(marker.toPath()), StandardCharsets.UTF_8).trim().equals(version)) return target;
-        status = "Preparing gSender for first launch…";
-        delete(target);
-        if (!target.mkdirs()) throw new IOException("Cannot create runtime directory");
-        String prefix = target.getCanonicalPath() + File.separator;
-        try (ZipInputStream zip = new ZipInputStream(getAssets().open("payload.zip"))) {
-            ZipEntry entry;
-            byte[] buffer = new byte[65536];
-            while ((entry = zip.getNextEntry()) != null) {
-                File output = new File(target, entry.getName());
-                if (!output.getCanonicalPath().startsWith(prefix)) throw new IOException("Invalid payload path");
-                if (entry.isDirectory()) { output.mkdirs(); continue; }
-                output.getParentFile().mkdirs();
-                try (OutputStream stream = new FileOutputStream(output)) {
-                    int count; while ((count = zip.read(buffer)) != -1) stream.write(buffer, 0, count);
-                }
-            }
-        }
-        java.nio.file.Files.write(marker.toPath(), version.getBytes(StandardCharsets.UTF_8));
-        return target;
-    }
-    private byte[] read(InputStream input) throws IOException {
-        ByteArrayOutputStream output = new ByteArrayOutputStream(); byte[] buffer = new byte[8192];
-        int count; while ((count = input.read(buffer)) != -1) output.write(buffer, 0, count);
-        return output.toByteArray();
-    }
-    private void delete(File file) throws IOException {
-        if (!file.exists()) return;
-        File[] children = file.listFiles();
-        if (children != null) for (File child : children) delete(child);
-        if (!file.delete()) throw new IOException("Cannot replace " + file);
+        status = "Preparing gSender…";
+        File result = new PayloadStore(getFilesDir()).prepare(version, () -> getAssets().open("payload.zip"));
+        record("payload_ready ms=" + (SystemClock.elapsedRealtime()-start));
+        status = "Starting local backend…";
+        return result;
     }
     void usbActive(boolean connected) {
         main.post(() -> {
@@ -113,6 +95,7 @@ public final class EngineService extends Service {
     }
     void ready(int port, String key) {
         if (failed || stopping) return;
+        record("backend_ready t=" + (SystemClock.elapsedRealtime()-android.os.Process.getStartElapsedRealtime()));
         token = key;
         url = "http://127.0.0.1:" + port;
         status = "Local backend running";
@@ -121,6 +104,7 @@ public final class EngineService extends Service {
     void fail(String message) {
         if (failed || stopping) return;
         failed = true;
+        record("backend_failed " + message);
         android.util.Log.e("gSender", message);
         status = "gSender stopped: " + message;
         url = null;

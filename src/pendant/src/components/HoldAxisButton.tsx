@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState, type ButtonHTMLAttributes } from 'react';
 
-type Props = ButtonHTMLAttributes<HTMLButtonElement> & { onActivate: () => void; actionKey: string };
+type Props = ButtonHTMLAttributes<HTMLButtonElement> & { onActivate: () => void; actionKey: string; activation?: 'hold' | 'tap' };
 
-export default function HoldAxisButton({ onActivate, actionKey, disabled, children, ...props }: Props) {
+export default function HoldAxisButton({ onActivate, actionKey, disabled, children, activation = 'hold', ...props }: Props) {
     const [holding, setHolding] = useState(false);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const action = useRef(onActivate);
@@ -13,7 +13,7 @@ export default function HoldAxisButton({ onActivate, actionKey, disabled, childr
         setHolding(false);
     };
     const begin = () => {
-        if (disabled || timer.current !== null) return;
+        if (activation === 'tap' || disabled || timer.current !== null) return;
         setHolding(true);
         timer.current = setTimeout(() => {
             timer.current = null;
@@ -21,7 +21,7 @@ export default function HoldAxisButton({ onActivate, actionKey, disabled, childr
             action.current();
         }, 500);
     };
-    useEffect(() => { cancel(); }, [disabled, actionKey]);
+    useEffect(() => { cancel(); }, [disabled, actionKey, activation]);
     useEffect(() => {
         window.addEventListener('blur', cancel);
         document.addEventListener('visibilitychange', cancel);
@@ -36,6 +36,7 @@ export default function HoldAxisButton({ onActivate, actionKey, disabled, childr
         onPointerDown={event => { if (event.button === 0) begin(); }}
         onPointerUp={cancel} onPointerLeave={cancel} onPointerCancel={cancel} onBlur={cancel}
         onKeyDown={event => {
+            if (activation === 'tap') return;
             if (event.key === ' ' || event.key === 'Enter') {
                 event.preventDefault();
                 if (!event.repeat) begin();
@@ -43,6 +44,6 @@ export default function HoldAxisButton({ onActivate, actionKey, disabled, childr
         }}
         onKeyUp={cancel}
         onContextMenu={event => event.preventDefault()}
-        onClick={event => event.preventDefault()}
+        onClick={event => { event.preventDefault(); if (activation === 'tap' && !disabled) action.current(); }}
     >{children}</button>;
 }

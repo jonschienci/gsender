@@ -12,10 +12,11 @@ const replace = (source, from, to) => {
 (async () => {
     fs.mkdirSync(out, {recursive:true});
     await esbuild.build({entryPoints:[path.join(root,'src/server/index.js')],outfile:path.join(out,'server.cjs'),
-        bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:false,
+        bundle:true,platform:'node',target:'node18',packages:'external',sourcemap:'inline',
         define:{'global.NODE_ENV':'"production"','global.PUBLIC_PATH':'""','global.BUILD_VERSION':JSON.stringify('1.6.4-android.'+buildNumber+'-prototype'),'global.METRICS_ENDPOINT':'""'},
         plugins:[require('../usb/js/esbuild-plugin.cjs')('./android-usb/serialport.cjs'),{
             name:'android-platform', setup(build) {
+                build.onResolve({filter:/^android-job-recording$/},()=>({path:'./job-recording.cjs',external:true}));
                 build.onResolve({filter:/^android-benchmark$/},()=>({path:'./benchmark/service.cjs',external:true}));
                 build.onResolve({filter:/^android-benchmark-gate$/},()=>({path:path.join(root,'android-port/benchmark/gate.cjs')}));
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
@@ -35,11 +36,12 @@ const replace = (source, from, to) => {
                     s=require('./controller-startup.cjs').transform(s,args.path);
                     s=require('./job-memory.cjs').transform(s,args.path);
                     s=require('./network-close.cjs').transform(s,args.path);
+                    s=require('./job-recording-backend.cjs').transform(s,args.path);
                     if(args.path.endsWith('lib/logger.js')) s=replace(s, 'acc[level] = function(...args) {', 'acc[level] = function(...args) { if (!logger.isLevelEnabled(level)) return;');
                     if(args.path.endsWith('lib/Connection.js')) s=replace(s, 'path: port,', 'path: port, requestPermission: options.requestPermission !== false,');
                     if(args.path.endsWith('lib/SerialConnection.js')) s=replace(s, 'this.port.write(Buffer.from(data));',
                         'const bytes = data === "\\x85" ? Buffer.from([0x85]) : Buffer.from(data); if (context?.usbPendant === true) { const port = this.port; port.writeBounded(bytes, err => { if (err) port.destroy(err); }); } else this.port.write(bytes);');
-                    if(args.path.endsWith('server/app.js')) s=replace(s, 'const app = express();', "const app = express(); require('./local-access.cjs').install(app); require('android-usb-pendant').installRoutes(app); require('android-benchmark').installRoutes(app);");
+                    if(args.path.endsWith('server/app.js')) s=replace(s, 'const app = express();', "const app = express(); require('./local-access.cjs').install(app); require('android-usb-pendant').installRoutes(app); require('android-benchmark').installRoutes(app); require('android-job-recording').installRoutes(app);");
                     if(args.path.endsWith('settings.base.js')) {
                         s=replace(s,'const getUserHome = () => os.homedir();','const getUserHome = () => process.env.GSENDER_USER_DATA;');
                         s=replace(s,"path.resolve(__dirname, '..', 'i18n',", "path.resolve(process.env.GSENDER_BUNDLE_DIR, 'i18n',");
@@ -67,6 +69,7 @@ const replace = (source, from, to) => {
     fs.copyFileSync(path.join(runtime,'ble-network.cjs'),path.join(out,'ble-network.cjs'));
     fs.copyFileSync(path.join(runtime,'wifi-network.cjs'),path.join(out,'wifi-network.cjs'));
     fs.copyFileSync(path.join(runtime,'bootstrap.cjs'),path.join(out,'bootstrap.cjs'));
+    fs.copyFileSync(path.join(runtime,'job-recording.cjs'),path.join(out,'job-recording.cjs'));
     fs.cpSync(path.join(root,'android-port/usb/js'),path.join(out,'android-usb'),{recursive:true});
     fs.mkdirSync(path.join(out,'usb-pendant'),{recursive:true});
     for (const name of ['panel.html','panel.js','launcher.js','adaptive-mode.js']) fs.copyFileSync(path.join(root,'android-port/pendant',name),path.join(out,'usb-pendant',name));
@@ -74,5 +77,6 @@ const replace = (source, from, to) => {
     fs.cpSync(path.join(root,'src/server/views'),path.join(out,'views'),{recursive:true});
     fs.copyFileSync(path.join(root,'LICENSE'),path.join(out,'LICENSE'));
     fs.cpSync(path.join(root,'android-port/benchmark'),path.join(out,'benchmark'),{recursive:true});
-    console.log('Android backend compiled.');
+    await require('./bundle-dependencies.cjs')(root,out);
+    console.log('Android backend compiled with bundled dependencies.');
 })().catch(err=>{console.error(err);process.exitCode=1;});

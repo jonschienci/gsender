@@ -15,7 +15,7 @@ exports.transform = (code, id) => {
         }
         const label = this.androidOriginLabel;
         label.setAttribute('visibility', this.originMarker.getAttribute('visibility') || 'hidden');
-        const point = this.project(0, 0, 0);
+        const point = {x:Number(this.originMarker.getAttribute('cx')), y:Number(this.originMarker.getAttribute('cy'))};
         const size = Math.min(this.viewBox.w, this.viewBox.h) * 0.028;
         label.setAttribute('x', String(point.x));
         label.setAttribute('text-anchor', 'middle');
@@ -70,8 +70,6 @@ exports.transform = (code, id) => {
  if(id.endsWith('/pendant/src/components/VisualizerCard.tsx')){
   code=code.replace('const [editorOpen, setEditorOpen]', 'useEffect(() => { const close = () => setFilesOpen(false); window.addEventListener("android-close-files", close); return () => window.removeEventListener("android-close-files", close); }, []); const [editorOpen, setEditorOpen]'); changed=true;
 
-  replace('const fileLoaded =', 'const loadedFileSize = useTypedSelector((s: RootState) => s.file.size); const loadedFileLines = useTypedSelector((s: RootState) => s.file.total); const loadedFileDetails = {size: loadedFileSize, lines: loadedFileLines}; const fileLoaded =');
-  replace('<div className="android-visualizer-toolbar flex items-center px-3 py-2 bg-gray-100 dark:bg-surface-raised border-b border-gray-200 dark:border-outline rounded-t-xl">', '<div className="android-visualizer-toolbar flex items-center px-3 py-2 bg-gray-100 dark:bg-surface-raised border-b border-gray-200 dark:border-outline rounded-t-xl">{fileLoaded && <div className="android-loaded-file-info" title={fileName}><strong>{fileName}</strong><span>{loadedFileDetails.size >= 1048576 ? (loadedFileDetails.size / 1048576).toFixed(1) + " MB" : (loadedFileDetails.size / 1024).toFixed(1) + " KB"} · {Number(loadedFileDetails.lines || 0).toLocaleString()} lines</span></div>}');
 
   replace('const fileLoaded =', 'const fileActionsConnected = useTypedSelector((s: RootState) => s.connection.isConnected); const fileActionsAlarm = useTypedSelector((s: RootState) => String(s.controller.state?.status?.activeState || "").toLowerCase().startsWith("alarm")); const fileLoaded =');
 
@@ -111,13 +109,14 @@ exports.transform = (code, id) => {
         const previous = previousJobPageState.current;
         previousJobPageState.current = jobPageState;
         if (jobPageState === 'running' && previous !== 'running' && previous !== 'paused') {
-            stopContinuousJog(); stopTiltJog(); setSpeedPage(true);
+            // Workflow already ended the jog before starting the sender. Do not send a late cancel.
+            stopTiltJog(); setSpeedPage(true);
         } else if ((previous === 'running' || previous === 'paused') && jobPageState !== 'running' && jobPageState !== 'paused') {
             setSpeedPage(false); setXyPad(false); store.set('android.xyJogPad', false);
         }
     }, [jobPageState]);
     const workflowState = useTypedSelector(`); changed=true;
-  code=code.replace(/<nav className="android-jog-page-dots"[\s\S]*?<\/nav>/, `<nav className="android-jog-page-dots" aria-label="Jog control pages"><button className="android-jog-page-cycle" type="button" aria-label={\`Cycle jog page: \${speedPage ? 'Feed and spindle' : showPad ? 'XY pad' : 'Jog buttons'}\`} onClick={()=>{stopContinuousJog();stopTiltJog();const next=speedPage?0:showPad?2:1;setSpeedPage(next===2);setXyPad(next===1);store.set('android.xyJogPad',next===1);}}>{[0,1,2].map(page=><span key={page} data-active={page===(speedPage?2:showPad?1:0)} />)}</button></nav>`);
+  code=code.replace(/<nav className="android-jog-page-dots"[\s\S]*?<\/nav>/, `<nav className="android-jog-page-dots" aria-label="Jog control pages"><button className="android-jog-page-cycle" type="button" aria-label={\`Cycle jog page: \${speedPage ? 'Feed and spindle' : showPad ? 'XY pad' : 'Jog buttons'}\`} onClick={()=>{if(jobPageState!=='running')stopContinuousJog();stopTiltJog();const next=speedPage?0:showPad?2:1;setSpeedPage(next===2);setXyPad(next===1);store.set('android.xyJogPad',next===1);}}>{[0,1,2].map(page=><span key={page} data-active={page===(speedPage?2:showPad?1:0)} />)}</button></nav>`);
 
  }
 

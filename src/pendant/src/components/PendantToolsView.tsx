@@ -1,9 +1,7 @@
 import ToolsPages from './ToolsPages';
 import { TbRulerMeasure } from 'react-icons/tb';
 import ToolCard from 'app/components/ToolCard';
-import { BiSolidCylinder } from 'react-icons/bi';
 import { FaGamepad, FaKeyboard, FaSdCard } from 'react-icons/fa';
-import { GiFlatPlatform } from 'react-icons/gi';
 import { LuDrill } from 'react-icons/lu';
 import { MdSquareFoot } from 'react-icons/md';
 
@@ -11,24 +9,16 @@ export default function PendantToolsView() {
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-3">
             <h1 className="text-xl font-bold dark:text-content-primary mb-1">
-                Tools
+                Plugins
             </h1>
             <p className="text-sm text-gray-500 dark:text-content-muted mb-3">
-                Tools included with gSender.
+                Plugins and utilities included with gSender.
             </p>
 
             <ToolsPages>
-                <ToolCard
-                    title="Surfacing"
-                    description="Flatten your wasteboard or other non-flat stock"
-                    icon={GiFlatPlatform}
-                />
 
-                <ToolCard
-                    title="Rotary Surfacing"
-                    description="Turn square material into round stock for rotary cutting"
-                    icon={BiSolidCylinder}
-                />
+
+
 
                 <ToolCard
                     title="Movement Tuning"

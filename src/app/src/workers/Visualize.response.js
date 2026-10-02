@@ -7,7 +7,6 @@ import store from 'app/store';
 import {
     LIGHTWEIGHT_OPTIONS,
     RENDER_RENDERED,
-    RENDER_RENDERING,
     VISUALIZER_SECONDARY,
 } from 'app/constants';
 import {
@@ -112,11 +111,11 @@ const logProfile = (profile) => {
 };
 
 const handleGeometryReady = (data) => {
-    const { needsVisualization } = data;
     const info = data.info || {};
     const parsedDataPreview = data.parsedData || {
         info,
         invalidLines: info.invalidLines || [],
+        invalidLineCount: info.invalidLineCount,
     };
 
     pubsub.publish('file:toolchanges', {
@@ -133,7 +132,7 @@ const handleGeometryReady = (data) => {
         reduxStore.dispatch(updateFileInfo(estimatePayload));
     }
 
-    reduxStore.dispatch(updateFileProcessing(false));
+    reduxStore.dispatch(updateFileProcessing({ fileProcessing: false }));
 
     const fileLoadPayload = {
         ...data,
@@ -143,19 +142,13 @@ const handleGeometryReady = (data) => {
     pubsub.publish('file:load', fileLoadPayload);
     pubsub.publish(
         'placeholder:invalidLines',
-        parsedDataPreview.invalidLines || [],
+        { invalidLines: parsedDataPreview.invalidLines || [],
+          invalidLineCount: parsedDataPreview.invalidLineCount ?? info.invalidLineCount },
     );
 
-    if (needsVisualization) {
-        setTimeout(() => {
-            const renderState = _get(reduxStore.getState(), 'file.renderState');
-            if (renderState !== RENDER_RENDERED) {
-                reduxStore.dispatch(updateFileRenderState(RENDER_RENDERING));
-            }
-        }, 250);
-    } else {
-        reduxStore.dispatch(updateFileRenderState(RENDER_RENDERED));
-    }
+    // Geometry has been handed off. A delayed "rendering" dispatch could
+    // overwrite a completed newer job and used the wrong reducer payload.
+    reduxStore.dispatch(updateFileRenderState({ renderState: RENDER_RENDERED }));
 };
 
 const handleMetadataReady = async (data) => {

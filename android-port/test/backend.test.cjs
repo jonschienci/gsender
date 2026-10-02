@@ -27,6 +27,7 @@ for (const launch of [1, 2]) test(`backend launch ${launch}: session renewal, au
             child.once('message', msg=>{clearTimeout(timer);msg.host==='ready'?resolve(msg):reject(new Error(msg.message));});
             child.once('exit',code=>{clearTimeout(timer);reject(new Error('Exited '+code+': '+logs));});
         });
+        if (require('node:module').enableCompileCache) assert.ok(fs.readdirSync(path.join(isolated,'code-cache')).length,'compiled modules saved before ready');
         const base='http://127.0.0.1:'+ready.port;
         assert.equal((await fetch(base)).status,403);
         const page=await fetch(base,{headers:{'x-gsender-key':ready.token}});

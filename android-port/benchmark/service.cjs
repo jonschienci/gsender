@@ -2,7 +2,7 @@
 const fs=require('node:fs');const path=require('node:path');const {Worker}=require('node:worker_threads');
 const {promisify}=require('node:util');const gunzip=promisify(require('node:zlib').gunzip);const {createHash,randomUUID}=require('node:crypto');
 const {monitorEventLoopDelay}=require('node:perf_hooks');const gate=require('./gate.cjs');
-const manifest=require('./fixtures/manifest.json');
+const manifest=require('./fixture-manifest.cjs').load(__dirname);
 let engine,getControllers,forgetController,run,worker,timer,lag,lastBeat,stopping=false;
 const root=()=>path.join(process.env.GSENDER_USER_DATA,'benchmarks');
 const folder=id=>{if(!/^[a-f0-9-]{36}$/.test(id))throw Error('Invalid report ID');return path.join(root(),id);};
@@ -25,14 +25,14 @@ async function stop(status='cancelled',reason='Stopped by user'){
  const old=worker;worker=null;try{await old?.terminate();}finally{gate.finish();stopping=false;save();}
 }
 async function start(profile,device){
- if(!engine)throw Error('Backend is starting');if(!['quick','full'].includes(profile))throw Error('Unknown suite');
+ if(!engine)throw Error('Backend is starting');const selected=require('./fixture-manifest.cjs').select(manifest,profile);
  if(engine.connection&&!engine.connection.isClose())throw Error('Disconnect the CNC before starting');
  if(engine.gcode)throw Error('Unload the current job before starting the benchmark');
  gate.acquire();
  try{recover(11);run={id:randomUUID(),schema:1,build:JSON.parse(fs.readFileSync(path.join(__dirname,'build.json'))).build,profile,device,started:Date.now(),status:'running',logBytes:0,cases:[],
  limits:{rate:500,largeJobWindowSeconds:65,minimumAvailableMiB:256},
  scope:'Onboard loopback simulator shares tablet CPU/RAM. Automated viewport animation, not physical touch latency. Native PSS excludes isolated WebView renderer; system available memory covers whole device.',
- fixtures:manifest.filter(f=>profile==='full'||f.id==='arcs-1m')};
+ fixtures:selected};
  fs.mkdirSync(folder(run.id),{recursive:true});save();log('session_start',{profile,device});lastBeat=Date.now();
  worker=new Worker(path.join(__dirname,'worker.cjs'));
  const ready=new Promise((resolve,reject)=>{const timeout=setTimeout(()=>reject(Error('Simulator startup timed out')),15000);worker.on('message',m=>{if(m.event==='ready'){clearTimeout(timeout);gate.state.port=m.port;resolve(m.port);}});worker.once('error',reject);});
@@ -60,7 +60,7 @@ exports.attach=(e,get,forget)=>{engine=e;getControllers=get;forgetController=for
 exports.stop=stop;exports.start=start;exports.manifest=manifest;
 exports.installRoutes=app=>{
  const express=require('express');
- app.get('/api/benchmark',(_req,res)=>{res.set('Cache-Control','no-store');try{recoverIfIdle();res.json({active:run?.status==='running',run:run||null,reports:fs.existsSync(root())?fs.readdirSync(root()).filter(x=>/^[a-f0-9-]{36}$/.test(x)).map(id=>{try{return JSON.parse(fs.readFileSync(path.join(folder(id),'summary.json')));}catch{return null;}}).filter(Boolean).sort((a,b)=>b.started-a.started):[]});}catch(e){res.status(500).json({error:e.message});}});
+ app.get('/api/benchmark',(_req,res)=>{res.set('Cache-Control','no-store');try{recoverIfIdle();res.json({localFixtures:manifest.filter(f=>f.profile==='local-real-job').map(({id,label})=>({id,label})),active:run?.status==='running',run:run||null,reports:fs.existsSync(root())?fs.readdirSync(root()).filter(x=>/^[a-f0-9-]{36}$/.test(x)).map(id=>{try{return JSON.parse(fs.readFileSync(path.join(folder(id),'summary.json')));}catch{return null;}}).filter(Boolean).sort((a,b)=>b.started-a.started):[]});}catch(e){res.status(500).json({error:e.message});}});
  app.get('/api/benchmark/report/:id',(req,res)=>{try{const dir=folder(req.params.id),summary=JSON.parse(fs.readFileSync(path.join(dir,'summary.json')));const events=fs.existsSync(path.join(dir,'events.ndjson'))?fs.readFileSync(path.join(dir,'events.ndjson'),'utf8').trim().split('\n').filter(Boolean).flatMap(s=>{try{return [JSON.parse(s)];}catch{return [{event:'incomplete_log_record',reason:'Interrupted log write'}];}}):[];res.set('Cache-Control','no-store');res.json(require('./report.cjs').enrich({summary,events}));}catch(e){res.status(404).json({error:e.message});}});
  let actionBusy=false;
  app.post('/api/benchmark/:action',express.json({limit:'32kb'}),async(req,res)=>{

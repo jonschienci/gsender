@@ -5,6 +5,8 @@ const {JSDOM}=require('jsdom'),{buildSync}=require('esbuild');
 test('numeric pad preserves fractional and signed entry in native number inputs and closes when removed',async()=>{
  const dom=new JSDOM('<html><body></body></html>',{url:'http://localhost',pretendToBeVisual:true});
  for(const key of ['window','document','navigator','HTMLElement','HTMLInputElement','Event','MutationObserver'])Object.defineProperty(globalThis,key,{configurable:true,value:dom.window[key]});
+ dom.window.PointerEvent=dom.window.MouseEvent;
+ globalThis.ResizeObserver=class {observe(){}disconnect(){}};
  globalThis.IS_REACT_ACT_ENVIRONMENT=true;
  const React=require('react'),{render,act,fireEvent,cleanup}=require('@testing-library/react');
  const file=path.resolve(__dirname,'../ui/PendantNumberPad.tsx');
@@ -16,14 +18,14 @@ test('numeric pad preserves fractional and signed entry in native number inputs 
   let view;await act(async()=>{view=render(React.createElement(Harness));});
   const input=view.getByRole('spinbutton');assert.equal(input.inputMode,'none');
   await act(async()=>input.focus());
-  const key=async name=>act(async()=>{fireEvent.click(view.getByRole('button',{name,exact:true}));});
+  const key=async name=>{if(name==='Clear'||name==='Enter'){const b=view.getByRole('button',{name:'Hold to '+name.toLowerCase()});await act(async()=>{fireEvent.pointerDown(b,{button:0});await new Promise(resolve=>setTimeout(resolve,700));});await act(async()=>fireEvent.pointerUp(b,{button:0}));}else await act(async()=>{fireEvent.click(view.getByRole('button',{name,exact:true}));});};
   for(const k of ['Clear','1','2','.','5'])await key(k);
   assert.equal(input.value,'12.5');assert.equal(latest,'12.5');
   await key('⌫');await key('⌫');assert.equal(input.value,'12');
   for(const k of ['Clear','±','0','.','2','5'])await key(k);
   assert.equal(input.value,'-0.25');assert.equal(latest,'-0.25');
   await key('±');assert.equal(input.value,'0.25');
-  await key('Done');assert.equal(view.queryByRole('group',{name:'Number pad'}),null);
+  await key('Enter');assert.equal(view.queryByRole('group',{name:'Number pad'}),null);
   await act(async()=>input.focus());await act(async()=>view.rerender(React.createElement(Harness,{visible:false})));
   assert.equal(view.queryByRole('group',{name:'Number pad'}),null);
   await act(async()=>view.rerender(React.createElement(Harness,{visible:true,autoFocus:true})));

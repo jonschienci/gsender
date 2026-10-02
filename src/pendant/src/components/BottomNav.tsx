@@ -5,7 +5,7 @@ type NavTab = 'carve' | 'tools' | 'config' | 'console' | 'macros';
 const TABS: { id: NavTab; label: string; Icon: typeof Zap }[] = [
     { id: 'config', label: 'Config', Icon: Settings },
     { id: 'console', label: 'Console', Icon: Terminal },
-    { id: 'tools', label: 'Tools', Icon: Wrench },
+    { id: 'tools', label: 'Plugins', Icon: Wrench },
     { id: 'macros', label: 'Macros', Icon: List },
     { id: 'carve', label: 'Carve', Icon: Zap },
 ];
@@ -18,7 +18,7 @@ interface BottomNavProps {
 export default function BottomNav({ active, onChange }: BottomNavProps) {
     return (
         <nav className="grid grid-cols-3 h-16 bg-gray-100 border-t border-gray-200 dark:bg-surface-base dark:border-outline shrink-0">
-            {TABS.map(({ id, label, Icon }) => {
+            {[...TABS].sort((a,b)=>['config','tools','macros','console','carve'].indexOf(a.id)-['config','tools','macros','console','carve'].indexOf(b.id)).map(({ id, label, Icon }) => {
                 const isActive = active === id;
                 return (
                     <button

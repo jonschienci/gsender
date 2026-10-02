@@ -1,3 +1,4 @@
+import {alarmDescription} from '../../../../android-port/ui/alarm-description';
 import { Confirm } from 'app/components/ConfirmationDialog/ConfirmationDialogLib.ts';
 import {
     GRBL_ACTIVE_STATE_ALARM,
@@ -413,11 +414,8 @@ export default function PendantTopBar() {
     const controllerType = useTypedSelector(
         (s: RootState) => s.controller.type,
     );
-    const rawState = useTypedSelector(
-        (s: RootState) => s.controller.state,
-    ) as any;
-    const activeState: string = rawState?.status?.activeState ?? '';
-    const alarmCode: string | number = rawState?.status?.alarmCode ?? 0;
+    const activeState = useTypedSelector((s: RootState) => s.controller.state?.status?.activeState ?? '');
+    const alarmCode = useTypedSelector((s: RootState) => s.controller.state?.status?.alarmCode ?? 0);
     const badge = !isConnected
         ? BADGE_DISCONNECTED
         : (STATE_BADGES[activeState] ?? BADGE_DEFAULT);
@@ -449,7 +447,7 @@ export default function PendantTopBar() {
             ) {
                 controller.command('reset:limit');
             } else if (alarmCode === 11 || alarmCode === 'Homing') {
-                controller.command('homing');
+                controller.command('unlock');
             } else {
                 controller.command('unlock');
             }
@@ -574,18 +572,12 @@ export default function PendantTopBar() {
                 disabled={!unlockActionable}
                 className={`w-[90px] flex items-center justify-center gap-2 font-bold px-3 py-2 rounded-lg text-sm transition-colors no-drag ${
                     unlockActionable
-                        ? alarmCode === 11 || alarmCode === 'Homing'
-                            ? 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white unlock-attention-home'
-                            : 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white unlock-attention'
+                        ? 'bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white unlock-attention'
                         : 'bg-gray-300 text-gray-600 dark:bg-surface-disabled dark:text-content-disabled'
                 }`}
             >
-                {alarmCode === 11 || alarmCode === 'Homing' ? (
-                    <House className="w-4 h-4" />
-                ) : (
-                    <LockOpen className="w-4 h-4" />
-                )}
-                {alarmCode === 11 || alarmCode === 'Homing' ? 'Home' : 'Unlock'}
+                <LockOpen className="w-4 h-4" />
+                Unlock
             </button>
             <button
                 type="button"
@@ -597,4 +589,39 @@ export default function PendantTopBar() {
             </button>
         </header>
     );
+}
+
+export function MachineStatusLabel() {
+    const connected = useTypedSelector((s: RootState) => s.connection.isConnected);
+    const active = useTypedSelector((s: RootState) => s.controller.state?.status?.activeState ?? '');
+    const alarm = useTypedSelector((s: RootState) => s.controller.state?.status?.alarmCode ?? 0);
+    const firmware = useTypedSelector((s: RootState) => s.controller.type);
+    const reported = useTypedSelector((s: RootState) => s.controller.settings?.alarms?.[Number(alarm)]?.description);
+    const dark = useIsDark();
+    const badge = !connected ? BADGE_DISCONNECTED : STATE_BADGES[active] ?? BADGE_DEFAULT;
+    const isAlarm=connected && active===GRBL_ACTIVE_STATE_ALARM;
+    const label=isAlarm && alarm && String(alarm)!=='0' ? `${badge.label} ${alarm}` : badge.label;
+    const alarmKey=isAlarm?`${firmware}:${alarm}`:null;
+    const [dismissed,setDismissed]=useState<string|null>(null);
+    const open=alarmKey!==null && dismissed!==alarmKey;
+    // A cleared/disconnected alarm can announce itself again on recurrence;
+    // repeated position/status reports never reopen a dismissed alarm.
+    useEffect(()=>{if(alarmKey===null)setDismissed(null);},[alarmKey]);
+    useEffect(()=>{
+        if(!open)return;
+        const close=(event:KeyboardEvent)=>{if(event.key==='Escape')setDismissed(alarmKey);};
+        window.addEventListener('keydown',close);return()=>window.removeEventListener('keydown',close);
+    },[open,alarmKey]);
+    const style={color:(dark ? badge.dark : badge.light).color};
+    return <>
+        {isAlarm ? <button type="button" className="android-visualizer-job-state android-alarm-trigger" data-machine-state={active}
+            style={style} aria-expanded={open} aria-controls="android-visualizer-alarm" onClick={()=>setDismissed(open?alarmKey:null)}>
+            {label} <span aria-hidden="true">ⓘ</span>
+        </button> : <span className="android-visualizer-job-state" data-machine-state={active} style={style}>{label}</span>}
+        {open && <section id="android-visualizer-alarm" role="alertdialog" aria-labelledby="android-alarm-title" aria-describedby="android-alarm-description" className="android-alarm-details">
+            <strong id="android-alarm-title">{label}</strong>
+            <button type="button" aria-label="Dismiss alarm details" onClick={()=>setDismissed(alarmKey)}>×</button>
+            <p id="android-alarm-description">{alarmDescription(alarm,firmware,reported)}</p>
+        </section>}
+    </>;
 }

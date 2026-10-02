@@ -11,8 +11,8 @@ exports.transform = (code, id) => {
             + 'import { installRasterPreview } from ' + JSON.stringify(androidUi + 'raster-preview.mjs') + ';\n'
             + 'import { watchVisualizer } from ' + JSON.stringify(androidUi + 'visualizer-benchmark.mjs') + ';\n'
             + 'installRasterPreview(AndroidSvgRenderer); installSvgInteractions(AndroidSvgRenderer);\n' + code;
-        code = replace(code, 'const wpos = useTypedSelector((s: RootState) => s.controller.wpos);',
-            `const wpos = useTypedSelector((s: RootState) => s.controller.wpos);
+        code = replace(code, 'const wpos = useTypedSelector((s: RootState) => s.controller.wpos, shallowEqual);',
+            `const wpos = useTypedSelector((s: RootState) => s.controller.wpos, shallowEqual);
     const benchmarkContext = useRef({workflowState, fileLoaded});
     benchmarkContext.current = {workflowState, fileLoaded};
     useEffect(() => {

@@ -34,7 +34,6 @@ type VisualizeWorkerGeometryMessage = {
     jobId: number;
     visualizer?: string;
     vertices: ArrayBuffer;
-    paths: unknown[];
     frames: ArrayBuffer;
     verticesLen: number;
     framesLen: number;
@@ -53,6 +52,7 @@ type VisualizeWorkerGeometryMessage = {
         fileType: string;
         usedAxes: string[];
         invalidLines: string[];
+        invalidLineCount?: number;
         toolchanges: number[];
         spindleToolEvents: Record<string, unknown>;
     };
@@ -60,6 +60,7 @@ type VisualizeWorkerGeometryMessage = {
     parsedData: {
         info: unknown;
         invalidLines: string[];
+        invalidLineCount?: number;
     };
     spindleFrameSpeeds?: ArrayBuffer;
     spindleFrameLen?: number;
@@ -91,6 +92,9 @@ let activeJobId = 0;
 let activeProcessId = 0;
 let activeWorkerReject: ((error: Error) => void) | null = null;
 let activeUploadAbortController: AbortController | null = null;
+// Keep only parse settings, never another retained copy of a large file.
+let completedInputs: string | null = null;
+let completedProcessId = 0;
 
 const pendingControllerEchoes = new Map<
     string,
@@ -250,7 +254,6 @@ const buildWorkerRequest = (payload: GcodeLoadPayload, jobId: number) => {
         isSecondary: false,
         isLaser,
         rapidOpacity: PENDANT_RAPID_OPACITY,
-        shouldIncludeSVG: false,
         needsVisualization: true,
         // Top-down SVG mode: worker streams deduplicated 2D segment groups and
         // skips the 3D vertex/color/frame buffers entirely.
@@ -264,8 +267,14 @@ const buildWorkerRequest = (payload: GcodeLoadPayload, jobId: number) => {
     };
 };
 
+const parseInputsKey = (request: ReturnType<typeof buildWorkerRequest>) => {
+    const { jobId, content, isNewFile, ...inputs } = request;
+    return JSON.stringify({ ...inputs, theme: Array.from(request.theme.entries()) });
+};
+
 const runVisualizeWorker = (
     payload: GcodeLoadPayload,
+    request: ReturnType<typeof buildWorkerRequest>,
 ): Promise<VisualizeWorkerGeometryMessage> =>
     new Promise((resolve, reject) => {
         const jobId = ++activeJobId;
@@ -358,7 +367,7 @@ const runVisualizeWorker = (
             );
         };
 
-        worker.postMessage(buildWorkerRequest(payload, jobId));
+        worker.postMessage({ ...request, jobId });
     });
 
 const uploadToController = async (
@@ -398,6 +407,7 @@ const mapWorkerInfoToFileState = (
     spindleSet: info.spindleSet,
     movementSet: info.movementSet,
     invalidGcode: info.invalidLines,
+    invalidLineCount: info.invalidLineCount ?? info.invalidLines.length,
     estimatedTime: info.estimatedTime,
     fileModal: info.fileModal,
     bbox: info.bbox,
@@ -427,7 +437,8 @@ const applyWorkerResult = (
     });
     pubsub.publish(
         'placeholder:invalidLines',
-        geometry.parsedData?.invalidLines ?? geometry.info.invalidLines ?? [],
+        { invalidLines: geometry.parsedData?.invalidLines ?? geometry.info.invalidLines ?? [],
+          invalidLineCount: geometry.parsedData?.invalidLineCount ?? geometry.info.invalidLineCount },
     );
 };
 
@@ -440,6 +451,9 @@ async function processGcodePayload(
     payload: GcodeLoadPayload,
     { upload, processId }: { upload: boolean; processId: number },
 ) {
+    const request = buildWorkerRequest(payload, 0);
+    const inputsKey = parseInputsKey(request);
+    completedInputs = null;
     const shouldUpload = upload && Boolean(controller.port);
     let uploadPromise: Promise<void> | null = null;
     let uploadAbortController: AbortController | null = null;
@@ -453,7 +467,8 @@ async function processGcodePayload(
     await paintOverlay();
 
     try {
-        const geometryPromise = runVisualizeWorker(payload);
+        if (processId !== activeProcessId) return;
+        const geometryPromise = runVisualizeWorker(payload, request);
 
         if (shouldUpload) {
             uploadAbortController = new AbortController();
@@ -486,6 +501,8 @@ async function processGcodePayload(
         }
 
         applyWorkerResult(payload, geometry);
+        completedInputs = inputsKey;
+        completedProcessId = processId;
     } catch (error) {
         uploadAbortController?.abort();
         if (activeUploadAbortController === uploadAbortController) {
@@ -526,11 +543,22 @@ export const applyGcodePayload = async (payload: GcodeLoadPayload) => {
 export const applyControllerGcodePayload = async (
     payload: GcodeLoadPayload,
 ) => {
+    const file = reduxStore.getState().file;
+    // Reconnects re-send the current file. Reuse the displayed geometry only
+    // after a successful load with identical content AND parse settings.
+    if (completedInputs !== null && completedProcessId === activeProcessId
+        && file.fileLoaded && !file.fileProcessing && !visualizeWorker
+        && file.content === payload.content && file.name === payload.name
+        && file.size === payload.size && file.path === (payload.path ?? '')
+        && completedInputs === parseInputsKey(buildWorkerRequest(payload, 0))) {
+        return;
+    }
     const processId = ++activeProcessId;
     await processGcodePayload(payload, { upload: false, processId });
 };
 
 export const cancelGcodeProcessing = () => {
+    completedInputs = null;
     activeProcessId += 1;
     activeJobId += 1;
     cancelInFlightWork('Visualize worker cancelled.');

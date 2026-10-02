@@ -1,0 +1,343 @@
+{
+  "date": "2026-10-02",
+  "device": {
+    "model": "K90_ROW",
+    "serial": "K90YCU16B251101432",
+    "android": 16,
+    "displayPixels": [
+      1200,
+      2000
+    ]
+  },
+  "baseline": "Build 65 frontend",
+  "candidate": "unreleased source; no APK",
+  "fixture": {
+    "name": "Bottom_Skull 1 - Slice 3 & 4_03 - Finish 12.7mm BN.gcode",
+    "localFixtureBytes": 1405319,
+    "localFixtureSha256": "bdb69e0a92e28ecb184f91098a28e7e09bc2c77b844c4e18f7a36e66992ded1e",
+    "physicalLines": 63212,
+    "commands": 63208
+  },
+  "method": "Android Chrome, production frontend, portrait, local fake backend over ADB reverse. Five-second continuous pan/zoom sweeps. Live case injects display position/progress at 10 Hz; no CNC command or physical motion. Parser: three isolated worker runs per version, alternating order. Touch: eight CDP-dispatched touch taps per condition; measure pointerup to click in page clock. Not native digitizer-to-display latency or a sustained job-stream benchmark.",
+  "emptyPan": {
+    "before": {
+      "fps": 7.150518412584912,
+      "p95": 216.70000000000073,
+      "p99": 366.6999999999998,
+      "max": 366.6999999999998,
+      "frames": 36,
+      "over33": 32,
+      "over50": 31,
+      "over100": 30,
+      "cpu": {
+        "LayoutCount": 40,
+        "RecalcStyleCount": 37,
+        "LayoutDuration": 0.13528500000000002,
+        "RecalcStyleDuration": 0.169983,
+        "DevToolsCommandDuration": 0.0027369999999999894,
+        "ScriptDuration": 0.222759,
+        "V8CompileDuration": 0,
+        "TaskDuration": 0.8300869999999999,
+        "TaskOtherDuration": 0.299323,
+        "JSHeapUsedSize": 1115344,
+        "JSHeapTotalSize": 524288
+      }
+    },
+    "after": {
+      "fps": 57.59381414535961,
+      "p95": 16.800000000000182,
+      "p99": 33.399999999999636,
+      "max": 33.5,
+      "frames": 289,
+      "over33": 0,
+      "over50": 0,
+      "over100": 0,
+      "cpu": {
+        "LayoutCount": 293,
+        "RecalcStyleCount": 292,
+        "LayoutDuration": 0.46851,
+        "RecalcStyleDuration": 0.38843799999999995,
+        "DevToolsCommandDuration": 0.003025999999999973,
+        "ScriptDuration": 0.460091,
+        "V8CompileDuration": 0,
+        "TaskDuration": 2.30137,
+        "TaskOtherDuration": 0.981305,
+        "JSHeapUsedSize": -7763948,
+        "JSHeapTotalSize": -8650752
+      }
+    }
+  },
+  "skullPan": {
+    "before": {
+      "fps": 40.6544570437833,
+      "p95": 33.400000000001455,
+      "p99": 33.5,
+      "max": 50,
+      "frames": 204,
+      "over33": 1,
+      "over50": 0,
+      "over100": 0,
+      "cpu": {
+        "LayoutCount": 213,
+        "RecalcStyleCount": 211,
+        "LayoutDuration": 0.5455650000000001,
+        "RecalcStyleDuration": 0.2783309999999999,
+        "DevToolsCommandDuration": 0.002593999999999985,
+        "ScriptDuration": 0.5942610000000002,
+        "V8CompileDuration": 0,
+        "TaskDuration": 2.3461540000000003,
+        "TaskOtherDuration": 0.9254030000000002,
+        "JSHeapUsedSize": -4295220,
+        "JSHeapTotalSize": 4980736
+      }
+    },
+    "after": {
+      "fps": 44.18851098714333,
+      "p95": 33.399999999999636,
+      "p99": 33.400000000001455,
+      "max": 50,
+      "frames": 221,
+      "over33": 1,
+      "over50": 0,
+      "over100": 0,
+      "cpu": {
+        "LayoutCount": 228,
+        "RecalcStyleCount": 228,
+        "LayoutDuration": 0.598099,
+        "RecalcStyleDuration": 0.299564,
+        "DevToolsCommandDuration": 0.002299000000000051,
+        "ScriptDuration": 0.5837049999999999,
+        "V8CompileDuration": 0,
+        "TaskDuration": 2.433337,
+        "TaskOtherDuration": 0.94967,
+        "JSHeapUsedSize": 1973956,
+        "JSHeapTotalSize": 3932160
+      }
+    }
+  },
+  "skullLivePan": {
+    "before": {
+      "fps": 37.07406481712906,
+      "p95": 33.400000000001455,
+      "p99": 150,
+      "max": 300.10000000000036,
+      "frames": 178,
+      "over33": 4,
+      "over50": 3,
+      "over100": 2,
+      "cpu": {
+        "LayoutCount": 240,
+        "RecalcStyleCount": 241,
+        "LayoutDuration": 0.676418,
+        "RecalcStyleDuration": 0.538948,
+        "DevToolsCommandDuration": 0.1461570000000001,
+        "ScriptDuration": 1.691936,
+        "V8CompileDuration": 0,
+        "TaskDuration": 4.189415,
+        "TaskOtherDuration": 1.135956,
+        "JSHeapUsedSize": 2013892,
+        "JSHeapTotalSize": 1048576
+      }
+    },
+    "after": {
+      "fps": 43.99032212913158,
+      "p95": 33.399999999999636,
+      "p99": 33.400000000001455,
+      "max": 33.5,
+      "frames": 220,
+      "over33": 0,
+      "over50": 0,
+      "over100": 0,
+      "cpu": {
+        "LayoutCount": 306,
+        "RecalcStyleCount": 307,
+        "LayoutDuration": 0.7653599999999999,
+        "RecalcStyleDuration": 0.5446810000000001,
+        "DevToolsCommandDuration": 0.14656100000000016,
+        "ScriptDuration": 1.692782,
+        "V8CompileDuration": 0,
+        "TaskDuration": 4.444176000000001,
+        "TaskOtherDuration": 1.2947919999999997,
+        "JSHeapUsedSize": -645156,
+        "JSHeapTotalSize": 2097152
+      }
+    }
+  },
+  "touchReleaseToClickMs": {
+    "disconnected": [
+      287.6000000014901,
+      277.0,
+      284.0,
+      284.30000000447035,
+      285.1000000014901,
+      281.1000000014901,
+      284.30000000447035,
+      282.20000000298023
+    ],
+    "disconnected-fast-tap": [
+      4.700000002980232,
+      5.700000002980232,
+      6.899999998509884,
+      5.600000001490116,
+      5.100000001490116,
+      12.200000002980232,
+      6.299999997019768,
+      8.100000001490116
+    ]
+  },
+  "parser": {
+    "before": [
+      {
+        "wallMs": 684.3999999985099,
+        "durationsMs": {
+          "rotaryScan": 4.6,
+          "lineSplit": 0,
+          "parseLoop": 488.5,
+          "typedArrayBuild": 0.1,
+          "colorBuild": 0,
+          "total": 521.2
+        },
+        "transferBytes": 1010848,
+        "geometryHashes": [
+          "3f85284af2f9b8984aa3e158df4a5115e224c7f0092a911a5e2d6673923b329e",
+          "d75675aa30e537412764870a09cf49892d55da9270ceeb53d976f3321a1fa78e"
+        ]
+      },
+      {
+        "wallMs": 650.5,
+        "durationsMs": {
+          "rotaryScan": 4.3,
+          "lineSplit": 0,
+          "parseLoop": 465.7,
+          "typedArrayBuild": 0.1,
+          "colorBuild": 0,
+          "total": 497.2
+        },
+        "transferBytes": 1010848,
+        "geometryHashes": [
+          "3f85284af2f9b8984aa3e158df4a5115e224c7f0092a911a5e2d6673923b329e",
+          "d75675aa30e537412764870a09cf49892d55da9270ceeb53d976f3321a1fa78e"
+        ]
+      },
+      {
+        "wallMs": 645.6000000014901,
+        "durationsMs": {
+          "rotaryScan": 4.1,
+          "lineSplit": 0,
+          "parseLoop": 467.5,
+          "typedArrayBuild": 0,
+          "colorBuild": 0,
+          "total": 498.1
+        },
+        "transferBytes": 1010848,
+        "geometryHashes": [
+          "3f85284af2f9b8984aa3e158df4a5115e224c7f0092a911a5e2d6673923b329e",
+          "d75675aa30e537412764870a09cf49892d55da9270ceeb53d976f3321a1fa78e"
+        ]
+      }
+    ],
+    "after": [
+      {
+        "wallMs": 581.5,
+        "durationsMs": {
+          "rotaryScan": 4.4,
+          "lineSplit": 0,
+          "parseLoop": 388.3,
+          "typedArrayBuild": 0,
+          "colorBuild": 0,
+          "total": 416.4
+        },
+        "transferBytes": 1010848,
+        "geometryHashes": [
+          "3f85284af2f9b8984aa3e158df4a5115e224c7f0092a911a5e2d6673923b329e",
+          "d75675aa30e537412764870a09cf49892d55da9270ceeb53d976f3321a1fa78e"
+        ]
+      },
+      {
+        "wallMs": 582.3999999985099,
+        "durationsMs": {
+          "rotaryScan": 4.8,
+          "lineSplit": 0,
+          "parseLoop": 397.1,
+          "typedArrayBuild": 0.2,
+          "colorBuild": 0,
+          "total": 428.5
+        },
+        "transferBytes": 1010848,
+        "geometryHashes": [
+          "3f85284af2f9b8984aa3e158df4a5115e224c7f0092a911a5e2d6673923b329e",
+          "d75675aa30e537412764870a09cf49892d55da9270ceeb53d976f3321a1fa78e"
+        ]
+      },
+      {
+        "wallMs": 560.8000000044703,
+        "durationsMs": {
+          "rotaryScan": 4.2,
+          "lineSplit": 0,
+          "parseLoop": 384.2,
+          "typedArrayBuild": 0.1,
+          "colorBuild": 0,
+          "total": 409.2
+        },
+        "transferBytes": 1010848,
+        "geometryHashes": [
+          "3f85284af2f9b8984aa3e158df4a5115e224c7f0092a911a5e2d6673923b329e",
+          "d75675aa30e537412764870a09cf49892d55da9270ceeb53d976f3321a1fa78e"
+        ]
+      }
+    ]
+  },
+  "alignment": {
+    "from": {
+      "view": {
+        "x": -789.9244679205864,
+        "y": -692.9453614096661,
+        "w": 1585.874954106393,
+        "h": 1385.8907228193323
+      },
+      "main": [
+        0.404285528910471,
+        0,
+        0,
+        0.404285528910471,
+        376.7338178707469,
+        332.0295831531096
+      ],
+      "marker": [
+        0.404285528910471,
+        0,
+        0,
+        0.404285528910471,
+        376.7338178707469,
+        332.0295831531096
+      ],
+      "layers": 1
+    },
+    "to": {
+      "view": {
+        "x": -960.4179837200103,
+        "y": -791.8854225498642,
+        "w": 1585.874954106393,
+        "h": 1385.8907228193323
+      },
+      "main": [
+        0.404285528910471,
+        0,
+        0,
+        0.404285528910471,
+        445.6645005499822,
+        372.02959437053687
+      ],
+      "marker": [
+        0.404285528910471,
+        0,
+        0,
+        0.404285528910471,
+        445.6645005499822,
+        372.02959437053687
+      ],
+      "layers": 1
+    }
+  },
+  "testsPassed": 32
+}

@@ -30,7 +30,7 @@ test('wheel commits bounded values on release, preserves custom scale, and cance
     compiled.filename = compiled.id; compiled.paths = module.paths;
     compiled._compile(buildSync({entryPoints: [path.join(__dirname, '../ui/VerticalWheel.tsx')], bundle: true, packages: 'external', platform: 'node', format: 'cjs', jsx: 'automatic', write: false}).outputFiles[0].text, compiled.filename);
     const Component = compiled.exports.default, updates = [], commits = []; let edits = 0;
-    const props = {value: [100], min: 10, max: 200, step: 10, unit: '%', 'aria-label': 'Feed override wheel', onValueChange: v => updates.push(v[0]), onValueCommit: v => commits.push(v[0]), onEditValue: () => edits++};
+    const props = {value: [100], min: 10, max: 200, step: 5, unit: '%', 'aria-label': 'Feed override wheel', onValueChange: v => updates.push(v[0]), onValueCommit: v => commits.push(v[0]), onEditValue: () => edits++};
     const view = render(React.createElement(Component, props));
     const wheel = view.getByRole('slider');
     wheel.getBoundingClientRect = () => ({top: 0, height: 200});
@@ -42,18 +42,20 @@ test('wheel commits bounded values on release, preserves custom scale, and cance
     };
     try {
         act(() => { pointer('pointerdown', 100); pointer('pointermove', 46); });
-        assert.equal(updates.at(-1), 110);
+        assert.equal(updates.at(-1), 105);
         assert.deepEqual(commits, [], 'drag must not flood commands');
-        act(() => pointer('pointerup', 46)); assert.deepEqual(commits, [110]);
+        act(() => pointer('pointerup', 46)); assert.deepEqual(commits, [105]);
         act(() => { pointer('pointerdown', 100); pointer('pointerup', 100); });
-        assert.equal(edits, 1); assert.deepEqual(commits, [110], 'editing must not send a command');
+        assert.equal(edits, 1); assert.deepEqual(commits, [105], 'editing must not send a command');
         view.rerender(React.createElement(Component, {...props, value: [123]}));
         assert.equal(wheel.getAttribute('aria-valuenow'), '123');
         assert.equal(wheel.querySelector('.android-wheel-selected-value').textContent, '123');
         const scale = [...wheel.querySelectorAll('.android-wheel-scale-number')].map(e => Number(e.textContent));
-        assert.ok(scale.includes(120) && scale.includes(130), 'custom values do not move the major scale');
+        assert.ok(scale.includes(120) && scale.includes(125), 'custom values do not move the major scale');
         act(() => fireEvent.keyDown(wheel, {key: 'ArrowUp'}));
-        assert.equal(commits.at(-1), 134, 'keyboard commits the new value rather than the previous render');
+        assert.equal(commits.at(-1), 125, 'custom values advance to the next mark rather than shifting the scale');
+        act(() => fireEvent.keyDown(wheel, {key: 'ArrowDown'}));
+        assert.equal(commits.at(-1), 120);
         act(() => { pointer('pointerdown', 100); pointer('pointermove', -1000); pointer('pointerup', -1000); });
         assert.equal(commits.at(-1), 200);
         const count = commits.length;
@@ -85,7 +87,7 @@ test('job spindle wheel sends only override commands and rejects disconnected or
     const view = render(React.createElement(compiled.exports.default));
     try {
         act(() => props.onChange([120])); assert.deepEqual(commands, []);
-        act(() => props.onButtonPress([120])); assert.deepEqual(commands, [['spindleOverride',120]]);
+        act(() => props.onButtonPress([123])); assert.deepEqual(commands, [['spindleOverride',123]], 'manual entries are not rounded to the wheel step');
         state.controller.workflow.state = 'paused'; view.rerender(React.createElement(compiled.exports.default));
         act(() => props.onButtonPress([100])); assert.deepEqual(commands.at(-1), ['spindleOverride',100]);
         for (const mode of ['disconnected','idle']) {

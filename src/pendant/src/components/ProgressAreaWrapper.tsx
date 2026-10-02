@@ -1,3 +1,4 @@
+import FilenameTicker from '../../../../android-port/ui/FilenameTicker';
 import {
     WORKFLOW_STATE_IDLE,
     WORKFLOW_STATE_PAUSED,
@@ -29,7 +30,7 @@ export default function ProgressAreaWrapper() {
     const workflowState = useTypedSelector(
         (s: RootState) => s.controller.workflow.state,
     ) as string;
-    const fileLoaded = useTypedSelector((s: RootState) => s.file.fileLoaded);
+    const fileName = useTypedSelector((s: RootState) => s.file.name); const fileLoaded = useTypedSelector((s: RootState) => s.file.fileLoaded);
     const fileTotal = useTypedSelector((s: RootState) => s.file.total);
     const fileContent = useTypedSelector((s: RootState) => s.file.content);
 
@@ -137,13 +138,13 @@ export default function ProgressAreaWrapper() {
         workflowState === WORKFLOW_STATE_RUNNING ||
         workflowState === WORKFLOW_STATE_PAUSED ||
         isFlashingComplete;
-    const fillColor = interpolateProgressGreen(progressPercent);
+    const formatTime = (seconds: number) => { if (!Number.isFinite(seconds) || seconds < 0) return '—'; const value=Math.floor(seconds); return [Math.floor(value/3600),Math.floor(value/60)%60,value%60].map(n=>String(n).padStart(2,'0')).join(':'); }; const fillColor = interpolateProgressGreen(progressPercent);
 
     return (
-        <div className="flex flex-col gap-1 px-1">
+        <div data-progress-paused={workflowState === WORKFLOW_STATE_PAUSED} className="flex flex-col gap-1 px-1" role="button" tabIndex={0} aria-label="View job statistics" onClick={() => window.dispatchEvent(new Event("android-open-job-stats"))} onKeyDown={event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); window.dispatchEvent(new Event("android-open-job-stats")); } }}>
             <div className="flex justify-between text-xs text-gray-400 dark:text-content-muted">
-                <span>Progress</span>
-                <span>{`Line ${displaySent} / ${totalLines}`}</span>
+                <span className="android-progress-heading"><span className="android-progress-filename" title={fileName}><FilenameTicker name={fileName || "Job progress"} /></span><strong>{roundedProgress}%</strong></span><span>Elapsed {formatTime(senderStatus?.elapsedTime == null ? NaN : Number(senderStatus.elapsedTime)/1000)} / Remaining {formatTime(senderStatus?.remainingTime == null ? NaN : Number(senderStatus.remainingTime))}</span>
+                <span className="android-progress-lines">{`Line ${displaySent} / ${totalLines}`}</span>
             </div>
             <div className="h-7 flex items-center">
                 <div

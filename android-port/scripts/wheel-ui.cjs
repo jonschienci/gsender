@@ -28,7 +28,7 @@ exports.transform = (code, id) => {
         code = replace(code, '<div className="android-jog-card', '<div data-speed-page={speedPage || undefined} className="android-jog-card');
         code = replace(code, 'aria-current={showPad === value ?', 'aria-current={!speedPage && showPad === value ?');
         code = replace(code, 'stopTiltJog();setXyPad(value);', 'stopTiltJog();setSpeedPage(false);setXyPad(value);');
-        code = replace(code, '<nav className="android-jog-page-dots"', '{speedPage && <div className="android-jog-speed-page android-feed-overrides"><FeedOverrideWrapper /></div>}<nav className="android-jog-page-dots"');
+        code = replace(code, '<nav className="android-jog-page-dots"', '<div hidden={!speedPage} className="android-jog-speed-page android-feed-overrides"><FeedOverrideWrapper /></div><nav className="android-jog-page-dots"');
         code = replace(code, '            </nav>', '                <button type="button" aria-label="Feed and spindle page" aria-current={speedPage ? "page" : undefined} onClick={() => {stopContinuousJog();stopTiltJog();setSpeedPage(true);}}><span /></button>\n            </nav>');
     } else if (id.endsWith('/pendant/src/components/VisualizerCard.tsx')) {
         code = replace(code, '<div className="android-feed-overrides"><FeedOverrideWrapper /></div>', '');

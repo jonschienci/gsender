@@ -38,14 +38,25 @@ test('real SVG pan/pinch/wheel preserves view while coalescing draws and isolati
         flush();
         const view=svg.getAttribute('viewBox');
         assert.equal(path.getAttribute('d'),originalPath); assert.equal(geometryWrites,0);
-        if(optimized) { assert.equal(viewWrites,1); assert.equal(boundsWrites,0); assert.equal(renderer.pathLayer.style.pointerEvents,'none'); }
+        if(optimized) { assert.equal(svg.parentElement.querySelector('.android-marker-layer').getAttribute('viewBox'),view); assert.equal(renderer.crosshairEl.parentElement.classList.contains('android-marker-layer'),true); assert.equal(renderer.androidIndicator.parentElement,renderer.crosshairEl.parentElement,'artwork shares the composited layer'); assert.equal(viewWrites,1); assert.equal(boundsWrites,0); assert.equal(renderer.pathLayer.style.pointerEvents,'none'); }
         else assert.ok(viewWrites>=160);
         const writesAfterGesture=viewWrites;
         for(let i=0;i<20;i++){renderer.setBitPosition({x:200+i,y:300,z:0});flush();}
         if(optimized) {assert.equal(viewWrites,writesAfterGesture);assert.equal(boundsWrites,0);}
+        if(optimized){
+            const beforeOriginView=svg.getAttribute('viewBox');
+            svg.__gsenderViewport.setOrigin({x:-120,y:35});flush();
+            assert.equal(renderer.originMarker.getAttribute('cx'),'-120');
+            assert.equal(renderer.originMarker.getAttribute('cy'),'-35');
+            assert.equal(svg.getAttribute('viewBox'),beforeOriginView,'moving work origin cannot reset zoom or pan');
+            assert.equal(geometryWrites,0);
+            svg.__gsenderViewport.setOrigin(null);flush();
+            assert.equal(renderer.originMarker.getAttribute('visibility'),'hidden','unknown origin must not invent a measured zero');
+        }
         renderer.setBitVisible(false); flush(); assert.equal(renderer.crosshairEl.getAttribute('visibility'),'hidden');
         renderer.setBitPosition({x:1,y:2,z:0}); renderer.dispose(); flush();
         assert.equal(frames.size,0);
+        assert.equal(document.querySelectorAll('.android-marker-layer').length,0);
         return {view,viewWrites,geometryWrites,boundsWrites};
     }
     try {

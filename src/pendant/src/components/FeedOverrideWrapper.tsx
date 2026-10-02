@@ -53,7 +53,7 @@ export default function FeedOverrideWrapper() {
             <div className="android-feed-slider">
                 <RangeSlider
                     id="feed-override"
-                    step={10}
+                    step={5}
                     min={OVERRIDE_VALUE_RANGES.MIN}
                     max={OVERRIDE_VALUE_RANGES.MAX}
                     value={feedrate}

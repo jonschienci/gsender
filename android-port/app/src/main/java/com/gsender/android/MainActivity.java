@@ -13,6 +13,8 @@ import java.io.OutputStream;
 
 public final class MainActivity extends Activity {
     private WebView web;
+    private LinearLayout layout;
+    private boolean deferredWebView;
     private TextView status;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ValueCallback<Uri[]> fileCallback;
@@ -29,6 +31,7 @@ public final class MainActivity extends Activity {
         public void run() {
             status.setText(EngineService.status);
             if (!loaded && EngineService.url != null) {
+                if (web == null) createWebView();
                 loaded = true;
                 final String address = EngineService.url;
                 final String key = EngineService.token;
@@ -70,9 +73,10 @@ public final class MainActivity extends Activity {
         qr = new KnobQrFlow(this);
         tiltSensor = new TiltSensor(this);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
-        LinearLayout layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
+        layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         status = new TextView(this); status.setPadding(16, 12, 16, 12); layout.addView(status);
-        web = new WebView(this); layout.addView(web, new LinearLayout.LayoutParams(-1, 0, 1)); setContentView(layout);
+        status.setOnClickListener(v -> showUsbStatus());
+        setContentView(layout);
         // Consume only visible system bars, the keyboard and physical cutouts.
         // Kiosk uses the space released by navigation without covering controls.
         if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
@@ -88,6 +92,17 @@ public final class MainActivity extends Activity {
             return insets;
         });
         kiosk.update();
+        deferredWebView = getIntent().getBooleanExtra("defer_webview", false);
+        if (!deferredWebView) createWebView();
+        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
+            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 12);
+        startForegroundService(new Intent(this, EngineService.class));
+        handler.post(poll);
+    }
+    private void createWebView() {
+        if (web != null) return;
+        long start = SystemClock.elapsedRealtime();
+        web = new WebView(this); layout.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
@@ -127,7 +142,7 @@ public final class MainActivity extends Activity {
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                if (local(Uri.parse(url))) status.setVisibility(View.GONE);
+                if (local(Uri.parse(url))) { status.setVisibility(View.GONE); EngineService.record("page_loaded t=" + (SystemClock.elapsedRealtime()-android.os.Process.getStartElapsedRealtime())); }
             }
             @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 kiosk.ready(false);
@@ -136,6 +151,7 @@ public final class MainActivity extends Activity {
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
                     kiosk.ready(false);
+                    EngineService.record("page_failed " + error.getErrorCode() + " " + error.getDescription());
                     status.setText(error.getDescription()); status.setVisibility(View.VISIBLE); loaded = false;
                 }
             }
@@ -222,10 +238,7 @@ public final class MainActivity extends Activity {
             String name = URLUtil.guessFileName(url, disposition, mime);
             web.evaluateJavascript("fetch(" + JSONObject.quote(url) + ").then(r=>r.blob()).then(b=>{const f=new FileReader();f.onload=()=>AndroidDownload.save(" + JSONObject.quote(name) + ",f.result.split(',')[1]);f.readAsDataURL(b);})", null);
         });
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission("android.permission.POST_NOTIFICATIONS") != android.content.pm.PackageManager.PERMISSION_GRANTED)
-            requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 12);
-        startForegroundService(new Intent(this, EngineService.class));
-        handler.post(poll);
+        EngineService.record("webview_created ms=" + (SystemClock.elapsedRealtime()-start) + " deferred=" + deferredWebView);
     }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -242,7 +255,7 @@ public final class MainActivity extends Activity {
     private void showUsbStatus() {
         TextView details = new TextView(this);
         details.setPadding(20, 12, 20, 12); details.setTextSize(14); details.setTextIsSelectable(true);
-        Runnable refresh = () -> details.setText("Build " + BuildConfig.VERSION_CODE + "\n" + EngineService.status + "\n" + EngineService.uiStatus + "\n\n" + com.gsender.usb.UsbSerialModule.diagnostics(this));
+        Runnable refresh = () -> details.setText("Build " + BuildConfig.VERSION_CODE + "\n" + EngineService.status + "\n" + EngineService.uiStatus + "\n\n" + EngineService.diagnostics() + "\n\n" + com.gsender.usb.UsbSerialModule.diagnostics(this));
         refresh.run();
         ScrollView scroll = new ScrollView(this); scroll.addView(details);
         android.app.AlertDialog dialog = new android.app.AlertDialog.Builder(this).setTitle("USB status")
@@ -308,7 +321,7 @@ public final class MainActivity extends Activity {
         if (qr != null) qr.destroy();
         handler.removeCallbacks(poll);
         if (fileCallback != null) fileCallback.onReceiveValue(null);
-        web.destroy();
+        if (web != null) web.destroy();
         super.onDestroy();
     }
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] grants) {

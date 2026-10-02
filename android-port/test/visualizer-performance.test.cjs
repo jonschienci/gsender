@@ -39,6 +39,7 @@ test('position updates move the real SVG marker without rebuilding the preview',
         if(optimized)source=transform(source,filename).code;
         source=source.replace(/(from\s*)'([^']+)'/g, '$1"$2"');
         source=source.replace('import { useTypedSelector } from "app/hooks/useTypedSelector";', 'const useTypedSelector = fn => fn(globalThis.__visualizerPerfState);')
+            .replace('import {useWorkspaceState} from "app/hooks/useWorkspaceState";', 'const useWorkspaceState = () => ({units:"mm"});')
             .replace('import { WORKFLOW_STATE_RUNNING } from "app/constants";', 'const WORKFLOW_STATE_RUNNING = "running";')
             .replace(/import \{\s*PENDANT_BOUNDS_COLOR,[\s\S]*?from "\.\.\/visualizerTheme";/, 'const PENDANT_BOUNDS_COLOR="#72849D", PENDANT_CUT_COLOR="#3F85C7", PENDANT_RAPID_COLOR="#059669";');
         const built=buildSync({stdin:{contents:source,loader:'tsx',resolveDir:path.dirname(filename)},bundle:true,packages:'external',platform:'node',format:'cjs',jsx:'automatic',write:false,define:{'import.meta.url':JSON.stringify('file:///raster-preview.mjs')}});
@@ -47,7 +48,7 @@ test('position updates move the real SVG marker without rebuilding the preview',
     const results=[];
     try {
         for(const optimized of [false,true]) {
-            globalThis.__visualizerPerfState={file:{fileLoaded:true},controller:{workflow:{state:'running'},wpos:{x:'0',y:'0',z:'0'}}};
+            globalThis.__visualizerPerfState={file:{fileLoaded:true},connection:{isConnected:false},controller:{state:{status:{}},mpos:{x:'0',y:'0',z:'0'},workflow:{state:'running'},wpos:{x:'0',y:'0',z:'0'}}};
             const Component=compile(optimized), view=render(React.createElement(Component));
             const points=new Float32Array(30000*4);
             for(let i=0;i<30000;i++)points.set([i%300,Math.floor(i/300),(i%300)+0.8,Math.floor(i/300)+0.5],i*4);
@@ -63,7 +64,7 @@ test('position updates move the real SVG marker without rebuilding the preview',
             for(const frame of frames.splice(0))frame(performance.now());
             results.push({optimized,rebuilds,updateMs:Math.round(performance.now()-started)});
             assert.equal(toolpath.getAttribute(attribute),before,'Toolpath geometry must be unchanged');
-            const crosshair=svg.querySelectorAll(':scope > path');
+            const crosshair=svg.parentElement.querySelectorAll(optimized ? '.android-marker-layer > path' : 'svg > path');
             assert.ok([...crosshair].some(p=>p.getAttribute('visibility')==='visible'),'Running marker must stay visible');
             if(optimized)assert.equal(workers.at(-1).messages.length,workerMessages,'Live position updates must not re-rasterize');
             view.unmount();if(optimized)assert.ok(workers.at(-1).stopped);frames=[];

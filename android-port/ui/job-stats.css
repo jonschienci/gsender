@@ -1,0 +1,24 @@
+.android-job-stats-trigger {padding:4px 6px;border:1px solid transparent;border-radius:6px;cursor:pointer;touch-action:manipulation;}
+.android-job-stats-trigger svg {flex-shrink:0;color:#689ac9;}
+.android-job-stats-trigger:hover, .android-job-stats-trigger:focus-visible {border-color:#689ac9;background:#689ac915;outline:2px solid transparent;}
+.android-job-stats-trigger:disabled {opacity:.55;cursor:default;}
+.android-job-stats-dialog {width:min(620px,calc(100vw - 32px));max-height:calc(100vh - 96px);overflow-y:auto;overscroll-behavior:contain;gap:16px;border-radius:12px;padding:24px;}
+.android-job-stats-dialog .android-job-stats-filename {overflow-wrap:anywhere;padding-right:24px;}
+.android-job-stats-summary {display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.android-job-stats-summary > div {padding:12px;border:1px solid #cbd5e1;border-radius:8px;background:#f1f5f9;}
+.android-job-stats-summary span {display:block;font-size:12px;color:#64748b;margin-bottom:6px;}
+.android-job-stats-summary strong {font-size:20px;font-variant-numeric:tabular-nums;}
+.android-job-stats-dialog h3 {font-size:15px;font-weight:600;margin-bottom:10px;}
+.android-job-stats-dialog table {width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;}
+.android-job-stats-dialog th, .android-job-stats-dialog td {padding:7px 4px;text-align:right;border-bottom:1px solid #cbd5e1;}
+.android-job-stats-dialog th:first-child {text-align:left;}
+.android-job-stats-dialog th {font-weight:500;}
+.android-job-stats-dialog small {font-size:11px;}
+.android-job-stats-dialog dl > div {display:grid;grid-template-columns:minmax(135px,1fr) minmax(0,1.5fr);gap:12px;padding:6px 0;}
+.android-job-stats-dialog dt, .android-job-stats-dialog p {color:#64748b;}
+.android-job-stats-dialog dd {text-align:right;overflow-wrap:anywhere;font-variant-numeric:tabular-nums;}
+.android-job-stats-dialog p {font-size:12px;line-height:1.4;margin-top:10px;}
+.android-job-stats-dialog > button:last-child {width:36px;height:36px;display:flex;align-items:center;justify-content:center;right:8px;top:8px;}
+.dark .android-job-stats-summary > div {background:#263141;border-color:#475569;}
+.dark .android-job-stats-summary span, .dark .android-job-stats-dialog dt, .dark .android-job-stats-dialog p {color:#aebccc;}
+.dark .android-job-stats-dialog th, .dark .android-job-stats-dialog td {border-color:#475569;}
