@@ -11,6 +11,8 @@ on:
     # Sequence of patterns matched against refs/tags
     tags:
       - '*'
+      # Android APKs are built and validated separately from desktop packages.
+      - '!android-build-*'
   pull_request:
     branches: [ "master" ]
 
