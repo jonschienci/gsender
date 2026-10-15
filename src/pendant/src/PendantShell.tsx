@@ -1,9 +1,10 @@
+import {WirelessTransferNotice} from '../../../android-port/ui/WirelessFiles';
 import ToolPane from '../../../android-port/ui/ToolPane';
 import PendantNumberPad from '../../../android-port/ui/PendantNumberPad';
 import ConfirmationDialog from 'app/components/ConfirmationDialog/ConfirmationDialog';
 import { Toaster } from 'app/components/shadcn/Sonner';
 import { useDarkMode } from 'app/hooks/useDarkMode';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import BottomNav from './components/BottomNav';
 import CarveView from './components/CarveView';
 import InfoStrip from './components/InfoStrip';
@@ -16,6 +17,9 @@ type NavTab = 'carve' | 'tools' | 'config';
 
 export default function PendantShell() {
     const [activeTab, setActiveTab] = useState<NavTab>('carve');
+    const [wirelessRequested, setWirelessRequested] = useState(false);
+    const wirelessReturnTab = useRef<NavTab>('tools');
+    useEffect(()=>{const open=()=>{if(!wirelessRequested)wirelessReturnTab.current=activeTab;setWirelessRequested(true);setActiveTab('tools');};window.addEventListener('android-open-wireless-files',open);return()=>window.removeEventListener('android-open-wireless-files',open);},[activeTab,wirelessRequested]);
     useDarkMode(); // syncs workspace.enableDarkMode → <html class="dark">
 
     useEffect(() => {
@@ -32,7 +36,7 @@ export default function PendantShell() {
 
     return (
         <div className="h-screen w-screen flex flex-col bg-gray-100 dark:bg-surface-base overflow-hidden">
-            <PendantNumberPad /><ToolPane />
+            <PendantNumberPad /><ToolPane /><WirelessTransferNotice />
             <PendantTopBar />
             <InfoStrip />
 
@@ -46,7 +50,7 @@ export default function PendantShell() {
             >
                 <CarveView />
             </div>
-            {activeTab === 'tools' && <PendantToolsView />}
+            {activeTab === 'tools' && <PendantToolsView openWireless={wirelessRequested} onWirelessClose={()=>{if(wirelessRequested)setActiveTab(wirelessReturnTab.current);setWirelessRequested(false);}} />}
             {activeTab === 'config' && <PendantConfigView />}
 
             <BottomNav active={activeTab} onChange={setActiveTab} />

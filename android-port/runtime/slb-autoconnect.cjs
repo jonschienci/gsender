@@ -5,6 +5,8 @@
 // handshake still applies. Match only the first serial port, never an entire
 // USB vendor or a flashing/bootloader identity. Keep the Android filter in sync.
 const SLB_USB_IDS = new Set(['0483:5740', '2e8a:000a']);
+const STABLE_CONNECTION_MS = 30000;
+const retryDelay = failures => Math.min(30000, 2000 * 2 ** Math.min(4, Math.max(0, failures - 1)));
 const isSlb = port => /^android-usb:\d+:0$/.test(port.path || '') &&
     SLB_USB_IDS.has(`${String(port.vendorId).toLowerCase()}:${String(port.productId).toLowerCase()}`);
 
@@ -17,14 +19,21 @@ class SlbAutoConnect {
         this.stopped = false;
     }
     attachment(path) {
-        if (!this.attachments.has(path)) this.attachments.set(path, { failures: 0, nextAt: 0, suppressed: false });
+        if (!this.attachments.has(path)) this.attachments.set(path, { failures: 0, nextAt: 0, suppressed: false, connectedAt: null });
         return this.attachments.get(path);
     }
     suppress(path) { this.attachment(path).suppressed = true; }
     disconnected(path) {
         if (path && this.attachments.has(path)) {
             const record = this.attachment(path);
-            record.nextAt = Math.max(record.nextAt, this.now() + 2000);
+            // A successful open is not yet a stable connection. Otherwise an
+            // SLB that drops immediately retries forever at the shortest delay.
+            if (record.connectedAt !== null) {
+                if (this.now() - record.connectedAt >= STABLE_CONNECTION_MS) record.failures = 0;
+                record.failures++;
+                record.connectedAt = null;
+            }
+            record.nextAt = Math.max(record.nextAt, this.now() + retryDelay(record.failures));
         }
     }
     open(opener, path, options, callback = () => {}) {
@@ -45,12 +54,13 @@ class SlbAutoConnect {
             if (this.opening === attempt) this.opening = null;
             if (error) {
                 record.failures++;
+                record.connectedAt = null;
                 // Respect an explicit permission denial/abandoned manual prompt.
                 // Automatic attempts never request permission and may retry once
                 // Android grants access through its default-device handler.
                 if (options.requestPermission !== false && ['EACCES', 'ETIMEDOUT'].includes(error.code)) record.suppressed = true;
-            } else record.failures = 0;
-            record.nextAt = this.now() + Math.min(30000, 2000 * 2 ** Math.min(4, Math.max(0, record.failures - 1)));
+            } else record.connectedAt = this.now();
+            record.nextAt = this.now() + retryDelay(record.failures);
             callback(error);
         };
         try { opener(path, options, done); } catch (error) { done(error); }

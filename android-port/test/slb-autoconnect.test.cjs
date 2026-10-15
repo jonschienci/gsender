@@ -94,7 +94,7 @@ familyTest('unexpected disconnect retries the same attachment; failed opens back
     f.now = 10000; f.connection = null; f.connector.disconnected(slb(42).path);
     await f.connector.scan(); assert.equal(f.calls.length, 1);
     f.now = 12000; await f.connector.scan(); assert.equal(f.calls.length, 2);
-    for (const wait of [2000, 4000, 8000, 16000, 30000, 30000]) {
+    for (const wait of [4000, 8000, 16000, 30000, 30000, 30000]) {
         f.calls.at(-1)[2](Object.assign(new Error('driver failed'), {code:'EIO'}));
         const count = f.calls.length;
         f.now += wait - 1; await f.connector.scan(); assert.equal(f.calls.length, count);
@@ -134,4 +134,21 @@ test('Android attachment filters match the supported CDC identities without vend
     });
     assert.deepEqual(filters,families.map(({vendorId,productId})=>({vendorId,productId})));
     for(const filter of filters)assert.ok(isSlb({path:'android-usb:42:0',...filter}));
+});
+
+for (const family of families) test(family.name + ': brief successful opens keep increasing backoff until stable', async () => {
+    const f=fixture(); f.ports=[device(family,42)];
+    await f.connector.scan();
+    for(const wait of [2000,4000,8000,16000,30000,30000]) {
+        f.connection={};f.calls.at(-1)[2](null);f.now+=100;
+        f.connection=null;f.connector.disconnected(f.ports[0].path);
+        const count=f.calls.length;
+        f.now+=wait-1;await f.connector.scan();assert.equal(f.calls.length,count);
+        f.now++;await f.connector.scan();assert.equal(f.calls.length,count+1);
+    }
+    f.connection={};f.calls.at(-1)[2](null);f.now+=30000;
+    f.connection=null;f.connector.disconnected(f.ports[0].path);
+    const count=f.calls.length;
+    f.now+=1999;await f.connector.scan();assert.equal(f.calls.length,count);
+    f.now++;await f.connector.scan();assert.equal(f.calls.length,count+1,'stable session restores quick recovery');
 });

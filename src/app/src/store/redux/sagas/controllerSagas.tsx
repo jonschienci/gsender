@@ -131,7 +131,7 @@ export function* initialize(): Generator<any, void, any> {
     let currentState: GRBL_ACTIVE_STATES_T = GRBL_ACTIVE_STATE_IDLE;
     let prevState: GRBL_ACTIVE_STATES_T = GRBL_ACTIVE_STATE_IDLE;
     let errors: any[] = [];
-    let latestEstimateData: { estimates: number[]; estimatedTime: number } = {
+    let latestEstimateData: any = {
         estimates: [],
         estimatedTime: 0,
     };
@@ -848,12 +848,11 @@ export function* initialize(): Generator<any, void, any> {
         'estimateData:ready',
         (
             _msg,
-            value: { estimates?: number[]; estimatedTime?: number } = {},
+            value: any = {},
         ) => {
             latestEstimateData = {
-                estimates: Array.isArray(value?.estimates)
-                    ? value.estimates
-                    : [],
+                lineTime: value.lineTime || new Float32Array(0),
+                lineKind: value.lineKind || new Uint8Array(0),
                 estimatedTime: Number(value?.estimatedTime) || 0,
             };
             hasEstimateData = true;

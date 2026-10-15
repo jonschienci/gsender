@@ -19,6 +19,7 @@ const replace = (source, from, to) => {
                 build.onResolve({filter:/^android-job-recording$/},()=>({path:'./job-recording.cjs',external:true}));
                 build.onResolve({filter:/^android-benchmark$/},()=>({path:'./benchmark/service.cjs',external:true}));
                 build.onResolve({filter:/^android-benchmark-gate$/},()=>({path:path.join(root,'android-port/benchmark/gate.cjs')}));
+                build.onResolve({filter:/^android-wireless-files$/},()=>({path:path.join(runtime,'wireless-files.cjs')}));
                 const aliases={electron:'electron.cjs','electron-log':'log.cjs'};
                 build.onResolve({filter:/^android-serial-display$/},()=>({path:path.join(runtime,'serial-display.cjs')}));
                 build.onResolve({filter:/^android-job-lines$/},()=>({path:path.join(runtime,'job-lines.cjs')}));
@@ -41,7 +42,7 @@ const replace = (source, from, to) => {
                     if(args.path.endsWith('lib/Connection.js')) s=replace(s, 'path: port,', 'path: port, requestPermission: options.requestPermission !== false,');
                     if(args.path.endsWith('lib/SerialConnection.js')) s=replace(s, 'this.port.write(Buffer.from(data));',
                         'const bytes = data === "\\x85" ? Buffer.from([0x85]) : Buffer.from(data); if (context?.usbPendant === true) { const port = this.port; port.writeBounded(bytes, err => { if (err) port.destroy(err); }); } else this.port.write(bytes);');
-                    if(args.path.endsWith('server/app.js')) s=replace(s, 'const app = express();', "const app = express(); require('./local-access.cjs').install(app); require('android-usb-pendant').installRoutes(app); require('android-benchmark').installRoutes(app); require('android-job-recording').installRoutes(app);");
+                    if(args.path.endsWith('server/app.js')) s=replace(s, 'const app = express();', "const app = express(); require('./local-access.cjs').install(app); require('android-usb-pendant').installRoutes(app); require('android-benchmark').installRoutes(app); require('android-job-recording').installRoutes(app); require('android-wireless-files').installRoutes(app);");
                     if(args.path.endsWith('settings.base.js')) {
                         s=replace(s,'const getUserHome = () => os.homedir();','const getUserHome = () => process.env.GSENDER_USER_DATA;');
                         s=replace(s,"path.resolve(__dirname, '..', 'i18n',", "path.resolve(process.env.GSENDER_BUNDLE_DIR, 'i18n',");

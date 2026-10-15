@@ -1,3 +1,4 @@
+import {useCoordinateMode} from '../../../../android-port/ui/coordinate-mode';
 import {installPositionReadouts} from '../../../../android-port/ui/position-readouts.mjs';
 import {machineXYBounds, jobXYBounds, centeredView, rebaseWorkView} from '../../../../android-port/ui/visualizer-bounds.mjs';
 import {shallowEqual} from 'react-redux';
@@ -20,6 +21,7 @@ import {
 installSvgFraming(GCodeSVGRenderer);
 
 export default function Visualizer() {
+    const coordinateMode = useCoordinateMode();
     const svgRef = useRef<GCodeSVGRendererHandle>(null);
     const fileLoaded = useTypedSelector((s: RootState) => s.file.fileLoaded);
     const workflowState = useTypedSelector(
@@ -44,11 +46,11 @@ export default function Visualizer() {
     const overlay = useRef({machineBounds,jobBounds,units});
     overlay.current = {machineBounds,jobBounds,units};
     const updateOverlay = useRef<(() => void) | null>(null);
-    const readoutState = useRef({wpos,mpos,fileLoaded,units,connected,hasPosition});
-    readoutState.current={wpos,mpos,fileLoaded,units,connected,hasPosition};
+    const readoutState = useRef({wpos,mpos,fileLoaded,units,connected,hasPosition,coordinateMode});
+    readoutState.current={wpos,mpos,fileLoaded,units,connected,hasPosition,coordinateMode};
     const refreshReadouts = useRef<(() => void) | null>(null);
     useEffect(()=>{const svg=svgRef.current?.getSVGElement();if(!svg)return;const readouts=installPositionReadouts(svg,()=>readoutState.current);refreshReadouts.current=readouts.update;return()=>{refreshReadouts.current=null;readouts.dispose();};},[]);
-    useEffect(()=>{refreshReadouts.current?.();},[wpos,mpos,fileLoaded,units,connected,hasPosition]);
+    useEffect(()=>{refreshReadouts.current?.();},[wpos,mpos,fileLoaded,units,connected,hasPosition,coordinateMode]);
     const workFrame = useRef<{loaded:boolean;name:string;offset:{x:number;y:number}} | null>(null);
     useEffect(()=>{
         const viewport=(svgRef.current?.getSVGElement() as any)?.__gsenderViewport;
@@ -99,6 +101,19 @@ export default function Visualizer() {
         boundary.setAttribute('vector-effect', 'non-scaling-stroke');
         grid.append(defs, area, boundary);
         svg.prepend(grid);
+        const boundaryLabels=document.createElementNS(ns,'g');
+        boundaryLabels.setAttribute('pointer-events','none');
+        const machineLabel=document.createElementNS(ns,'text');
+        const jobLabel=document.createElementNS(ns,'text');
+        for(const [label,title,color] of [[machineLabel,'Machine Boundary','#f97316'],[jobLabel,'Job Boundary','#3f85c7']] as const){
+            label.textContent=title;
+            label.setAttribute('fill',color);
+            label.setAttribute('font-family','Roboto Mono, monospace');
+            label.setAttribute('font-weight','400');
+            label.setAttribute('text-anchor','start');
+            boundaryLabels.append(label);
+        }
+        svg.append(boundaryLabels);
         const attributes=new WeakMap<Element,Map<string,string>>();
         const set=(node:Element,key:string,value:string)=>{
             let previous=attributes.get(node);if(!previous){previous=new Map();attributes.set(node,previous);}
@@ -123,6 +138,16 @@ export default function Visualizer() {
                 set(rect,'visibility',machine?'visible':'hidden');
                 if(machine)for(const key of ['x','y','width','height'])set(rect,key,String(machine[key]));
             }
+            const boundaryFont=Math.min(view.width,view.height)*.028;
+            for(const [label,bounds] of [[machineLabel,machine],[jobLabel,job?{x:job.minX,y:-job.maxY,width:job.maxX-job.minX}:null]] as const){
+                set(label,'visibility',bounds?'visible':'hidden');
+                if(!bounds)continue;
+                set(label,'x',String(bounds.x));
+                set(label,'y',String(bounds.y-boundaryFont*.4));
+                setLabel(label,'font-size',String(boundaryFont));
+                const length=label.getComputedTextLength();
+                if(length>bounds.width&&length>0)setLabel(label,'font-size',String(boundaryFont*bounds.width/length));
+            }
             for(const label of [xLabel,yLabel])if(label)set(label,'visibility',job?'visible':'hidden');
             if (job && xLabel && yLabel) {
                 const font=Math.min(view.width,view.height)*.028,gap=font*.85;
@@ -146,7 +171,7 @@ export default function Visualizer() {
         const resizeObserver = new ResizeObserver(updateGrid);
         resizeObserver.observe(svg);
         updateGrid();
-        return () => { updateOverlay.current=null; observer.disconnect(); resizeObserver.disconnect(); grid.remove(); };
+        return () => { updateOverlay.current=null; observer.disconnect(); resizeObserver.disconnect(); grid.remove(); boundaryLabels.remove(); };
     }, []);
 
     useEffect(() => { updateOverlay.current?.(); }, [travelX,travelY,homingCorner,homingFlag,fileLoaded,offsetX,offsetY,jobBbox,units]);

@@ -1,3 +1,4 @@
+import MotionPlanner, {estimateLineCount} from 'app/lib/timeEstimator/MotionPlanner';
 /*
  * Copyright (C) 2021 Sienci Labs Inc.
  *
@@ -56,6 +57,7 @@ interface WorkerData {
     accelerations?: any;
     maxFeedrates?: any;
     atcEnabled?: boolean;
+    estimatorConfig?: any;
     rotaryDiameterOffsetEnabled?: boolean;
     isSecondary: boolean;
     activeVisualizer: VISUALIZER_TYPES_T;
@@ -1002,9 +1004,7 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         addArcCurve,
         addCurve,
         collate: true,
-        accelerations,
-        maxFeedrates,
-        atcEnabled,
+        estimator: new MotionPlanner(data.estimatorConfig ?? {maxRate:[maxFeedrates?.xMaxFeed,maxFeedrates?.yMaxFeed,maxFeedrates?.zMaxFeed,maxFeedrates?.aMaxFeed],accel:[accelerations?.xAccel,accelerations?.yAccel,accelerations?.zAccel,accelerations?.aAccel],toolChangeTime:atcEnabled?45:0,laserMode:isLaser}, estimateLineCount(content)),
     });
 
     // Direct per-line hook rather than vm.on('data'): the EventEmitter polyfill
@@ -1055,12 +1055,12 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
     markProfile(profiler, 'after_parse_loop');
     sampleHeap(profiler, 'after_parse_loop');
 
-    const { estimates } = vm.getData();
+    const { lineTime, lineKind } = vm.getData();
     fileInfo = vm.generateFileStats();
     fileInfo.toolchanges = toolchanges;
 
     parsedDataToSend = {
-        estimates: estimates,
+        lineTime, lineKind,
         info: fileInfo,
         modalChanges: [],
         feedrateChanges: [],
@@ -1150,7 +1150,7 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         profiler.counts.svg2d_dupe_drops = svg2DDupeDrops;
         profiler.counts.svg2d_degenerate_drops = svg2DDegenerateDrops;
         profiler.counts.spindle_frame_speeds_len = spindleFrameSpeeds.length;
-        profiler.counts.estimates_len = estimates.length;
+        profiler.counts.estimates_len = lineTime.length;
         profiler.counts.invalid_lines_len = fileInfo.invalidLineCount ?? 0;
         profiler.counts.spindle_tool_event_count = Object.keys(
             fileInfo.spindleToolEvents || {},
@@ -1352,7 +1352,7 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
         };
 
         postMessage(geometryMessage, transferList);
-        postMessage(metadataMessage);
+        postMessage(metadataMessage,[lineTime.buffer,lineKind.buffer]);
         return;
     }
 
@@ -1368,5 +1368,5 @@ self.onmessage = function ({ data }: { data: WorkerData }) {
     };
 
     postMessage(geometryMessage, transferList);
-    postMessage(metadataMessage);
+    postMessage(metadataMessage,[lineTime.buffer,lineKind.buffer]);
 };

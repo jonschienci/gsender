@@ -1,3 +1,4 @@
+import {formatPositionReadout} from './position-format.mjs';
 // Keep coordinate touch targets mounted while live reports and pan/zoom update them.
 // Replacing a target during a hold loses the gesture on Android WebView.
 export function installPositionReadouts(svg, getState) {
@@ -12,6 +13,7 @@ export function installPositionReadouts(svg, getState) {
     boxes.forEach((box,index)=>{
         const axis=index===0?'X':'Y';
         for(const [key,value] of Object.entries({role:'button',tabindex:0,'aria-label':`Edit visualizer ${axis} coordinate`,'pointer-events':'all','fill-opacity':'.92',stroke:'#72849d','stroke-width':1.5,'vector-effect':'non-scaling-stroke'}))set(box,key,value);
+        for(const node of [labels[index],values[index]])set(node,'data-readout-axis',axis);
         box.style.cursor='pointer';
         const open=()=>{
             if(document.body.classList.contains('readouts-locked'))return;
@@ -30,9 +32,10 @@ export function installPositionReadouts(svg, getState) {
         const known=state.connected&&state.hasPosition&&Number.isFinite(x)&&Number.isFinite(y);
         set(group,'visibility',known?'visible':'hidden');
         if(!known||!view.width||!view.height)return;
-        const font=Math.min(view.width,view.height)*.028,pad=font*.5,gap=font*.32,height=font*2.2;
+        const font=Math.min(view.width,view.height)*.032,pad=font*.5,gap=font*.32,height=font*2.2;
         const factor=state.units==='in'?25.4:1,digits=state.units==='in'?3:2;
-        const displayed=[Number(position.x),Number(position.y)].map(n=>(n/factor).toFixed(digits));
+        const readout=state.coordinateMode==='machine'?state.mpos:state.wpos;
+        const displayed=[Number(readout.x),Number(readout.y)].map(n=>formatPositionReadout(n/factor,digits));
         const widths=displayed.map(value=>Math.max(font*3.2,value.length*font*.62+pad*2));
         let cursor=x-(widths[0]+widths[1]+gap)/2;
         const top=y+font*1.3,dark=document.documentElement.classList.contains('dark');

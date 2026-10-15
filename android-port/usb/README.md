@@ -1,10 +1,10 @@
 # gSender Android USB module
 
-An in-process Android library and Node serial adapter for the gSender Android port. This is not a separate USB app. gSender's SerialConnection, ReadlineParser, controller logic and sender remain unchanged.
+An in-process Android library and Node serial adapter for the gSender Android port. The library keeps serial communication inside gSender's existing connection, parser and sender architecture; Android adaptations are scoped to this port.
 
 ## Implemented
 
-- Android USB Host discovery through usb-serial-for-android 3.9.0 (including descriptor-based CDC ACM discovery); no guessed SLB USB ID or forced driver.
+- Android USB Host discovery through usb-serial-for-android 3.9.0, including descriptor-based CDC ACM discovery. STM32 SLBs (0483:5740) use the scoped read-health adapter described below; Pico and other drivers retain upstream read behavior.
 - Asynchronous Android USB permission request, denial, timeout and cancellation.
 - Port IDs `android-usb:<deviceId>:<portNumber>` and serialport-style enumeration metadata. IDs are valid for the current attachment; they are not persistent identities.
 - 115200 baud, 8N1 defaults, configurable baud/bits/parity/stops; DTR and RTS initially asserted once, with configurable initial levels and explicit `set()` support. No deliberate reset pulse. Verify the SLB's behavior with these signals on hardware.
@@ -64,6 +64,12 @@ npm install
 npm test
 ```
 
-Fourteen tests passed, including an integration test that loads the unchanged upstream SerialConnection and actual ReadlineParser 11.0.0. All native responses in these tests are simulated. The Java source was separately compiled using JDK 17 against Android API 35 classes (Robolectric android-all 15-robolectric-12650502) and the actual usb-serial-for-android 3.9.0 AAR. This verifies Java/API compatibility, not native behavior or a Gradle APK/AAR build.
+Build 76 passed all **390 Android/backend regressions**, including **22 USB adapter/transport checks**. Release compilation, lint, payload/native-library verification and installed-APK checksum checks passed. The release was installed and launch-checked on the L1108 and K90. The user reported no connection issues during the latest L1108 job attempt; the passive capture shows a 164-second attachment, at least 294 tolerated empty reads and no health-probe closure. Complete long-job validation across all devices remains outstanding.
 
-Not yet validated: tablet USB Host/adapter behavior, SLB enumeration and DTR/RTS behavior, permission broadcasts on-device, Android lifecycle under load, sustained real USB streaming, or disconnect recovery with the actual controller. The parent Android project now builds a debug APK; hardware validation remains outstanding.
+## STM32 empty-read handling (Build 76)
+
+A CDC zero-length completion does not by itself end the serial stream. After a nonempty read, the STM32 adapter allows three seconds before an empty completion can trigger the read-only GET_STATUS checks. During continued silence, at most one three-attempt health-check sequence runs per second. Each attempt is limited to 200 ms; a closed/replaced handle or interruption cancels it. A 1 ms empty-read yield prevents a tight loop on a stale handle.
+
+This change follows a physical Build 75 skull-job failure after 34.463 seconds: the driver closed on its health probe even though a valid serial reply had arrived 42 ms earlier. The new regression covers that ordering and continued data interleaved with empty completions.
+
+Actual detach handling and upstream write/partial-write errors remain fatal. Serial commands are never retried by read recovery, and no job resumes automatically after disconnection. See [Build 76](../BUILD-76.md) for artifact identity, evidence and limitations.

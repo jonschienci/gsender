@@ -965,7 +965,7 @@ body .android-atc-settings-body [role="tabpanel"] > .space-y-4 > div:last-child 
 body .android-job-controls,body .android-job-controls > div,body .android-job-controls button {box-shadow:none!important;filter:none!important;}
 
 /* Rotary readout sits below the shortened Z ruler on the right. */
-.android-rotary-dial {left:auto;right:-10px;bottom:54px;}
+.android-rotary-dial {left:auto;right:2px;bottom:54px;}
 
 body .android-visualizer-canvas:has(.android-rotary-dial) .android-z-height-scale {bottom:206px!important;}
 
@@ -1408,4 +1408,151 @@ body.android-disconnected header.android-pendant-header button.android-connectio
 /* Center the two-line connection hint beneath the arrow. */
 .android-connect-hint {left:var(--connection-arrow-x,64px);transform:translateX(-50%);width:120px;text-align:center;white-space:normal;font-size:14px;line-height:19px;}
 
-.android-connect-hint {width:128px;font-size:12px;line-height:18px;text-wrap:balance;}
+.android-connect-hint {width:128px;font-size:12px;line-height:18px;text-wrap:balance;}/* Viewport coordinates and touch movement controls. */
+.android-viewport-coordinate-switch {position:absolute;left:6px;top:10px;z-index:4;display:flex;gap:3px;padding:3px;border:1px solid #72849d;border-radius:7px;background:#202832;color:#dbe6f1;font-size:14px;}
+.android-viewport-coordinate-switch span {padding:6px 9px;border-radius:4px;}
+.android-viewport-coordinate-switch span[data-active="true"] {background:#528fbe;color:white;}
+.android-view-actions,.android-view-actions:has(~ .android-rotary-dial) {top:55%;bottom:auto;gap:8px;}
+.android-view-actions button,.android-compact-setup button {width:46px!important;height:46px!important;min-width:46px;}
+.android-view-actions button svg,.android-compact-setup button svg {width:25px;height:25px;}
+.android-viewport-setup.android-compact-setup {top:64px;bottom:auto;left:6px;gap:8px;}
+.android-compact-setup button span {font-size:14px;line-height:15px;}
+.android-compact-setup button[aria-pressed="true"] {background:#be7c17;color:white;border-color:#fbbf24;}
+.android-touch-move-hint {position:absolute;left:54px;top:0;width:170px;padding:8px;border-radius:6px;background:#202832;color:#fbbf24;font-size:13px;pointer-events:none;}
+body[data-coordinate-mode="machine"] [aria-label^="Edit visualizer "] {cursor:default!important;}
+
+.android-logs-pane {position:fixed;z-index:120;display:flex;flex-direction:column;min-height:0;overflow:hidden;background:#171d25;color:#e8edf4;border:1px solid #72849d;border-radius:8px;font-size:15px;}
+.android-logs-pane header {display:flex;align-items:center;justify-content:space-between;gap:12px;padding:8px 12px;border-bottom:1px solid #475569;font-size:18px;}
+.android-logs-pane button {border:1px solid #72849d;border-radius:6px;background:#2d3946;color:#f1f5f9;padding:8px 12px;min-height:36px;}
+.android-logs-pane nav {display:flex;gap:8px;padding:8px 12px;}
+.android-logs-pane nav button {flex:1;}
+.android-logs-pane nav button[aria-pressed="true"] {background:#528fbe;}
+.android-logs-body {flex:1;min-height:0;overflow:auto;padding:12px;}
+.android-logs-content h2 {font-size:18px;margin-bottom:8px;}
+.android-logs-content p {margin-bottom:12px;line-height:1.5;}
+.android-logs-content > div > span {min-width:0;overflow-wrap:anywhere;}
+.android-logs-content > div > button {flex-shrink:0;}
+.android-logs-pane .android-benchmark-overlay {position:static!important;inset:auto!important;padding:0!important;background:transparent!important;display:block!important;}
+.android-logs-pane .android-benchmark-overlay > section {width:100%!important;max-height:none!important;background:transparent!important;border:0!important;box-shadow:none!important;padding:0!important;overflow:visible!important;}
+
+body .android-logs-pane[role="dialog"] {top:var(--logs-pane-top,64px)!important;transform:none!important;translate:none!important;max-height:none!important;max-width:none!important;margin:0!important;overflow:hidden;box-sizing:border-box;}
+
+/* Keep workspace selection beside the viewport coordinate mode. */
+.android-viewport-coordinate-controls {position:absolute;left:6px;top:10px;z-index:4;display:flex;align-items:center;gap:8px;}
+.android-viewport-coordinate-controls .android-viewport-coordinate-switch {position:static;}
+.android-viewport-coordinate-controls [aria-haspopup="listbox"] {height:38px;font-size:14px;}
+
+/* A shallower timeline tab, as wide as the 46px viewport controls. */
+body .android-job-progress .android-tool-flags > button.android-tool-flags-heading {width:46px;height:24px!important;min-height:24px!important;line-height:22px;}
+body .android-job-progress .android-tool-flags:not([data-open="true"]) > button.android-tool-flags-heading {top:-62px;}
+body .android-job-progress .android-tool-flags[data-open="true"] > button.android-tool-flags-heading {top:calc(var(--timeline-top) + 9px);}
+
+/* Compact coordinate controls share one height. */
+.android-viewport-coordinate-controls .android-viewport-coordinate-switch {height:38px;box-sizing:border-box;align-items:center;gap:2px;padding:3px;}
+.android-viewport-coordinate-controls .android-viewport-coordinate-switch span {padding:5px 5px;line-height:20px;}
+.android-viewport-coordinate-controls [aria-haspopup="listbox"] {height:38px;min-height:38px;min-width:0;width:64px;padding:0 6px;gap:3px;box-sizing:border-box;}
+
+/* Small workspace trigger with generous touch targets in its menu. */
+.android-viewport-coordinate-controls [aria-haspopup="listbox"] {width:58px;padding:0 4px;gap:2px;}
+.android-viewport-coordinate-controls > div > div {width:144px;padding:4px;}
+.android-viewport-coordinate-controls [role="option"] {height:46px;min-height:46px;font-size:17px;line-height:22px;}
+
+/* Override the selector's utility sizing so label and chevron stay together. */
+body .android-viewport-coordinate-controls button[aria-haspopup="listbox"] {width:auto!important;min-width:0!important;max-width:none;justify-content:center!important;padding:0 5px!important;gap:2px!important;}
+body .android-viewport-coordinate-controls button[aria-haspopup="listbox"] svg {width:12px;height:12px;flex-shrink:0;}
+
+/* Viewport actions and readouts share the jog-axis palette. */
+body .android-compact-setup button[aria-label="Home machine"] {background:#3f85c7;color:#202832;border-color:#60a5fa;}
+body .android-compact-setup button[aria-label="Arm move to touched position"] {background:#d99b26;color:#202832;border-color:#d99b26;}
+body .android-compact-setup button[aria-label="Arm move to touched position"][aria-pressed="true"] {background:#fbbf24;box-shadow:inset 0 0 0 2px #202832;}
+body .android-view-actions button {background:#f1f5f9;color:#202832;border-color:#f1f5f9;}
+body .android-view-actions button[aria-label="Fit job in viewport"] {background:#3f85c7;color:#202832;border-color:#3f85c7;}
+body .android-view-actions button[aria-label="Fit machine in viewport"] {background:#f97316;color:#202832;border-color:#f97316;}
+body .android-view-actions .android-center-position[aria-pressed="true"] {background:#3f85c7;color:#202832;}
+
+.android-position-readout text[data-readout-axis="X"] {fill:#f87171!important;}
+.android-visualizer-canvas rect[aria-label="Edit visualizer X coordinate"] {stroke:#f87171;}
+body [data-readout-actions][aria-label="X axis actions"] button {color:#f87171;border-color:#f87171;}
+
+.android-position-readout text[data-readout-axis="Y"] {fill:#00a348!important;}
+.android-visualizer-canvas rect[aria-label="Edit visualizer Y coordinate"] {stroke:#00a348;}
+body [data-readout-actions][aria-label="Y axis actions"] button {color:#00a348;border-color:#00a348;}
+
+.android-visualizer-canvas g:has(> rect[aria-label="Edit visualizer Z coordinate"]) > text {fill:#60a5fa!important;}
+.android-visualizer-canvas rect[aria-label="Edit visualizer Z coordinate"] {stroke:#60a5fa;}
+body [data-readout-actions][aria-label="Z axis actions"] button {color:#60a5fa;border-color:#60a5fa;}
+
+.android-visualizer-canvas g:has(> rect[aria-label="Edit visualizer A coordinate"]) > text {fill:#c084fc!important;}
+.android-visualizer-canvas rect[aria-label="Edit visualizer A coordinate"] {stroke:#c084fc;}
+body [data-readout-actions][aria-label="A axis actions"] button {color:#c084fc;border-color:#c084fc;}
+
+/* Current-position centering uses the inverse neutral treatment. */
+body .android-view-actions .android-center-position {background:#202832;color:#f1f5f9;border-color:#72849d;}
+
+/* Inverted axis readouts: axis-coloured surfaces with dark lettering. */
+body .android-visualizer-canvas rect[aria-label="Edit visualizer X coordinate"] {fill:#f87171!important;}
+body .android-visualizer-canvas rect[aria-label="Edit visualizer Y coordinate"] {fill:#00a348!important;}
+body .android-visualizer-canvas rect[aria-label="Edit visualizer Z coordinate"] {fill:#60a5fa!important;}
+body .android-visualizer-canvas rect[aria-label="Edit visualizer A coordinate"] {fill:#c084fc!important;}
+body .android-position-readout text[data-readout-axis],
+body .android-z-height-scale g:has(> .z-current-readout-box) > text,
+body .android-rotary-dial .rotary-readout > text {fill:#202832!important;}
+
+/* Z text is directly under the SVG, not inside the indicator group. */
+body .android-visualizer-canvas .android-z-height-scale rect.z-current-readout-box {fill:#60a5fa!important;fill-opacity:1;stroke:#60a5fa;}
+body .android-visualizer-canvas .android-z-height-scale text.z-current-readout-text {fill:#202832!important;}
+
+/* Override the rotary readout's dark surface with its axis colour. */
+body .android-visualizer-canvas .android-rotary-dial .rotary-readout rect {fill:#c084fc!important;fill-opacity:1;stroke:#c084fc;}
+body .android-visualizer-canvas .android-rotary-dial .rotary-readout > text {fill:#202832!important;}
+
+/* Invert the neutral crosshair-centering control. */
+body .android-view-actions .android-center-position {background:#f1f5f9;color:#202832;border-color:#f1f5f9;}
+
+/* Stronger viewport controls and coordinate readouts. */
+body .android-view-actions button svg,
+body .android-viewport-setup.android-compact-setup button svg {width:29px;height:29px;stroke-width:2.6;}
+body .android-viewport-setup.android-compact-setup button[aria-label="Zero XY axes"] svg {width:24px;height:24px;stroke-width:2.4;}
+body .android-viewport-setup.android-compact-setup button[aria-label="Zero XY axes"] span {font-size:15px;font-weight:700;line-height:16px;}
+body .android-position-readout text[data-readout-axis],
+body .android-z-height-scale text.z-current-readout-text,
+body .android-rotary-dial .rotary-readout > text {font-weight:700!important;}
+
+/* Axis action surfaces and a neutral editable-readout outline. */
+body [data-readout-actions][aria-label="X axis actions"] button {background:#f87171;color:#202832;border-color:#dbe6f1;}
+body [data-readout-actions][aria-label="Y axis actions"] button {background:#00a348;color:#202832;border-color:#dbe6f1;}
+body [data-readout-actions][aria-label="Z axis actions"] button {background:#60a5fa;color:#202832;border-color:#dbe6f1;}
+body [data-readout-actions][aria-label="A axis actions"] button {background:#c084fc;color:#202832;border-color:#dbe6f1;}
+body:not(.readouts-locked) .android-visualizer-canvas rect[aria-label^="Edit visualizer "] {stroke:#dbe6f1!important;stroke-width:1.5!important;}
+
+/* Keep editable readout lettering dark without a text outline. */
+body:not(.readouts-locked):not([data-coordinate-mode="machine"]) .android-position-readout text[data-readout-axis],
+body:not(.readouts-locked):not([data-coordinate-mode="machine"]) .android-visualizer-canvas .android-z-height-scale text.z-current-readout-text,
+body:not(.readouts-locked):not([data-coordinate-mode="machine"]) .android-visualizer-canvas .android-rotary-dial .rotary-readout > text {fill:#202832!important;stroke:none;}
+
+/* Larger coordinate readout labels and touch boxes. */
+body .android-z-height-scale text.z-current-readout-text,
+body .android-rotary-dial .rotary-readout > text {font-size:21px!important;}
+
+/* Match axis action labels to the bold coordinate readouts. */
+body [data-readout-actions] button {font-weight:700;}
+
+/* Use the readout typeface and stronger weight for axis popup actions. */
+body [data-readout-actions] button {font-family:'Roboto Mono',monospace!important;font-weight:800!important;}
+
+/* Larger axis-action labels with enough room for Goto X Zero. */
+body [data-readout-actions] {grid-template-columns:132px;}
+body [data-readout-actions] button {font-size:17px!important;line-height:21px;height:48px;min-height:48px;}
+
+body [data-readout-actions] {box-sizing:border-box;width:146px;}
+body [data-readout-actions] button {display:flex;align-items:center;justify-content:center;gap:6px;}
+
+body [data-readout-actions] button {font-size:23px!important;line-height:27px;}
+
+body [data-readout-actions] {width:122px;grid-template-columns:108px;}
+body [data-readout-actions] button {font-size:21px!important;line-height:25px;gap:4px;}
+
+body [data-readout-actions] button[data-axis="X"] {background:#f87171;color:#202832;border-color:#dbe6f1;}
+body [data-readout-actions] button[data-axis="Y"] {background:#00a348;color:#202832;border-color:#dbe6f1;}
+body [data-readout-actions] button[data-axis="Z"] {background:#60a5fa;color:#202832;border-color:#dbe6f1;}
+body [data-readout-actions] button[data-axis="A"] {background:#c084fc;color:#202832;border-color:#dbe6f1;}

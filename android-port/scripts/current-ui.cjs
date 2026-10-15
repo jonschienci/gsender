@@ -59,7 +59,7 @@ exports.transform = (code, id) => {
  }
 
  if(id.endsWith('/pendant/src/components/BottomDrawer.tsx')){
-  code=code.replace(/(<button\s+onClick=\{handleLoadClick\}[\s\S]*?<\/button>)/, '<div className="flex items-center gap-2">$1<button type="button" aria-label="Close file selection" className="android-close-files" onClick={() => window.dispatchEvent(new Event("android-close-files"))}><X size={20} /></button></div>'); changed=true;
+  code=code.replace(/(<button\s+onClick=\{handleLoadClick\}[\s\S]*?<\/button>)/, '<div className="flex items-center gap-2">$1<button type="button" className="flex items-center gap-2 text-sm bg-robin-600 hover:bg-robin-500 rounded-lg px-4 py-2 text-white font-semibold shrink-0" onClick={() => { (window as any).__openWirelessFiles = true; window.dispatchEvent(new Event("android-open-wireless-files")); }}>Wi-Fi files</button><button type="button" aria-label="Close file selection" className="android-close-files" onClick={() => window.dispatchEvent(new Event("android-close-files"))}><X size={20} /></button></div>'); changed=true;
 
   replace('TABS.map(', "TABS.filter(t => t !== 'Spindle').map(");
   replace(".filter(t => t !== 'File')", ".filter(t => t !== 'File' && t !== 'Spindle')");
@@ -106,17 +106,22 @@ exports.transform = (code, id) => {
   code=code.replace('const workflowState = useTypedSelector(', `const jobPageState = useTypedSelector((state: RootState) => state.controller.workflow.state);
     const previousJobPageState = useRef<string | null>(null);
     useEffect(() => {
+        const sync = () => setXyPad(store.get('android.xyJogPad', false) === true);
+        sync(); store.on('change', sync);
+        return () => store.removeListener('change', sync);
+    }, []);
+    useEffect(() => {
         const previous = previousJobPageState.current;
         previousJobPageState.current = jobPageState;
         if (jobPageState === 'running' && previous !== 'running' && previous !== 'paused') {
             // Workflow already ended the jog before starting the sender. Do not send a late cancel.
             stopTiltJog(); setSpeedPage(true);
         } else if ((previous === 'running' || previous === 'paused') && jobPageState !== 'running' && jobPageState !== 'paused') {
-            setSpeedPage(false); setXyPad(false); store.set('android.xyJogPad', false);
+            setSpeedPage(false);
         }
     }, [jobPageState]);
     const workflowState = useTypedSelector(`); changed=true;
-  code=code.replace(/<nav className="android-jog-page-dots"[\s\S]*?<\/nav>/, `<nav className="android-jog-page-dots" aria-label="Jog control pages"><button className="android-jog-page-cycle" type="button" aria-label={\`Cycle jog page: \${speedPage ? 'Feed and spindle' : showPad ? 'XY pad' : 'Jog buttons'}\`} onClick={()=>{if(jobPageState!=='running')stopContinuousJog();stopTiltJog();const next=speedPage?0:showPad?2:1;setSpeedPage(next===2);setXyPad(next===1);store.set('android.xyJogPad',next===1);}}>{[0,1,2].map(page=><span key={page} data-active={page===(speedPage?2:showPad?1:0)} />)}</button></nav>`);
+  code=code.replace(/<nav className="android-jog-page-dots"[\s\S]*?<\/nav>/, `<nav className="android-jog-page-dots" aria-label="Jog control pages"><button className="android-jog-page-cycle" type="button" aria-label={\`Cycle jog page: \${speedPage ? 'Feed and spindle' : showPad ? 'XY pad' : 'Jog buttons'}\`} onClick={()=>{if(jobPageState!=='running')stopContinuousJog();stopTiltJog();setSpeedPage(!speedPage);}}>{[0,1].map(page=><span key={page} data-active={page===(speedPage?1:0)} />)}</button></nav>`);
 
  }
 

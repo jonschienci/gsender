@@ -1,3 +1,4 @@
+import {getEstimatorConfig} from 'app/lib/timeEstimator/getEstimatorConfig';
 import { VISUALIZER_PRIMARY } from 'app/constants';
 import type { BBox } from 'app/definitions/general';
 import controller from 'app/lib/controller';
@@ -80,6 +81,8 @@ type VisualizeWorkerGeometryMessage = {
 type VisualizeWorkerMetadataMessage = {
     type: 'metadataReady';
     jobId: number;
+    parsedData?: any;
+    info?: any;
 };
 
 type VisualizeWorkerMessage =
@@ -102,6 +105,45 @@ const pendingControllerEchoes = new Map<
 >();
 
 class GcodeProcessingCancelledError extends Error {}
+
+let latestEstimateData: {lineTime: ArrayBuffer; lineKind: ArrayBuffer; estimatedTime: number} | null = null;
+let latestEstimateSignature = '';
+let refreshWorker: Worker | null = null;
+let cancelRefresh: (()=>void)|null=null;
+const exactBuffer = (view?: ArrayBufferView): ArrayBuffer => {
+    if(!view || !ArrayBuffer.isView(view))return new ArrayBuffer(0);
+    return view.byteOffset===0 && view.byteLength===view.buffer.byteLength ? view.buffer as ArrayBuffer : view.buffer.slice(view.byteOffset,view.byteOffset+view.byteLength) as ArrayBuffer;
+};
+const sendEstimateData = (data: any, signature: string) => {
+    latestEstimateData = {lineTime:exactBuffer(data.parsedData?.lineTime),lineKind:exactBuffer(data.parsedData?.lineKind),estimatedTime:Number(data.info?.estimatedTime)||0};
+    latestEstimateSignature=signature;
+    controller.command('updateEstimateData',latestEstimateData);
+};
+export const refreshEstimateForSettings = () => {
+    const state=reduxStore.getState();
+    if(state.controller.workflow?.state === 'running' || state.controller.workflow?.state === 'paused')return;
+    if(latestEstimateData && latestEstimateSignature!==JSON.stringify(getEstimatorConfig()))resendCachedEstimateData();
+};
+export const resendCachedEstimateData = () => {
+    const file=reduxStore.getState().file;
+    if(!file.fileLoaded || file.fileProcessing)return;
+    const config=getEstimatorConfig(),signature=JSON.stringify(config);
+    if(latestEstimateData && latestEstimateSignature===signature){controller.command('updateEstimateData',latestEstimateData);return;}
+    cancelRefresh?.();
+    const worker=new Worker(new URL('../../../app/src/workers/Estimate.worker.ts',import.meta.url),{type:'module'});refreshWorker=worker;
+    const finish=()=>{clearTimeout(timer);worker.terminate();if(refreshWorker===worker){refreshWorker=null;cancelRefresh=null;}};
+    const timer=setTimeout(finish,60_000);cancelRefresh=finish;
+    worker.onerror=finish;worker.onmessageerror=finish;
+    worker.onmessage=({data})=>{
+        const current=reduxStore.getState().file;
+        if(refreshWorker===worker && current.fileLoaded && !current.fileProcessing && current.content===file.content && current.name===file.name && signature===JSON.stringify(getEstimatorConfig())){
+            sendEstimateData({parsedData:data,info:{estimatedTime:data.estimatedTime}},signature);
+            reduxStore.dispatch(updateFileInfo({estimatedTime:Number(data.estimatedTime)||0}));
+        }
+        finish();
+    };
+    worker.postMessage({jobId:1,content:file.content,estimatorConfig:config});
+};
 
 const buildLoadSignature = ({
     name,
@@ -262,6 +304,7 @@ const buildWorkerRequest = (payload: GcodeLoadPayload, jobId: number) => {
         accelerations,
         maxFeedrates,
         atcEnabled,
+        estimatorConfig: getEstimatorConfig(),
         rotaryDiameterOffsetEnabled,
         theme: getPendantWorkerTheme(),
     };
@@ -283,37 +326,22 @@ const runVisualizeWorker = (
         const worker = createVisualizeWorker();
         visualizeWorker = worker;
         let settled = false;
-
-        const rejectWorker = (error: Error) => {
-            if (settled) {
-                return;
-            }
-
-            settled = true;
-            if (visualizeWorker === worker) {
-                visualizeWorker = null;
-            }
-            if (activeWorkerReject) {
-                activeWorkerReject = null;
-            }
+        let finalized = false;
+        let fallback: ReturnType<typeof setTimeout> | null = null;
+        const finalizeWorker = () => {
+            if (finalized) return;
+            finalized = true;
+            if (fallback) clearTimeout(fallback);
+            if (visualizeWorker === worker) {visualizeWorker=null; activeWorkerReject=null;}
             worker.terminate();
-            reject(error);
         };
-
+        const rejectWorker = (error: Error) => {finalizeWorker();if(!settled){settled=true;reject(error);}};
         const resolveWorker = (data: VisualizeWorkerGeometryMessage) => {
-            if (settled) {
-                return;
-            }
-
-            settled = true;
-            if (visualizeWorker === worker) {
-                visualizeWorker = null;
-            }
-            if (activeWorkerReject) {
-                activeWorkerReject = null;
-            }
-            worker.terminate();
+            if(settled)return;
+            settled=true;
             resolve(data);
+            // Metadata follows geometry; terminating here used to discard the estimate.
+            fallback=setTimeout(finalizeWorker,10_000);
         };
 
         activeWorkerReject = rejectWorker;
@@ -330,7 +358,7 @@ const runVisualizeWorker = (
                 return;
             }
 
-            if (!data || typeof data !== 'object' || data.jobId !== jobId) {
+            if (!data || typeof data !== 'object' || (data.jobId !== jobId || jobId !== activeJobId)) {
                 return;
             }
 
@@ -351,6 +379,11 @@ const runVisualizeWorker = (
                 });
 
                 resolveWorker(data);
+                return;
+            }
+            if(data.type === 'metadataReady') {
+                sendEstimateData(data,JSON.stringify(request.estimatorConfig));
+                finalizeWorker();
             }
         };
 
@@ -458,6 +491,9 @@ async function processGcodePayload(
     let uploadPromise: Promise<void> | null = null;
     let uploadAbortController: AbortController | null = null;
     let uploadError: unknown = null;
+    latestEstimateData = null;
+    latestEstimateSignature = '';
+    cancelRefresh?.();cancelRefresh=null;refreshWorker=null;
 
     updateProcessingState({
         fileProcessing: true,
@@ -558,9 +594,25 @@ export const applyControllerGcodePayload = async (
 };
 
 export const cancelGcodeProcessing = () => {
+    latestEstimateData=null;latestEstimateSignature='';cancelRefresh?.();cancelRefresh=null;refreshWorker=null;
     completedInputs = null;
     activeProcessId += 1;
     activeJobId += 1;
     cancelInFlightWork('Visualize worker cancelled.');
     updateProcessingState({ fileProcessing: false });
 };
+
+// A tool preview owns its worker and cancellation independently of loaded jobs.
+export function computeGcodePreviewGeometry(payload: GcodeLoadPayload, signal?: AbortSignal): Promise<VisualizeWorkerGeometryMessage> {
+ return new Promise((resolve,reject)=>{
+  const worker=createVisualizeWorker();const jobId=1;
+  const finish=()=>{worker.terminate();clearTimeout(timer);signal?.removeEventListener('abort',cancel);};
+  const cancel=()=>{finish();reject(new DOMException('Preview cancelled','AbortError'));};
+  const timer=setTimeout(()=>{finish();reject(Error('Preview timed out'));},60000);
+  if(signal?.aborted){cancel();return;}signal?.addEventListener('abort',cancel,{once:true});
+  worker.onmessage=({data})=>{if(data?.jobId===jobId&&data.type==='geometryReady'){finish();resolve(data);}};
+  worker.onerror=event=>{finish();reject(event.error||Error(event.message));};
+  worker.onmessageerror=()=>{finish();reject(Error('Unreadable preview result'));};
+  worker.postMessage(buildWorkerRequest(payload,jobId));
+ });
+}

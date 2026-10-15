@@ -15,9 +15,11 @@ class JobLines {
         this.text = text;
         this.chunks = [];
         this.length = 0;
+        const hasCR = text.includes("\r");
         for (let start = 0; start < text.length;) {
             const newline = text.indexOf('\n', start);
-            const end = newline < 0 ? text.length : newline;
+            let end = newline < 0 ? text.length : newline;
+            if (hasCR) { end=start; while(end<text.length && text.charCodeAt(end)!==10 && text.charCodeAt(end)!==13)end++; }
             let first = start;
             while (first < end && trimSpace(text.charCodeAt(first))) first++;
             if (first < end) {
@@ -28,7 +30,7 @@ class JobLines {
                 chunk[within * 2 + 1] = end;
                 this.length++;
             }
-            start = end + 1;
+            start = end + (text.charCodeAt(end)===13 && text.charCodeAt(end+1)===10 ? 2 : 1);
         }
         // Small jobs should not keep a full 128 KiB final chunk.
         const used = this.length % LINES_PER_CHUNK;

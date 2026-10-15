@@ -1,3 +1,4 @@
+import ConnectionTasks from "../../lib/ConnectionTasks";
 import JogStreamer, { describeJogStopReason } from "../../lib/JogStreamer";
 /* eslint-disable max-lines-per-function */
 /*
@@ -147,6 +148,7 @@ class GrblHalController {
 
 	// Connection
 	connection = null;
+	connectionTasks = new ConnectionTasks(() => this.connection);
 
 	connectionEventListener = {
 		data: (data) => {
@@ -155,9 +157,7 @@ class GrblHalController {
 		},
 		close: (err) => {
 			this.ready = false;
-			const currentLineRunning =
-				this.sender?.state?.totalSentToQueue -
-				this.sender?.state?.countdownQueue.length;
+			const currentLineRunning = this.sender?.execLine ?? 0;
 			if (err) {
 				log.warn(`Disconnected from serial port "${this.options.port}":`, err);
 			}
@@ -765,13 +765,11 @@ class GrblHalController {
 			this.emit("workflow:state", this.workflow.state);
 			this.jogStreamer?.abort("workflow");
 			this.sender.rewind();
-			this.sender.resumeCountdown();
 		});
 		this.workflow.on("stop", (...args) => {
 			this.emit("workflow:state", this.workflow.state);
 			this.feeder.reset();
 			this.sender.rewind();
-			this.sender.stopCountdown();
 		});
 
 		this.workflow.on("pause", (...args) => {
@@ -802,7 +800,6 @@ class GrblHalController {
 			// Resume program execution
 			this.sender.unhold();
 
-			this.sender.resumeCountdown();
 
 			// subtract time paused
 			this.sender.next({ timePaused: pauseTime });
@@ -923,6 +920,8 @@ class GrblHalController {
 			}
 
 			this.actionMask.queryStatusReport = false;
+
+            this.sender.updateProgress(res);
 
 			// The reported position is the truth the streamer's locally
 			// decremented travel budget is only estimating.
@@ -1497,21 +1496,7 @@ class GrblHalController {
 					"",
 				);
 
-				// only pause countdown once machine is idle
-				if (
-					this.workflow.isPaused() &&
-					(currentActiveState === GRBL_HAL_ACTIVE_STATE_IDLE ||
-						currentActiveState === GRBL_HAL_ACTIVE_STATE_HOLD) &&
-					this.sender.isCountdownRunning()
-				) {
-					this.sender.pauseCountdown();
-				} else if (
-					// restart countdown if machine is still moving
-					currentActiveState === GRBL_HAL_ACTIVE_STATE_RUN &&
-					!this.sender.isCountdownRunning()
-				) {
-					this.sender.resumeCountdown();
-				}
+
 
 				if (
 					this.workflow.isPaused() &&
@@ -1897,6 +1882,9 @@ class GrblHalController {
 	}
 
 	destroy() {
+		this.connectionTasks.cancel();
+		this.FOQueue = [];
+		this.SOQueue = [];
 		this.ready = false;
 		this.cancelPendingReports?.();
 		this.jogStreamer?.abort("destroy");
@@ -2002,6 +1990,9 @@ class GrblHalController {
 	}
 
 	close(callback, currentLineRunning) {
+		this.connectionTasks.cancel();
+		this.FOQueue = [];
+		this.SOQueue = [];
 		this.ready = false;
 		this.cancelPendingReports?.();
 		const { port } = this.options;
@@ -2109,7 +2100,7 @@ class GrblHalController {
 			let index = 0;
 			while (this.FOQueue.length > 0) {
 				const command = this.FOQueue.shift();
-				setTimeout(
+				this.connectionTasks.schedule(
 					() => {
 						this.connection.writeImmediate(command);
 					},
@@ -2127,7 +2118,7 @@ class GrblHalController {
 			let index = 0;
 			while (this.SOQueue.length > 0) {
 				const command = this.SOQueue.shift();
-				setTimeout(
+				this.connectionTasks.schedule(
 					() => {
 						this.connection.writeImmediate(command);
 					},
@@ -2408,7 +2399,6 @@ class GrblHalController {
 				}
 				// Moved this to end so it triggers AFTER the reset on force stop
 				this.event.trigger(PROGRAM_END);
-				this.sender.stopCountdown();
 			},
 			pause: () => {
 				log.warn(
@@ -2536,14 +2526,14 @@ class GrblHalController {
 				this.workflow.stop();
 				this.feeder.reset();
 				this.write("\x18"); // ^x
-				delay(350).then(() => {
+				this.connectionTasks.schedule(() => {
 					this.writeln("$X");
-					delay(500).then(() => {
-						this.connection.writeImmediate(
+					this.connectionTasks.schedule((connection) => {
+						connection.writeImmediate(
 							GRBLHAL_REALTIME_COMMANDS.COMPLETE_REALTIME_REPORT,
 						);
-					});
-				});
+					}, 500);
+				}, 350);
 			},
 			restart: () => {
 				this.command("gcode", "$REBOOT");
@@ -2835,8 +2825,7 @@ class GrblHalController {
 			},
 			updateEstimateData: () => {
 				const [estimateData] = args;
-				this.sender.setEstimateData(estimateData.estimates);
-				this.sender.setEstimatedTime(estimateData.estimatedTime);
+				this.sender.setEstimateData(estimateData);
 			},
 			updateRotaryMode: () => {
 				const [isInRotaryMode] = args;

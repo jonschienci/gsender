@@ -156,9 +156,8 @@ const handleMetadataReady = async (data) => {
 
     const parsedData = data.parsedData || {};
     const estimateData = {
-        estimates: Array.isArray(parsedData.estimates)
-            ? parsedData.estimates
-            : [],
+        lineTime: parsedData.lineTime || new Float32Array(0),
+        lineKind: parsedData.lineKind || new Uint8Array(0),
         estimatedTime: _get(parsedData, 'info.estimatedTime', 0),
         jobId: data.jobId,
     };

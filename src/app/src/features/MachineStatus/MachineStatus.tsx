@@ -1,3 +1,4 @@
+import {isHomingFailureAlarm,confirmUnlockAfterHomingFailure} from 'app/features/UnlockButton';
 /*
  * Copyright (C) 2021 Sienci Labs Inc.
  *
@@ -145,7 +146,8 @@ const MachineStatus: React.FC<MachineStatusProps> = ({
             active_state: displayActiveState,
             method: 'unlock',
         });
-        controller.command('unlock');
+        if (isHomingFailureAlarm(alarmCode)) confirmUnlockAfterHomingFailure(() => controller.command('unlock'));
+        else controller.command('unlock');
     };
 
     /**

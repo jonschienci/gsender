@@ -1,0 +1,75 @@
+{
+  "build": 76,
+  "version": "1.6.4-android.76-node24-prototype",
+  "date": "2026-10-15",
+  "apk": {
+    "filename": "gSender-Android-build-76-arm64.apk",
+    "bytes": 78352360,
+    "sha256": "a360dded68dbb3fa14c72ad500fbe498f8e60d3d1e42f2b739bb98f6a9108508",
+    "abi": [
+      "arm64-v8a"
+    ],
+    "minimumAndroidApi": 26,
+    "targetAndroidApi": 35
+  },
+  "usbDriver": "3.9.0",
+  "runtime": {
+    "version": "24.21.0",
+    "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
+    "sha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+    "ndkVersion": "27.2.12479018",
+    "androidApi": 26,
+    "abi": "arm64-v8a",
+    "host": "darwin-arm64",
+    "configureFlags": [
+      "--dest-cpu=arm64",
+      "--dest-os=android",
+      "--cross-compiling",
+      "--shared",
+      "--openssl-no-asm",
+      "--without-node-snapshot",
+      "--without-node-code-cache",
+      "--with-intl=small-icu"
+    ],
+    "linkFlags": "-Wl,-z,max-page-size=16384",
+    "buildScriptSha256": "38ea846df007494a316676a26a86e20a2c4ce8d4449bdf2c44610508a3faf105",
+    "patchedSourceSha256": {
+      "deps/uv/uv.gyp": "2b34100098535a06f5661e4114ced91f55675de408e6c3adf373f546bc23742c",
+      "tools/gyp/pylib/gyp/generator/make.py": "30acda0374316afc0f7feb521d949843bb16176b358fddcc83876ce972d20a80",
+      "tools/v8_gypfiles/v8.gyp": "bdf08968e673e3e46d59b8e8252381a7fd2687a0ec0d00c06aff3931f8a71e3f",
+      "deps/zlib/zlib.gyp": "99124846f67fb9e3fde78ce75e681dc59806d5f9b766c8be02201823f1cfca01",
+      "deps/v8/src/trap-handler/trap-handler.h": "c42b0d9f052c61b4ae9a12c2d2117bec5ead160a0a6e777b3710218a3046df8d",
+      "deps/v8/src/codegen/arm64/assembler-arm64.cc": "0da91cd42357d2f5ee1773ace686366573583e234d9fe01a3fc53fd8ff3a0cfb",
+      "deps/v8/src/compiler/turboshaft/int64-lowering-reducer.h": "4363afb05188bb499f6af0aec3bc0e070177cac6ceb516685e69c44074824e0c"
+    },
+    "librarySha256": "bf0f097f5338e109c4c7bf45cf4757ccb5ee2a4e878f865a2a301d720119788f",
+    "compatibilityBaseBuild": 66,
+    "buildRecipeSha256": "38ea846df007494a316676a26a86e20a2c4ce8d4449bdf2c44610508a3faf105"
+  },
+  "validation": {
+    "androidBackendTestsPassed": 390,
+    "usbTransportTestsPassed": 22,
+    "releaseCompileLintPayloadNativeVerification": "passed",
+    "installedChecksumVerified": [
+      "L1108",
+      "K90_ROW"
+    ],
+    "launchVerified": [
+      "L1108",
+      "K90_ROW"
+    ],
+    "userReportedJobResult": "No connection issues during latest L1108 job attempt",
+    "observedUsbAttachmentSeconds": 164.009,
+    "toleratedEmptyReadsAtLeast": 294,
+    "healthProbeClosures": 0,
+    "fullJobCompletionVerified": false
+  },
+  "source": {
+    "releaseTag": "android-build-76",
+    "branch": "android-node24-prototype",
+    "uiBaselineBuild": 74,
+    "uiChangesSince75": false,
+    "pendingUsb311AndNativeExperimentsIncluded": false,
+    "privateMachiningFixturesTracked": false
+  }
+}

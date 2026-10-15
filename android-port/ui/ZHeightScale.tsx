@@ -1,6 +1,10 @@
+import {formatPositionReadout} from './position-format.mjs';
+import {useCoordinateMode,setCoordinateMode} from './coordinate-mode';
+import WorkspaceSelector from '../../src/pendant/src/components/WorkspaceSelector';
+import controller from 'app/lib/controller';
 import {createPortal} from 'react-dom';
-import {Home, Crosshair, Scan, Maximize} from 'lucide-react';
-import {homeMachine,zeroAllAxes} from 'app/features/DRO/utils/DRO';
+import {Home, Crosshair, Scan, Maximize, MousePointer2} from 'lucide-react';
+import {homeMachine} from 'app/features/DRO/utils/DRO';
 import HoldAxisButton from '../../src/pendant/src/components/HoldAxisButton';
 import {memo, useLayoutEffect, useRef, useState} from 'react';
 import {useTypedSelector} from 'app/hooks/useTypedSelector';
@@ -9,7 +13,7 @@ import {zHeightModel, zTicks, formatHeight} from './z-height-scale.mjs';
 import './z-height-scale.css';
 import useRotaryEnabled from '../../src/pendant/src/components/useRotaryEnabled';
 
-export function ZHeightRuler({model, units='mm', height=320, homed=false}:any) {
+export function ZHeightRuler({model, units='mm', height=320, homed=false,readoutValue}:any) {
     if(!model)return null;
     const top=48,bottom=Math.max(top+30,height-31),y=(z:number)=>top+model.position(z)*(bottom-top);
     const {machine,job,current}=model,track=108;
@@ -19,9 +23,9 @@ export function ZHeightRuler({model, units='mm', height=320, homed=false}:any) {
     const tickDigits=Math.min(6,Math.max(0,-Math.floor(Math.log10(tickStep))));
     const machineTitle=machine ? `Configured Z travel: ${formatHeight(machine.min,units)} to ${formatHeight(machine.max,units)} ${units} (${model.frame.toLowerCase()} coordinates)${homed?'':'; not homed'}` : 'Z travel unavailable';
     const description=[machineTitle,job?`Job Z range: ${formatHeight(job.min,units)} to ${formatHeight(job.max,units)} ${units}; includes rapid moves`:'No job',current!==null?`Current Z: ${formatHeight(current,units)} ${units}`:'Position unavailable'].join('. ');
-    const currentValue=current===null?'—':formatHeight(current,units,units==='in'?3:2);
+    const currentValue=current===null?'—':formatPositionReadout((readoutValue??current)/(units==='in'?25.4:1),units==='in'?3:2);
     const readoutY=current===null?height-15:y(current),readoutRight=track-34;
-    const readoutWidth=Math.max(70,currentValue.length*9+16);
+    const readoutWidth=Math.max(80,currentValue.length*11+18);
     return <svg width="108" height="100%" viewBox={`0 0 108 ${height}`} role="img" aria-label={description}>
         <title>{description}</title><defs><linearGradient id="z-job-edge-fade" x1="0%" x2="100%"><stop offset="0%" stopColor="#3f85c7" stopOpacity="0"/><stop offset="65%" stopColor="#3f85c7" stopOpacity="0.12"/><stop offset="100%" stopColor="#3f85c7" stopOpacity="0.7"/></linearGradient></defs>
         {job&&<g data-z-job="true"><rect x="68" y={y(job.max)} width="40" height={Math.max(2,y(job.min)-y(job.max))} fill="url(#z-job-edge-fade)"/>{[job.min,job.max].map((z,i)=><line key={i} x1="94" x2="108" y1={y(z)} y2={y(z)} stroke="#3f85c7" strokeWidth="2.5"/>)}</g>}
@@ -29,10 +33,10 @@ export function ZHeightRuler({model, units='mm', height=320, homed=false}:any) {
             <text x="102" y={jobLabelY} fontSize="12" fontWeight="600">Job Height</text>
             <text x="102" y={jobLabelY+16} fontSize="12">{formatHeight(job.height,units)} {units}</text>
         </g>}
-
+        
         {ticks.map(z=><g key={z}>
             <line x1={track-22} x2={track} y1={y(z)} y2={y(z)} stroke="currentColor" strokeWidth="1" opacity=".55"/>
-            <text x={Math.abs(z)<1e-8?track-40:track-28} y={y(z)} textAnchor="end" dominantBaseline="central" fontSize="12" opacity=".85">{formatHeight(z,units,tickDigits)}</text>
+            <text x={Math.abs(z)<1e-8?track-40:track-28} y={y(z)} textAnchor="end" dominantBaseline="central" fontSize="15" opacity=".85">{formatHeight(z,units,tickDigits)}</text>
         </g>)}
         {model.min<=0&&model.max>=0&&<rect data-z-origin="true" x={track-35} y={y(0)-4} width="34" height="8" rx="4" fill="#6b7280" stroke="#94a3b8" strokeWidth="1"/>}
         {machine&&<g stroke="currentColor" strokeWidth="2" data-z-travel="true">
@@ -43,18 +47,20 @@ export function ZHeightRuler({model, units='mm', height=320, homed=false}:any) {
         {current!==null&&<g data-z-current="true" style={{color:model.outside?'var(--z-outside)':'var(--z-current)'}}>
             <path d={`M ${track-22} ${y(current)} l -10 -6 v 12 z`} fill="var(--z-current)"/>
             <line x1={track-22} x2={track} y1={y(current)} y2={y(current)} stroke="var(--z-current)" strokeWidth="1.5"/>
-
+            
         </g>}
         <rect className="z-current-readout-box" role="button" tabIndex={0} aria-label="Edit visualizer Z coordinate" style={{pointerEvents:'all',cursor:'pointer'}}
             onPointerDown={event=>event.stopPropagation()}
             onClick={event=>{event.stopPropagation();window.dispatchEvent(new CustomEvent('android-edit-readout',{detail:{axis:'Z',rect:event.currentTarget.getBoundingClientRect().toJSON()}}));}}
             onKeyDown={event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();event.stopPropagation();window.dispatchEvent(new CustomEvent('android-edit-readout',{detail:{axis:'Z',rect:event.currentTarget.getBoundingClientRect().toJSON()}}));}}}
-            x={readoutRight-readoutWidth} y={readoutY-22} width={readoutWidth} height="44" rx="5"/>
-        <text x={readoutRight-readoutWidth/2} y={readoutY-10} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="400" fontFamily="Roboto Mono, monospace" fill={current===null?'currentColor':'var(--z-current)'}>Z:</text>
-        <text x={readoutRight-readoutWidth/2} y={readoutY+10} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="400" fontFamily="Roboto Mono, monospace" fill={current===null?'currentColor':'var(--z-current)'}>{currentValue}</text>
+            x={readoutRight-readoutWidth} y={readoutY-26} width={readoutWidth} height="52" rx="5"/>
+        <text className="z-current-readout-text" x={readoutRight-readoutWidth/2} y={readoutY-12} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="400" fontFamily="Roboto Mono, monospace" fill={current===null?'currentColor':'var(--z-current)'}>Z:</text>
+        <text className="z-current-readout-text" x={readoutRight-readoutWidth/2} y={readoutY+12} textAnchor="middle" dominantBaseline="central" fontSize="18" fontWeight="400" fontFamily="Roboto Mono, monospace" fill={current===null?'currentColor':'var(--z-current)'}>{currentValue}</text>
     </svg>;
 }
 function ViewportActions(){
+ const mode=useCoordinateMode();
+ const [armed,setArmed]=useState(false);
  const connected=useTypedSelector(s=>s.connection.isConnected);
  const workflow=useTypedSelector(s=>s.controller.workflow.state);
  const active=useTypedSelector(s=>s.controller.state.status?.activeState);
@@ -107,8 +113,38 @@ function ViewportActions(){
   const frame=requestAnimationFrame(()=>follow.current());
   return()=>cancelAnimationFrame(frame);
  },[tracking,connected,loading,loaded,wpos.x,wpos.y,mpos.x,mpos.y]);
+
+ useLayoutEffect(()=>{setArmed(false);},[allowed,loaded]);
+ useLayoutEffect(()=>{
+  if(!armed||!allowed)return;
+  const canvas=document.querySelector('.android-visualizer-canvas');if(!canvas)return;
+  let start:{x:number;y:number;id:number}|null=null;
+  const cancel=()=>{start=null;setArmed(false);};
+  const down=(e:PointerEvent)=>{
+   const target=e.target as Element;
+   if(e.button!==0||!e.isPrimary||target.closest('button,input,[role="button"],.android-z-height-scale,.android-rotary-dial,.android-job-progress,.android-timeline-popout'))return;
+   start={x:e.clientX,y:e.clientY,id:e.pointerId};
+  };
+  const up=(e:PointerEvent)=>{
+   const point=start;start=null;if(!point||point.id!==e.pointerId||Math.hypot(e.clientX-point.x,e.clientY-point.y)>6)return;
+   const svg=Array.from(canvas.querySelectorAll('svg')).find(s=>(s as any).__gsenderViewport) as SVGSVGElement;
+   const matrix=svg?.getScreenCTM();if(!matrix)return;
+   const p=new DOMPoint(e.clientX,e.clientY).matrixTransform(matrix.inverse());
+   // The renderer uses work XY for loaded files and machine XY otherwise.
+   const x=p.x-(loaded?0:Number(mpos.x)-Number(wpos.x));
+   const y=-p.y-(loaded?0:Number(mpos.y)-Number(wpos.y));
+   if(!Number.isFinite(x)||!Number.isFinite(y))return;
+   e.preventDefault();e.stopPropagation();setArmed(false);
+   controller.command('gcode:safe',[`G90 G0 X${x.toFixed(3)} Y${y.toFixed(3)}`],'G21');
+  };
+  const escape=(e:KeyboardEvent)=>{if(e.key==='Escape')cancel();};
+  canvas.addEventListener('pointerdown',down as EventListener,true);canvas.addEventListener('pointerup',up as EventListener,true);
+  canvas.addEventListener('pointercancel',cancel);window.addEventListener('blur',cancel);window.addEventListener('keydown',escape);
+  return()=>{canvas.removeEventListener('pointerdown',down as EventListener,true);canvas.removeEventListener('pointerup',up as EventListener,true);canvas.removeEventListener('pointercancel',cancel);window.removeEventListener('blur',cancel);window.removeEventListener('keydown',escape);};
+ },[armed,allowed,loaded,mpos.x,mpos.y,wpos.x,wpos.y]);
+
  if(!connected||loading)return null;
- return <>{(allowed||needsHome)&&<div className="android-viewport-setup android-compact-setup"><div className={needsHome?"android-home-group android-home-attention":"android-home-group"}><HoldAxisButton activation="hold" disabled={!homingEnabled} actionKey="viewport-home" aria-label="Home machine" title="Hold to home" onActivate={homeMachine}><Home size={19}/></HoldAxisButton>{needsHome&&<span className="android-home-label">Not homed</span>}</div><HoldAxisButton disabled={!allowed} activation="hold" actionKey="viewport-zero" aria-label="Zero all axes" title="Hold to zero all axes" onActivate={zeroAllAxes}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><ellipse cx="10" cy="10" rx="5" ry="7"/><path d="M4 17 16 3"/></svg><span>All</span></HoldAxisButton></div>}<div className="android-view-actions"><button className="android-center-position" aria-label="Center viewport on machine position" title={tracking?'Tracking machine position · tap to stop':'Center on machine position · hold to track'} aria-pressed={tracking} data-holding={holding}
+ return <><div className="android-viewport-coordinate-controls"><button className="android-viewport-coordinate-switch" role="switch" aria-label="Machine coordinates" aria-checked={mode==='machine'} onClick={()=>setCoordinateMode(mode==='work'?'machine':'work')}><span data-active={mode==='work'}>Work</span><span data-active={mode==='machine'}>Machine</span></button><WorkspaceSelector compact /></div>{(allowed||needsHome)&&<div className="android-viewport-setup android-compact-setup"><button aria-label="Arm move to touched position" title="Arm one XY move at current Z · tap again to cancel" aria-pressed={armed} disabled={!allowed} onClick={()=>setArmed(!armed)}><MousePointer2 size={24}/></button>{armed&&<span className="android-touch-move-hint" role="status">Tap viewport to move XY · Z unchanged</span>}<div className={needsHome?"android-home-group android-home-attention":"android-home-group"}><HoldAxisButton activation="hold" disabled={!homingEnabled} actionKey="viewport-home" aria-label="Home machine" title="Hold to home" onActivate={homeMachine}><Home size={19}/></HoldAxisButton>{needsHome&&<span className="android-home-label">Not homed</span>}</div><HoldAxisButton disabled={!allowed} activation="hold" actionKey="viewport-zero" aria-label="Zero XY axes" title="Hold to zero X and Y" onActivate={()=>controller.command('gcode','G10 L20 P0 X0 Y0')}><svg width="18" height="18" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.6" aria-hidden="true"><ellipse cx="10" cy="10" rx="5" ry="7"/><path d="M4 17 16 3"/></svg><span>XY</span></HoldAxisButton></div>}<div className="android-view-actions"><button className="android-center-position" aria-label="Center viewport on machine position" title={tracking?'Tracking machine position · tap to stop':'Center on machine position · hold to track'} aria-pressed={tracking} data-holding={holding}
  onPointerDown={e=>{if(e.button!==0)return;e.currentTarget.setPointerCapture(e.pointerId);held.current=false;setHolding(true);holdTimer.current=setTimeout(()=>{held.current=true;setHolding(false);setTracking(true);},600);}}
  onPointerUp={cancelHold} onPointerCancel={()=>{held.current=true;cancelHold();}} onLostPointerCapture={cancelHold}
  onContextMenu={e=>e.preventDefault()}
@@ -116,7 +152,12 @@ function ViewportActions(){
 }
 function RotaryDial(){
     const enabled=useRotaryEnabled();
+    const mode=useCoordinateMode();
     const angle=useTypedSelector(s=>s.controller.wpos?.a);
+    const machineAngle=useTypedSelector(s=>s.controller.mpos?.a);
+    const displayedAngle=Number((mode==='machine'?machineAngle:angle)??0);
+    const angleText=formatPositionReadout(displayedAngle,2);
+    const readoutWidth=Math.max(94,angleText.length*13+20);
     if(!enabled)return null;
     const value=Number(angle??0), rotation=((value%360)+360)%360;
     const open=(element:SVGRectElement)=>window.dispatchEvent(new CustomEvent('android-edit-readout',{detail:{axis:'A',rect:element.getBoundingClientRect().toJSON()}}));
@@ -125,7 +166,7 @@ function RotaryDial(){
         <g transform={`rotate(${-rotation} 90 90)`} data-rotary-ring="true">
             <circle cx="90" cy="90" r="63" fill="none" stroke="currentColor" strokeWidth="1" opacity=".65"/>
             {Array.from({length:24},(_,i)=>{const a=i*Math.PI/12,major=i%6===0,r=major?55:58;return <line key={i} x1={90+Math.sin(a)*r} y1={90-Math.cos(a)*r} x2={90+Math.sin(a)*63} y2={90-Math.cos(a)*63} stroke="currentColor" strokeWidth={major?2:1} opacity={major?.85:.4}/>;})}
-            <circle cx="90" cy="27" r="6" fill="#94a3b8" stroke="#64748b" strokeWidth="1"/>
+            <circle data-a-origin="true" aria-label="Work A zero" cx="90" cy="27" r="6" fill="#94a3b8" stroke="#64748b" strokeWidth="1"/>
         </g>
         {[0,90,180,270].map(degrees=>{const a=(degrees-rotation)*Math.PI/180,x=90+Math.sin(a)*48,y=90-Math.cos(a)*48;const textAngle=degrees-rotation;return <text key={degrees} className="rotary-tick-label" style={{dominantBaseline:"central",textAnchor:"middle"}} transform={`rotate(${textAngle} ${x} ${y})`} x={x} y={y} textAnchor="middle" dominantBaseline="central"><tspan x={x}>{degrees}</tspan><tspan x={x+String(degrees).length*3.01} style={{textAnchor:"start"}}>°</tspan></text>;})}
         </g>
@@ -136,20 +177,21 @@ function RotaryDial(){
             <g transform={`rotate(${value/10} 35 145)`}>
                 <line x1="35" y1="129" x2="35" y2="134" stroke="#f1f5f9" strokeWidth="2" strokeLinecap="round"/>
             </g>
-
+            
             <text x="35" y="141" textAnchor="middle" dominantBaseline="central" style={{fontSize:11}}>{Math.trunc(value/360)}</text>
             <text x="35" y="152" textAnchor="middle" dominantBaseline="central" style={{fontSize:7}}>REV</text>
         </g>
         <g className="rotary-readout">
-            <rect x="48" y="68" width="84" height="44" rx="5" role="button" tabIndex={0} aria-label="Edit visualizer A coordinate"
+            <rect x={90-readoutWidth/2} y="64" width={readoutWidth} height="52" rx="5" role="button" tabIndex={0} aria-label="Edit visualizer A coordinate"
                 onPointerDown={e=>e.stopPropagation()} onClick={e=>{e.stopPropagation();open(e.currentTarget);}}
                 onKeyDown={e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();open(e.currentTarget);}}}/>
-            <text x="90" y="80" dominantBaseline="central" textAnchor="middle">A:</text>
-            <text x="90" y="100" dominantBaseline="central" textAnchor="middle">{value.toFixed(2)}</text>
+            <text x="90" y="78" dominantBaseline="central" textAnchor="middle">A:</text>
+            <text x="90" y="102" dominantBaseline="central" textAnchor="middle">{angleText}</text>
         </g>
     </svg></div>;
 }
 export default memo(function ZHeightScale(){
+    const mode=useCoordinateMode();
     const connected=useTypedSelector(s=>s.connection.isConnected);
     const travel=useTypedSelector(s=>s.controller.settings?.settings?.$132);
     const homeDirection=useTypedSelector(s=>s.controller.settings?.settings?.$23);
@@ -166,7 +208,7 @@ export default memo(function ZHeightScale(){
     useLayoutEffect(()=>{const element=ref.current;if(!element)return;const update=()=>setHeight(Math.max(110,Math.round(element.getBoundingClientRect().height)));
         const observer=new ResizeObserver(update);observer.observe(element);update();return()=>observer.disconnect();},[]);
     const model=zHeightModel({connected,travel,homeDirection,forceOrigin,machineZ,workZ,fileLoaded,jobMin,jobMax});
-    return <><CrosshairSpindleIndicator/><ViewportActions/><RotaryDial/><div ref={ref} className="android-z-height-scale" style={{visibility:model?'visible':'hidden'}}><ZHeightRuler model={model} units={units??'mm'} height={height} homed={homed}/></div></>;
+    return <><CrosshairSpindleIndicator/><ViewportActions/><RotaryDial/><div ref={ref} className="android-z-height-scale" style={{visibility:model?'visible':'hidden'}}><ZHeightRuler model={model} units={units??'mm'} height={height} homed={homed} readoutValue={mode==='machine'?machineZ:workZ}/></div></>;
 });
 
 function CrosshairSpindleIndicator(){

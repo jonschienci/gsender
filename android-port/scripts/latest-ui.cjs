@@ -51,7 +51,7 @@ exports.transform = function(code, id) {
         const updated = (result?.code || code)
             .replace(
                 'const size = Math.min(this.viewBox.w, this.viewBox.h) * 0.028;',
-                "const size = Math.min(this.viewBox.w, this.viewBox.h) * 0.028; this.originMarker.setAttribute('r', String(Number(this.originMarker.getAttribute('r')) * 0.8));",
+                "const size = Math.min(this.viewBox.w, this.viewBox.h) * 0.028; this.originMarker.setAttribute('data-origin-actions','true'); this.originMarker.setAttribute('role','button'); this.originMarker.setAttribute('aria-label','Go to origin'); this.originMarker.style.pointerEvents='all'; this.originMarker.style.cursor='pointer'; this.originMarker.setAttribute('r', String(Number(this.originMarker.getAttribute('r')) * 0.8));",
             )
             .replace('point.y + size * 1.65', 'point.y + size * 1.25');
         return {code: updated, map: null};
@@ -101,13 +101,16 @@ function CoolantToggle({disabled,laser}: {disabled:boolean;laser:boolean}) {
         let updated = "import {useWorkspaceState as useDroUnits} from 'app/hooks/useWorkspaceState';\n" + (result?.code || code);
         updated = "import {createPortal as readoutPortal} from 'react-dom';\n" + updated;
         updated = updated.replace('    const [editingAxis, setEditingAxis]', `    const [readoutMenu,setReadoutMenu]=useState<any>(null);
+    const [readoutMove,setReadoutMove]=useState(false);
     useEffect(()=>{
         let timer:any=null,held=false,startX=0,startY=0;
         const cancel=()=>{clearTimeout(timer);timer=null;};
         const down=(event:PointerEvent)=>{
-            if(workflowState === WORKFLOW_STATE_RUNNING || activeState === 'Run')return;
+            if(document.body.dataset.coordinateMode==='machine'||workflowState === WORKFLOW_STATE_RUNNING || activeState === 'Run')return;
             const target=event.target as Element;
             if(target.closest('[data-readout-actions], .android-global-numpad, [data-dro-editor]'))return;
+            const origin=target.closest('[data-origin-actions]');
+            if(origin){held=false;event.preventDefault();event.stopImmediatePropagation();showActions(origin);return;}
             setReadoutMenu(null);
             const box=target.closest('[aria-label^="Edit visualizer "]');
             if(!box)return;
@@ -121,35 +124,17 @@ function CoolantToggle({disabled,laser}: {disabled:boolean;laser:boolean}) {
         };
         const move=(event:PointerEvent)=>{if(Math.hypot(event.clientX-startX,event.clientY-startY)>8)cancel();};
         const showActions=(box:Element)=>{
-                const axis=box.getAttribute('aria-label')?.split(' ')[2];
-            if(!['X','Y','Z','A'].includes(axis||''))return;
-                setEditingAxis(null);
-                const canvas=document.querySelector('.android-visualizer-canvas');
-                const bounds=canvas?.getBoundingClientRect();
-                const rect=box.getBoundingClientRect();
-                const above=bounds ? rect.top-bounds.top>=164 : rect.top>218;
-                if(bounds && axis!=='Z' && axis!=='A'){
-                    const svg=(box as SVGElement).ownerSVGElement;
-                    const viewport=(svg as any)?.__gsenderViewport;
-                    const left=rect.left+rect.width/2-53, right=left+106;
-                    const top=above?rect.top-164:rect.top, bottom=above?rect.bottom:rect.bottom+164;
-                    const dx=left<bounds.left+8?bounds.left+8-left:right>bounds.right-8?bounds.right-8-right:0;
-                    const dy=top<bounds.top+8?bounds.top+8-top:bottom>bounds.bottom-8?bounds.bottom-8-bottom:0;
-                    if(viewport&&(dx||dy)){
-                        const view=viewport.read(), matrix=svg?.getScreenCTM();
-                        if(matrix)viewport.write({...view,x:view.x-dx/matrix.a,y:view.y-dy/matrix.d});
-                    }
-                }
-                requestAnimationFrame(()=>{
-                    const next=(axis==='A'?document.querySelector('.android-rotary-dial'):box)?.getBoundingClientRect()??box.getBoundingClientRect();
-                    const top=axis==='A'?next.top-164:above?next.top-164:next.bottom+8;
-                    setReadoutMenu({axis,rect:next,left:bounds?Math.max(bounds.left+8,Math.min(bounds.right-114,next.left+next.width/2-53)):next.left,
-                        top:bounds?Math.max(bounds.top+8,Math.min(bounds.bottom-164,top)):top});
-                });
-
+            const axis=box.hasAttribute('data-origin-actions')?'origin':box.getAttribute('aria-label')?.split(' ')[2];
+            if(!['X','Y','Z','A','origin'].includes(axis||''))return;
+            setEditingAxis(null);
+            setReadoutMenu({axis,anchor:box,left:0,top:0});
         };
+
         const click=(event:MouseEvent)=>{
             if(held){event.preventDefault();event.stopImmediatePropagation();held=false;return;}
+            const origin=(event.target as Element).closest('[data-origin-actions]');
+            if(origin){event.preventDefault();event.stopImmediatePropagation();return;}
+
             const box=(event.target as Element).closest('[aria-label^="Edit visualizer "]');
             if(!box)return;
             event.preventDefault();event.stopImmediatePropagation();
@@ -162,18 +147,34 @@ function CoolantToggle({disabled,laser}: {disabled:boolean;laser:boolean}) {
         return()=>{cancel();document.removeEventListener('pointerdown',down,true);document.removeEventListener('pointermove',move,true);document.removeEventListener('pointerup',cancel,true);document.removeEventListener('pointercancel',cancel,true);document.removeEventListener('click',click,true);document.removeEventListener('keydown',key);};
     },[workflowState,activeState]);
     const [editingAxis, setEditingAxis]`);
-        updated = updated.replace('{homeMenuOpen && homeFrame &&', `{readoutMenu && readoutPortal(<div data-readout-actions role="group" aria-label={readoutMenu.axis+' axis actions'} style={{position:'fixed',zIndex:110,left:readoutMenu.left,top:readoutMenu.top}}>
-                <button disabled={!canZero} onClick={()=>{zeroWCS(readoutMenu.axis,0);setReadoutMenu(null);}}>Zero {readoutMenu.axis}</button>
-                <button disabled={!canHome} onClick={()=>{homeAxis(readoutMenu.axis);setReadoutMenu(null);}}>Home {readoutMenu.axis}</button>
-                <button disabled={!canGoTo} onClick={()=>{gotoZero(readoutMenu.axis);setReadoutMenu(null);}}>Goto {readoutMenu.axis} Zero</button>
+        updated = updated.replace('{homeMenuOpen && homeFrame &&', `{readoutMenu && readoutPortal(<div ref={node=>{
+                if(!node||!readoutMenu.anchor)return;
+                const anchor=readoutMenu.axis==='A'?document.querySelector('.android-rotary-dial'):readoutMenu.anchor;
+                const r=anchor.getBoundingClientRect(),b=document.querySelector('.android-visualizer-canvas')?.getBoundingClientRect();
+                if(!b)return;
+                const w=node.offsetWidth,h=node.offsetHeight,gap=8;
+                let left=r.left+(r.width-w)/2,top=r.top-h-gap;
+                if(readoutMenu.axis==='X'){left=r.right+gap;top=r.top;}
+                else if(readoutMenu.axis==='Y'){left=r.left-w-gap;top=r.top;}
+                else if(top<b.top+gap && readoutMenu.axis!=='A')top=r.bottom+gap;
+                node.style.left=Math.max(b.left+gap,Math.min(b.right-w-gap,left))+'px';
+                node.style.top=Math.max(b.top+gap,Math.min(b.bottom-h-gap,top))+'px';
+            }} data-readout-actions role="group" aria-label={readoutMenu.axis+' axis actions'} style={{position:'fixed',zIndex:110,left:readoutMenu.left,top:readoutMenu.top}}>
+                {readoutMenu.axis==='origin' ? (rotaryEnabled?['X','Y','Z','A']:['X','Y','Z']).map(axis => (<button key={axis} data-axis={axis} aria-label={"Goto "+axis+" Zero"} disabled={!canGoTo} onClick={()=>{gotoZero(axis);setReadoutMenu(null);}}><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m4 4 7.07 17 2.51-7.39L21 11.07 4 4z"/></svg><span aria-hidden="true">–</span><span>{axis}</span><svg width="22" height="25" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><ellipse cx="10" cy="10" rx="5" ry="7"/><path d="M4 17 16 3"/></svg></button>)) : <>
+                <button aria-label={"Zero "+readoutMenu.axis} disabled={!canZero} onClick={()=>{zeroWCS(readoutMenu.axis,0);setReadoutMenu(null);}}><svg width="22" height="25" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true"><ellipse cx="10" cy="10" rx="5" ry="7"/><path d="M4 17 16 3"/></svg><span aria-hidden="true">–</span><span>{readoutMenu.axis}</span></button>
+                <button aria-label={"Home "+readoutMenu.axis} disabled={!canHome} onClick={()=>{homeAxis(readoutMenu.axis);setReadoutMenu(null);}}><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-8H9v8H4a1 1 0 0 1-1-1Z"/></svg><span aria-hidden="true">–</span><span>{readoutMenu.axis}</span></button>
+
+                <button aria-label={"Move to "+readoutMenu.axis} disabled={!canGoTo} onClick={()=>{const axis=readoutMenu.axis;const box=document.querySelector('[aria-label="Edit visualizer '+axis+' coordinate"]');setReadoutMenu(null);if(box)window.dispatchEvent(new CustomEvent('android-edit-readout',{detail:{axis,rect:box.getBoundingClientRect().toJSON(),move:true}}));}}><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m4 4 7.07 17 2.51-7.39L21 11.07 4 4z"/></svg><span aria-hidden="true">–</span><span>{readoutMenu.axis}</span></button>
+                </>}
             </div>,document.body)}
             {homeMenuOpen && homeFrame &&`);
         updated = updated.replace("    const [axisValue, setAxisValue] = useState('');", `    const [axisValue, setAxisValue] = useState('');
     const [visualizerAnchor, setVisualizerAnchor] = useState<any>(null);
     useEffect(()=>{
         const open=(event:any)=>{
-            if(workflowState === WORKFLOW_STATE_RUNNING || activeState === 'Run')return;
+            if(document.body.dataset.coordinateMode==='machine'||workflowState === WORKFLOW_STATE_RUNNING || activeState === 'Run')return;
             const {axis,rect}=event.detail;
+            setReadoutMove(event.detail.move === true);
             const box=document.querySelector('[aria-label="Edit visualizer '+axis+' coordinate"]');
             const canvas=document.querySelector('.android-visualizer-canvas')?.getBoundingClientRect();
             const svg=(box as SVGElement)?.ownerSVGElement;
@@ -225,6 +226,8 @@ function CoolantToggle({disabled,laser}: {disabled:boolean;laser:boolean}) {
         updated = updated.replace(/\.toFixed\(3\)/g, ".toFixed(droUnits === 'in' ? 3 : 2)");
         updated = updated.replace('                            )}\n                        </span>', '                            )}<small className="android-dro-unit">{label === "A" ? "°" : droUnits === "in" ? "in" : "mm"}</small>\n                        </span>');
         updated = updated.replace('coordinateWidth}ch + 24px', 'coordinateWidth}ch + 52px');
+        updated = "import readoutController from 'app/lib/controller';\n" + updated;
+        updated = updated.replace('zeroWCS(label, coordinateCommandValue(value,label,coordinateUnits,controllerUnits));', "if(readoutMove){readoutController.command('gcode:safe',['G90 G0 '+label+coordinateCommandValue(value,label,coordinateUnits,'G21')],'G21');}else{zeroWCS(label, coordinateCommandValue(value,label,coordinateUnits,controllerUnits));}");
         return {code:updated,map:null};
     }
     if (!id.endsWith('/pendant/src/components/VisualizerCard.tsx')) return result;

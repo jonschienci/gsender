@@ -155,6 +155,7 @@ export default function BottomDrawer() {
         if (!coolantFunctions && activeTab === 'Coolant') setActiveTab('File');
     }, [coolantFunctions, activeTab]);
 
+    useEffect(()=>{const refresh=()=>{try{setRecentFiles(readRecentFiles());}catch{}};window.addEventListener('android-recent-files-changed',refresh);return()=>window.removeEventListener('android-recent-files-changed',refresh);},[]);
     useEffect(() => {
         const normalized = readRecentFiles();
         localStorage.setItem(RECENT_KEY, JSON.stringify(normalized));
@@ -285,7 +286,7 @@ export default function BottomDrawer() {
         try {
             const loaded = isElectron() && recentFile.filePath
                 ? await readGcodeFile(recentFile.filePath)
-                : await readRecentFile(recentFile.fileName, recentFile.filePath);
+                : await readRecentFile(recentFile.fileName, recentFile.filePath, recentFile.fileSize);
             if (loaded) {
                 applyLoadedFile(loaded);
                 return;
@@ -481,6 +482,7 @@ export default function BottomDrawer() {
                     {/* File tab — always mounted */}
                     {filePane && createPortal(
                     <div className="h-full flex flex-col min-h-0">
+
                         {file.fileLoaded ? (
                             <div className="shrink-0 px-3 py-2 flex flex-col gap-2">
                                 <div className="flex items-center gap-3 bg-gray-200/70 dark:bg-surface-elevated rounded-lg px-3 py-2">

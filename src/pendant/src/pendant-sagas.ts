@@ -35,15 +35,20 @@ import {
 import { unloadFileInfo } from 'app/store/redux/slices/fileInfo.slice';
 import {
     applyControllerGcodePayload,
+    resendCachedEstimateData,
+    refreshEstimateForSettings,
     shouldIgnoreControllerGcodeLoad,
 } from './utils/gcodeProcessing';
 
 export function* initialize() {
+    let estimateSettingsTimer: ReturnType<typeof setTimeout>|null=null;
     // ── Machine state ──────────────────────────────────────────────────────
     controller.addListener(
         'controller:settings',
         (type: string, settings: ControllerSettings) => {
             reduxStore.dispatch(updateControllerSettings({ type, settings }));
+        if(estimateSettingsTimer)clearTimeout(estimateSettingsTimer);
+        estimateSettingsTimer=setTimeout(refreshEstimateForSettings,250);
         },
     );
 
@@ -152,6 +157,8 @@ export function* initialize() {
             void applyControllerGcodePayload(payload);
         },
     );
+
+    controller.addListener('requestEstimateData', resendCachedEstimateData);
 
     controller.addListener('gcode:unload', () => {
         reduxStore.dispatch(unloadFileInfo());

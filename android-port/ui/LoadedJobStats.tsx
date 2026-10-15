@@ -67,12 +67,12 @@ export default memo(function LoadedJobStats() {
     },[canvas,open,processing]);
     if (!loaded && !processing) return null;
     return <>
-
+        
             <button type="button" className="android-loaded-file-info android-job-stats-trigger"
                 onClick={() => setOpen(value => !value)} disabled={processing} title="View job statistics" aria-label={`View job statistics for ${name}`}>
                 <strong><FilenameTicker name={name || 'Unnamed job'} /></strong><span>{processing ? "Loading…" : `${formatJobSize(size)} · ${Number(total || 0).toLocaleString()} lines`}</span>
             </button>
-
+        
         {open && !processing && canvas && createPortal(<><StatsSurface /><section role="dialog" aria-label="Job statistics" className="android-job-stats-dialog android-job-stats-pane"><button type="button" aria-label="Close job statistics" onClick={() => setOpen(false)}>×</button>
             <h2>Job statistics</h2>
             <p className="android-job-stats-filename">{name}</p>

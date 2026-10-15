@@ -207,7 +207,11 @@ export const getMovementGCode = (
 ) => {
     const gcode = [];
 
-    gcode.push(`G53 G21 G0 Z-${OFFSET_DISTANCE}`); // Always move up to the limit of Z travel minus offset
+    const machineSettings = get(reduxStore.getState(), 'controller.settings.settings', {});
+    const originReset = isBitSetInNumber(get(machineSettings, '$22', '0'), 3);
+    const retract = originReset ? OFFSET_DISTANCE : Number(pullOff);
+    if (!Number.isFinite(retract) || retract < 0) return [];
+    gcode.push(`G53 G21 G0 Z-${retract}`); // Always move up to the limit of Z travel minus offset
     const homingPosition = getHomingLocation(homingPositionSetting);
 
     // Change homing flag for grblHal specifically

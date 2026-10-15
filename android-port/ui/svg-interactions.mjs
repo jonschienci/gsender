@@ -102,6 +102,21 @@ const renderCrosshair = original.renderCrosshairMarker;
     };
     p.renderOriginMarker = function() {
         original.renderOriginMarker.call(this);
+        const marker=this.originMarker;
+        marker.setAttribute('data-origin-actions','true');
+        marker.setAttribute('role','button');
+        marker.setAttribute('aria-label','Go to origin');
+        marker.setAttribute('tabindex','0');
+        marker.style.pointerEvents='all';
+        marker.style.cursor='pointer';
+        marker.style.stroke='transparent';
+        marker.style.strokeWidth='20px';
+        marker.setAttribute('vector-effect','non-scaling-stroke');
+        if(!marker.dataset.originBound){
+            marker.dataset.originBound='true';
+            marker.addEventListener('pointerdown',event=>event.stopPropagation());
+            marker.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();marker.dispatchEvent(new MouseEvent('click',{bubbles:true}));}});
+        }
         const origin=states.get(this)?.origin;
         if(origin===null){this.originMarker.setAttribute('visibility','hidden');return;}
         if(origin){const point=this.project(origin.x,origin.y,0);this.originMarker.setAttribute('cx',String(point.x));this.originMarker.setAttribute('cy',String(point.y));}

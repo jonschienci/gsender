@@ -9,3 +9,7 @@
     public <init>(android.hardware.usb.UsbDevice);
     public static java.util.Map getSupportedDevices();
 }
+
+# Paired app handoff and the runtime local-token lookup.
+-keep class com.gsender.handoff.** { *; }
+-keepclassmembers class com.gsender.android.EngineService { static java.lang.String *; }

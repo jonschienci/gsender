@@ -1,3 +1,4 @@
+import WorkspaceSelector from './WorkspaceSelector';
 import {MachineStatusLabel} from './PendantTopBar';
 import PendantToolChange from '../../../../android-port/ui/PendantToolChange';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from 'app/components/shadcn/Dialog';
@@ -17,7 +18,6 @@ import ProgressAreaWrapper from './ProgressAreaWrapper';
 import Visualizer from './Visualizer';
 import ZHeightScale from '../../../../android-port/ui/ZHeightScale';
 import LoadedJobStats from '../../../../android-port/ui/LoadedJobStats';
-import WorkspaceSelector from './WorkspaceSelector';
 
 export default function VisualizerCard() {
     const [filesOpen, setFilesOpen] = useState(false);

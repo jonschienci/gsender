@@ -1,3 +1,4 @@
+import {Confirm} from 'app/components/ConfirmationDialog/ConfirmationDialogLib';
 import cx from 'classnames';
 import get from 'lodash/get';
 import { IoLockClosedOutline } from 'react-icons/io5';
@@ -11,11 +12,17 @@ import posthog from 'posthog-js';
 import { GRBL_ACTIVE_STATES_T } from 'app/definitions/general';
 import Tooltip from 'app/components/Tooltip';
 
+export const isHomingFailureAlarm = (code: string | number) => [6,7,8,9].includes(Number(code));
+export function confirmUnlockAfterHomingFailure(onConfirm: () => void) {
+    Confirm({title:'Homing failed',content:'Homing failed, so the machine position may be lost. Home the machine again before continuing. Unlock without re-homing?',confirmLabel:'Unlock anyway',onConfirm});
+}
+
 export function unlockFirmware(
     state: GRBL_ACTIVE_STATES_T,
     code: string | number,
 ) {
     if (state === GRBL_ACTIVE_STATE_ALARM) {
+        if (isHomingFailureAlarm(code)) { confirmUnlockAfterHomingFailure(() => controller.command('unlock')); return; }
         if (code === 17 || code === 10) {
             posthog.capture('machine_unlocked', {
                 alarm_code: code,

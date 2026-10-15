@@ -22,7 +22,9 @@ try:
   adb('shell','am','force-stop',pkg)
   # The timestamp filter preserves other applications' logs.
   stamp=adb('shell',"date '+%m-%d %H:%M:%S.000'")
-  launch=adb('shell','am','start','-W','-n',pkg+'/.MainActivity','--ez','defer_webview',a.defer_webview)
+  resolved=adb('shell','cmd','package','resolve-activity','--brief','-a','android.intent.action.MAIN','-c','android.intent.category.LAUNCHER',pkg).splitlines()
+  component=next((line.strip() for line in resolved if line.strip().startswith(pkg+'/')),pkg+'/.MainActivity')
+  launch=adb('shell','am','start','-W','-n',component,'--ez','defer_webview',a.defer_webview)
   assert 'Status: ok' in launch,launch
   logs=''
   for _ in range(60):

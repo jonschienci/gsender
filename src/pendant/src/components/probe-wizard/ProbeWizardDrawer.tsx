@@ -163,7 +163,7 @@ export default function ProbeWizardDrawer({
 
                     {/* Step 2 */}
                     <div className="w-1/3 h-full overflow-y-auto px-5 py-4">
-                        <ContinuityCheck
+                        <ContinuityCheck active={step === 1}
                             onComplete={handleContinuityComplete}
                             onPhaseChange={setContinuityPhase}
                         />

@@ -1,3 +1,4 @@
+import {isHomingFailureAlarm, confirmUnlockAfterHomingFailure} from 'app/features/UnlockButton';
 import {alarmDescription} from '../../../../android-port/ui/alarm-description';
 import { Confirm } from 'app/components/ConfirmationDialog/ConfirmationDialogLib.ts';
 import {
@@ -446,6 +447,8 @@ export default function PendantTopBar() {
                 alarmCode === 17
             ) {
                 controller.command('reset:limit');
+            } else if (isHomingFailureAlarm(alarmCode)) {
+                confirmUnlockAfterHomingFailure(() => controller.command('unlock'));
             } else if (alarmCode === 11 || alarmCode === 'Homing') {
                 controller.command('unlock');
             } else {

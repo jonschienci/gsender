@@ -1,12 +1,13 @@
 const finite = value => value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
 // Redux positions and virtualizer bounds are already millimetres, including G20 jobs.
-export function zHeightModel({connected, travel, forceOrigin, homeDirection, machineZ, workZ, fileLoaded, jobMin, jobMax}) {
+export function zHeightModel({connected, travel, forceOrigin, homeDirection, machineZ, workZ, fileLoaded, jobMin, jobMax, coordinateMode}) {
     const hasPosition = connected && finite(machineZ) && finite(workZ);
     const hasTravel = connected && finite(travel) && Number(travel) > 0;
-    const workFrame = Boolean(fileLoaded);
+    const workFrame = coordinateMode ? coordinateMode === 'work' : Boolean(fileLoaded);
     const offset = hasPosition ? Number(machineZ) - Number(workZ) : null;
+    const jobOffset = workFrame ? 0 : (offset ?? 0);
     const job = fileLoaded && finite(jobMin) && finite(jobMax) && Number(jobMin) <= Number(jobMax)
-        ? {min:Number(jobMin),max:Number(jobMax),height:Number(jobMax)-Number(jobMin)} : null;
+        ? {min:Number(jobMin)+jobOffset,max:Number(jobMax)+jobOffset,height:Number(jobMax)-Number(jobMin)} : null;
     let machine = null;
     if (hasTravel && (!workFrame || offset !== null)) {
         const positive = forceOrigin && (Number(homeDirection) & 4) !== 0;

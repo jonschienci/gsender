@@ -2,15 +2,19 @@
 
 Android host for gSender's existing desktop and pendant interfaces, Node backend, and direct USB serial connection to a CNC controller. The Android-specific code lives in this directory; upstream source is adapted only at bundle time.
 
-Current build: [Build 66](BUILD-66.md), incorporating the latest approved portrait UI, upstream parser allocation improvements, separate live-marker rendering, faster ordinary touch activation, compact backend dependencies, compile caching and staged payload installation. The K90 installation and quick skull benchmark are documented in the build note. No sustained 30 fps guarantee is implied.
+Latest release: [Build 76](BUILD-76.md), installed and launch-checked on the L1108 and K90. It retains the custom pendant UI and USB driver 3.9.0, and avoids failed health probes during active STM32 serial traffic. All 390 Android/backend regression tests passed. The user reported no connection issues in the latest L1108 job attempt; the recorded attachment stayed open for 164 seconds and tolerated at least 294 empty USB reads. Full-job completion was not verified.
+
+Build 76 includes the [selected upstream features from Build 73](BUILD-73.md), the [approved UI from Build 74](BUILD-74.md), and the [connection-lifetime/reconnect safeguards from Build 75](BUILD-75.md). Earlier [USB investigations](USB-RELIABILITY-2026-10-09.md) and [A/B app switching](BUILD-72.md) are documented separately. The release commit/tag uses the tested Build 76 source; further UI work and the experimental USB 3.11.0/native reader remain outside this release.
 
 The [parser and K90 responsiveness investigation](PENDING-PARSER-UI-PERFORMANCE.md) records the original Chrome comparison and the selected upstream Android ideas implemented in Build 66.
+
+Build 67 integration details: [selected official Android fixes and gesture rendering](PENDING-UPSTREAM-INTEGRATION.md). The published official APK requires ARM64 Android. A [minimal ARM32 test adaptation](OFFICIAL-ARM32-TEST-1.md) now runs beside Build 67 on the Lenovo with the official application code unchanged.
 
 Backend implementation details: [job-start correction, passive logs and local skull benchmark](PENDING-REAL-JOB-DIAGNOSTICS.md), introduced in Build 61 and retained in Build 63.
 
 ## Target and status
 
-Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through USB OTG. The build system supports arm64-v8a and armeabi-v7a when matching runtime libraries are supplied; the distributed Build 66 APK contains armeabi-v7a only and requires Android API 26 or newer. ARM64-only devices need a separately built ARM64 runtime. Machine control, EEPROM editing, and reconnect across app restarts have been confirmed on earlier development builds. This branch ports that work onto upstream `dev`; it is a development build, not a validated production machine-control release. Current provenance is recorded in `upstream.json`.
+Initial hardware target: Lenovo TB-8506F (Android 11) with a Sienci SLB through USB OTG. The build system supports arm64-v8a and armeabi-v7a when matching runtime libraries are supplied; the distributed Build 76 APK contains arm64-v8a only and requires Android API 26 or newer. It uses the matching verified ARM64 Node runtime; older ARM32-only tablets need a separate ARM32 artifact. Machine control, EEPROM editing, and reconnect across app restarts have been confirmed on earlier development builds. This branch ports that work onto upstream `dev`; it is a development build, not a validated production machine-control release. Current provenance is recorded in `upstream.json`.
 
 Use an up-to-date **Android System WebView**, updated through Google Play. On a newly configured ZTE K87CA, Build 57 installed but showed a blank screen with WebView 83.0.4103.106; its launch check is pending a WebView update. Samsung SM-X133 passed a cold launch after updating to Android 16 / One UI 8.5 with the 2026-07-05 security patch and Google Play system update 2026-08-01. ZTE work is deferred. See [Build 57](BUILD-57.md) for device status and validation limits.
 
@@ -50,14 +54,14 @@ the Mac on the tablet. `adb devices -l` must show `device` beside each intended
 serial number. Use `-r` to preserve the existing installation's app data:
 
 ```sh
-adb -s TABLET_SERIAL install -r /path/to/gSender-Android-build-66.apk
+adb -s TABLET_SERIAL install -r /path/to/gSender-Android-build-76-arm64.apk
 ```
 
-To install Build 66 on every connected device already authorized for debugging:
+To install Build 76 on connected ARM64 devices already authorized for debugging:
 
 ```sh
 GSENDER_ADB="/path/to/platform-tools/adb"
-GSENDER_APK="/path/to/gSender-Android-build-66.apk"
+GSENDER_APK="/path/to/gSender-Android-build-76-arm64.apk"
 "$GSENDER_ADB" devices | awk '$2 == "device" {print $1}' | while IFS= read -r serial; do
   "$GSENDER_ADB" -s "$serial" install -r "$GSENDER_APK"
 done
@@ -79,11 +83,15 @@ With the CNC disconnected, check a specific tablet and preserve app data:
 
 ```sh
 python3 android-port/scripts/android-launch-check.py --adb /path/to/platform-tools/adb \
-  --serial TABLET_SERIAL --apk /path/to/gSender-Android-build-66.apk \
+  --serial TABLET_SERIAL --apk /path/to/gSender-Android-build-76-arm64.apk \
   --output /path/to/check-results --launches 2
 ```
 
 This checks the installed APK hash, backend readiness, page-load completion and fatal startup logs. It temporarily enables only the startup log tag and restores it afterward. It does not certify physical motion or interactive frame rate. `--defer-webview true` is a diagnostic comparison; the release default is false. Keep the generated backend source maps/metafiles with the matching APK for stack-trace analysis; they are not shipped on the tablet.
+
+## Wireless file library
+
+In the pendant's existing **Plugins** tools grid, open **Wireless files** and enable receiving. Use the displayed local address and six-digit code in a browser on the same network, or desktop gSender's Send to Pendant → Library. Transfers stream to disk with a 200 MiB limit. Receiving never replaces or starts the active job; explicitly tap Load on the tablet while idle. Disable receiving when finished. No cloud account is required.
 
 ## Managed kiosk
 

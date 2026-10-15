@@ -48,7 +48,7 @@ public final class UsbSerialModule implements AutoCloseable {
             Map<String, UsbDevice> devices = manager.getDeviceList();
             text.append("Android sees ").append(devices.size()).append(" USB device(s).\n");
             for (UsbDevice device : devices.values()) {
-                UsbSerialDriver driver = UsbSerialProber.getDefaultProber().probeDevice(device);
+                UsbSerialDriver driver = probe(device);
                 text.append(String.format(java.util.Locale.US, "%04x:%04x", device.getVendorId(), device.getProductId()))
                     .append(" — ").append(device.getDeviceName()).append("\nPermission: ")
                     .append(manager.hasPermission(device) ? "granted" : "not granted")
@@ -71,6 +71,15 @@ public final class UsbSerialModule implements AutoCloseable {
         SerialInputOutputManager io;
         PendingIntent permission;
         boolean opening = true;
+        volatile boolean readFailed;
+    }
+
+    private static UsbSerialDriver probe(UsbDevice device) {
+        UsbSerialDriver driver = UsbSerialProber.getDefaultProber().probeDevice(device);
+        if (device.getVendorId() == 0x0483 && device.getProductId() == 0x5740 &&
+                driver instanceof com.hoho.android.usbserial.driver.CdcAcmSerialDriver)
+            return new SlbCdcSerialDriver(device, UsbSerialModule::record);
+        return driver;
     }
 
     public UsbSerialModule(Context context, Output output) {
@@ -134,7 +143,7 @@ public final class UsbSerialModule implements AutoCloseable {
         java.util.List<UsbSerialDriver> drivers = new java.util.ArrayList<>();
         for (UsbDevice device : devices.values()) {
             try {
-                UsbSerialDriver driver = UsbSerialProber.getDefaultProber().probeDevice(device);
+                UsbSerialDriver driver = probe(device);
                 if (driver != null) drivers.add(driver);
             } catch (RuntimeException e) { record("Probe failed: " + device.getDeviceName() + " " + e.getMessage()); }
         }
@@ -233,6 +242,11 @@ public final class UsbSerialModule implements AutoCloseable {
             return;
         }
         if (s == null || s.opening) { reject(r, "ENOTCONN", "USB port not open"); return; }
+        if (s.readFailed) {
+            reject(r, "EIO", "USB reader failed; command not sent");
+            terminate(s, "EIO", "USB reader failed");
+            return;
+        }
         try {
             if (op.equals("write")) {
                 byte[] bytes = Base64.decode(r.getString("data"), Base64.NO_WRAP);
@@ -303,6 +317,7 @@ public final class UsbSerialModule implements AutoCloseable {
                         "data", Base64.encodeToString(bytes, Base64.NO_WRAP)));
                 }
                 @Override public void onRunError(Exception e) {
+                    s.readFailed = true;
                     if (!disposed) worker.execute(() -> {
                         if (sessions.get(s.id) == s) terminate(s, "EIO", e.getMessage());
                     });
@@ -325,6 +340,7 @@ public final class UsbSerialModule implements AutoCloseable {
     }
 
     private void release(Session s) {
+        s.readFailed = true;
         sessions.remove(s.id);
         if (s.permission != null) s.permission.cancel();
         if (s.io != null) { s.io.setListener(null); s.io.stop(); }

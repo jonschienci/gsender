@@ -19,7 +19,7 @@ test('passive job UI samples an active job, exports local report, and unsubscrib
         let view;await act(async()=>{view=render(React.createElement(compiled.exports.default));});
         assert.ok(requests.some(r=>r.url.endsWith('/sample')&&r.body.sample.native.model==='K90'));
         await act(async()=>window.dispatchEvent(new Event('gsender-job-logs-open')));
-        assert.ok(view.getByRole('dialog',{name:'Machine job logs'}));assert.ok(view.getByText('skull.nc'));
+        assert.ok(view.getByRole('dialog',{name:'Job logs and Benchmark'}));assert.ok(view.getByText('skull.nc'));
         await act(async()=>fireEvent.click(view.getByText('Export JSON')));
         await act(async()=>new Promise(resolve=>setTimeout(resolve,25)));
         assert.equal(downloads.length,1);assert.ok(downloads[0][0].includes('60'));assert.equal(JSON.parse(Buffer.from(downloads[0][1],'base64')).summary.file.name,'skull.nc');

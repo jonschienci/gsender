@@ -37,7 +37,7 @@ const defaultSurfacingState = get(
     {},
 ) as Surfacing;
 
-const SurfacingTool = () => {
+const SurfacingTool = ({PreviewComponent = VisualizerPreview}: {PreviewComponent?: React.ComponentType<{gcode?:string}>} = {}) => {
     const navigate = useNavigate();
     const surfacingConfig = new WidgetConfig('surfacing');
     const [tabSwitch, setTabSwitch] = useState(false);
@@ -456,7 +456,7 @@ const SurfacingTool = () => {
                                     },
                                 )}
                             >
-                                <VisualizerPreview gcode={gcode} />
+                                <PreviewComponent gcode={gcode} />
                             </div>
                             <div
                                 className={cx('h-full relative p-2', {

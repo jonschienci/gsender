@@ -24,8 +24,8 @@ test('indexed lines exactly match split/filter including CRLF, Unicode whitespac
         seed = (Math.imul(seed, 1664525) + 1013904223) >>> 0;
         lines.push(seed % 4 === 0 ? whitespace : ` ${seed % 2 ? 'G2 X3 I1' : 'G1 X2 Y5'} ;${seed}\r`);
     }
-    for (const text of ['', '\n\n', 'G1 X1', lines.join('\n') + '\n']) {
-        const expected = text.split('\n').filter(line => line.trim().length > 0);
+    for (const text of ['', '\n\n', 'G1 X1', 'G1 X1\rG1 X2\rM30', lines.join('\n') + '\n']) {
+        const expected = text.split(/\r\n|\r|\n/).filter(line => line.trim().length > 0);
         const actual = new JobLines(text);
         assert.equal(actual.length, expected.length);
         assert.equal(actual.byteLength, expected.length * 8);

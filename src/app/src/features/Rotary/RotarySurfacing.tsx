@@ -31,7 +31,7 @@ import { StockTurningGenerator } from './utils/Generator';
 import InputArea from './components/InputArea';
 import { DEFAULT_VALUES_MM } from './constants';
 
-const RotarySurfacing = () => {
+const RotarySurfacing = ({PreviewComponent = VisualizerPreview}: {PreviewComponent?: React.ComponentType<{gcode?:string}>} = {}) => {
     const navigate = useNavigate();
     const { units } = useWorkspaceState();
     const [surfacingState, setSurfacingState] =
@@ -383,7 +383,7 @@ const RotarySurfacing = () => {
                                     },
                                 )}
                             >
-                                <VisualizerPreview gcode={gcode} />
+                                <PreviewComponent gcode={gcode} />
                             </div>
                             <div
                                 className={cx(

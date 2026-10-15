@@ -43,7 +43,7 @@ export function isWorkspace(value: unknown): value is GrblWorkspace {
     );
 }
 
-export default function WorkspaceSelector() {
+export default function WorkspaceSelector({compact = false}: {compact?: boolean} = {}) {
     const activeWorkspace = useTypedSelector(
         (state: RootState) => state.controller.modal.wcs,
     );
@@ -110,7 +110,7 @@ export default function WorkspaceSelector() {
                 onClick={() => setWorkspaceMenuOpen((current) => !current)}
                 className={`h-7 min-w-[6.5rem] rounded-md border border-gray-200 dark:border-outline bg-white dark:bg-surface-elevated px-2 text-xs font-semibold outline-none transition-colors flex items-center justify-between gap-1 ${WORKSPACE_TEXT_COLORS[workspace]} ${disabled ? 'cursor-default' : 'cursor-pointer hover:bg-gray-50 dark:hover:bg-surface-hover'}`}
             >
-                <span>{`${workspace} (${WORKSPACE_LABELS[workspace]})`}</span>
+                <span>{compact ? workspace : `${workspace} (${WORKSPACE_LABELS[workspace]})`}</span>
                 <ChevronDown
                     className={`w-3.5 h-3.5 transition-transform ${workspaceMenuOpen ? 'rotate-180' : ''}`}
                 />

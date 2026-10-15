@@ -17,10 +17,11 @@
     <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <queries><package android:name="org.sienci.gsender.pendant" /></queries>
     <application android:label="@string/app_name" android:icon="@drawable/gsender_icon" android:theme="@android:style/Theme.Material.Light.NoActionBar"
         android:allowBackup="false" android:hardwareAccelerated="true"
         android:networkSecurityConfig="@xml/network_security_config">
-        <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="true" android:enableOnBackInvokedCallback="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|keyboardHidden">
+        <activity android:name="com.gsender.handoff.LaunchActivity" android:screenOrientation="portrait" android:exported="true" android:enableOnBackInvokedCallback="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|keyboardHidden">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -30,6 +31,10 @@
             </intent-filter>
             <meta-data android:name="android.hardware.usb.action.USB_DEVICE_ATTACHED" android:resource="@xml/slb_device_filter" />
         </activity>
+        <activity android:name=".MainActivity" android:screenOrientation="portrait" android:exported="false" android:enableOnBackInvokedCallback="true" android:launchMode="singleTask" android:configChanges="orientation|screenSize|keyboardHidden" />
+        <provider android:name="com.gsender.handoff.HandoffProvider"
+            android:authorities="${applicationId}.handoff" android:exported="true"
+            android:grantUriPermissions="false" android:initOrder="100" />
         <receiver android:name=".KioskAdminReceiver" android:exported="true"
             android:permission="android.permission.BIND_DEVICE_ADMIN" android:label="gSender kiosk management">
             <meta-data android:name="android.app.device_admin" android:resource="@xml/kiosk_admin" />

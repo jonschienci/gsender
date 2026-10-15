@@ -1,3 +1,6 @@
+import WirelessFiles from '../../../../android-port/ui/WirelessFiles';
+import {FaWifi} from 'react-icons/fa';
+import {useEffect,useState} from 'react';
 import ToolsPages from './ToolsPages';
 import { TbRulerMeasure } from 'react-icons/tb';
 import ToolCard from 'app/components/ToolCard';
@@ -5,7 +8,10 @@ import { FaGamepad, FaKeyboard, FaSdCard } from 'react-icons/fa';
 import { LuDrill } from 'react-icons/lu';
 import { MdSquareFoot } from 'react-icons/md';
 
-export default function PendantToolsView() {
+export default function PendantToolsView({openWireless=false,onWirelessClose=()=>{}}: {openWireless?:boolean;onWirelessClose?:()=>void}) {
+    const [wireless,setWireless]=useState(openWireless);
+    useEffect(()=>{if(openWireless)setWireless(true);},[openWireless]);
+    if(wireless)return <WirelessFiles onClose={()=>{setWireless(false);onWirelessClose();}}/>;
     return (
         <div className="flex-1 flex flex-col min-h-0 overflow-y-auto p-3">
             <h1 className="text-xl font-bold dark:text-content-primary mb-1">
@@ -16,9 +22,10 @@ export default function PendantToolsView() {
             </p>
 
             <ToolsPages>
+                <ToolCard title="Wireless files" description="Send G-code over Wi-Fi" icon={FaWifi} onClick={()=>setWireless(true)}/>
+                
 
-
-
+                
 
                 <ToolCard
                     title="Movement Tuning"
