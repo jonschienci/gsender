@@ -17,6 +17,8 @@ type NavTab = 'carve' | 'tools' | 'config';
 
 export default function PendantShell() {
     const [activeTab, setActiveTab] = useState<NavTab>('carve');
+    const [configVisited, setConfigVisited] = useState(false);
+    useEffect(() => { if (activeTab === 'config') setConfigVisited(true); }, [activeTab]);
     const [wirelessRequested, setWirelessRequested] = useState(false);
     const wirelessReturnTab = useRef<NavTab>('tools');
     useEffect(()=>{const open=()=>{if(!wirelessRequested)wirelessReturnTab.current=activeTab;setWirelessRequested(true);setActiveTab('tools');};window.addEventListener('android-open-wireless-files',open);return()=>window.removeEventListener('android-open-wireless-files',open);},[activeTab,wirelessRequested]);
@@ -51,7 +53,7 @@ export default function PendantShell() {
                 <CarveView />
             </div>
             {activeTab === 'tools' && <PendantToolsView openWireless={wirelessRequested} onWirelessClose={()=>{if(wirelessRequested)setActiveTab(wirelessReturnTab.current);setWirelessRequested(false);}} />}
-            {activeTab === 'config' && <PendantConfigView />}
+            {(configVisited || activeTab === 'config') && <PendantConfigView active={activeTab === 'config'} />}
 
             <BottomNav active={activeTab} onChange={setActiveTab} />
             <JobCompletionAlert />

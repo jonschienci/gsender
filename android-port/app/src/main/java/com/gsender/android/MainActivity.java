@@ -16,6 +16,9 @@ public final class MainActivity extends Activity {
     private LinearLayout layout;
     private boolean deferredWebView;
     private TextView status;
+    private Button rendererRetry;
+    private final RendererRecovery rendererRecovery = new RendererRecovery();
+    private boolean rendererRecovering;
     private final Handler handler = new Handler(Looper.getMainLooper());
     private ValueCallback<Uri[]> fileCallback;
     private byte[] export;
@@ -29,38 +32,46 @@ public final class MainActivity extends Activity {
     private boolean kioskCheckPending;
     private final Runnable poll = new Runnable() {
         public void run() {
+            if (rendererRecovery.blocked()) {
+                handler.postDelayed(this, 1000);
+                return;
+            }
             status.setText(EngineService.status);
-            if (!loaded && EngineService.url != null) {
+            if (!loaded && resumed && EngineService.url != null) {
                 if (web == null) createWebView();
                 loaded = true;
+                final WebView target = web;
+                final int loadingGeneration = pageGeneration;
                 final String address = EngineService.url;
                 final String key = EngineService.token;
                 CookieManager cookies = CookieManager.getInstance();
                 cookies.setAcceptCookie(true);
                 // Replace the previous process's credential before any page or socket runs.
                 cookies.setCookie(address, "gsender_local=" + key + "; HttpOnly; SameSite=Strict; Path=/", success -> {
-                    if (isDestroyed() || !key.equals(EngineService.token)) return;
+                    if (isDestroyed() || target != web || loadingGeneration != pageGeneration
+                        || !key.equals(EngineService.token)) return;
                     if (!Boolean.TRUE.equals(success)) {
                         loaded = false; EngineService.uiStatus = "Could not initialize UI session"; return;
                     }
                     EngineService.uiStatus = "UI session initialized; waiting for connection";
                     // Bypass an index.html cached by older builds; asset caching stays enabled.
                     final String benchmark = visualizerBenchmark ? "&benchmark=visualizer" : "";
-                    web.loadUrl(address + "/" + "?launch=" + android.os.SystemClock.elapsedRealtime() + benchmark,
+                    target.loadUrl(address + "/" + "?launch=" + android.os.SystemClock.elapsedRealtime() + benchmark,
                         java.util.Collections.singletonMap("X-gSender-Key", key));
                 });
             }
             if (EngineService.url == null) {
                 status.setVisibility(View.VISIBLE);
                 kiosk.ready(false);
-            } else if (loaded && !kioskCheckPending) {
+            } else if (web != null && loaded && !kioskCheckPending) {
                 kioskCheckPending = true;
                 // Do not lock the user in a loading/error page with no exit target.
                 final int generation = pageGeneration;
-                web.evaluateJavascript("(()=>{const b=document.querySelector('.android-build-badge[data-kiosk-exit=\"five-tap\"]');if(!b)return false;const r=b.getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", value -> {
+                final WebView target = web;
+                target.evaluateJavascript("(()=>{const b=document.querySelector('.android-build-badge[data-kiosk-exit=\"five-tap\"]');if(!b)return false;const r=b.getBoundingClientRect();return r.width>0&&r.height>0&&r.top>=0&&r.bottom<=innerHeight;})()", value -> {
                     if (generation == pageGeneration) kioskCheckPending = false;
-                    if (!isDestroyed() && generation == pageGeneration && EngineService.url != null
-                        && local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) kiosk.ready("true".equals(value));
+                    if (!isDestroyed() && target == web && generation == pageGeneration && EngineService.url != null
+                        && local(Uri.parse(target.getUrl() == null ? "" : target.getUrl()))) kiosk.ready("true".equals(value));
                 });
             }
             handler.postDelayed(this, 1000);
@@ -76,18 +87,34 @@ public final class MainActivity extends Activity {
         layout = new LinearLayout(this); layout.setOrientation(LinearLayout.VERTICAL);
         status = new TextView(this); status.setPadding(16, 12, 16, 12); layout.addView(status);
         status.setOnClickListener(v -> showUsbStatus());
+        rendererRetry = new Button(this);
+        rendererRetry.setText("Reload display");
+        rendererRetry.setVisibility(View.GONE);
+        rendererRetry.setOnClickListener(v -> {
+            rendererRecovery.retry();
+            rendererRetry.setVisibility(View.GONE);
+            handler.removeCallbacks(poll);
+            handler.post(poll);
+        });
+        layout.addView(rendererRetry);
         setContentView(layout);
-        // Consume only visible system bars, the keyboard and physical cutouts.
-        // Kiosk uses the space released by navigation without covering controls.
+        // Reserve only the area Android reports as visible, including in kiosk.
+        // KioskController uses non-transient bars so edge reveals report insets;
+        // hidden bars leave no permanent gap. Keep keyboard/cutout protection.
         if (Build.VERSION.SDK_INT >= 30) getWindow().setDecorFitsSystemWindows(false);
         layout.setOnApplyWindowInsetsListener((v, insets) -> {
             if (Build.VERSION.SDK_INT >= 30) {
-                int types = WindowInsets.Type.displayCutout() | WindowInsets.Type.ime();
-                if (!kiosk.fullscreen()) types |= WindowInsets.Type.systemBars();
+                int types = WindowInsets.Type.systemBars() | WindowInsets.Type.displayCutout() | WindowInsets.Type.ime();
                 android.graphics.Insets safe = insets.getInsets(types);
                 v.setPadding(safe.left, safe.top, safe.right, safe.bottom);
+                kiosk.systemBarsVisible(insets.isVisible(WindowInsets.Type.statusBars())
+                    || (insets.isVisible(WindowInsets.Type.navigationBars())
+                        && !insets.isVisible(WindowInsets.Type.ime())));
             } else {
                 v.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(), insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+                int flags = getWindow().getDecorView().getSystemUiVisibility();
+                kiosk.systemBarsVisible((flags & View.SYSTEM_UI_FLAG_FULLSCREEN) == 0
+                    || (flags & View.SYSTEM_UI_FLAG_HIDE_NAVIGATION) == 0);
             }
             return insets;
         });
@@ -103,6 +130,7 @@ public final class MainActivity extends Activity {
         if (web != null) return;
         long start = SystemClock.elapsedRealtime();
         web = new WebView(this); layout.addView(web, new LinearLayout.LayoutParams(-1, 0, 1));
+        final WebView createdView = web;
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true); settings.setDomStorageEnabled(true);
         settings.setAllowFileAccess(false); settings.setAllowContentAccess(true);
@@ -114,6 +142,7 @@ public final class MainActivity extends Activity {
         WebView.setWebContentsDebuggingEnabled(BuildConfig.DEBUG);
         web.setWebViewClient(new WebViewClient() {
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap icon) {
+                if (view != web) return;
                 pageGeneration++;
                 kioskCheckPending = false;
                 kiosk.ready(false);
@@ -121,6 +150,7 @@ public final class MainActivity extends Activity {
                 if (tiltSensor != null) tiltSensor.stop();
             }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                if (view != web) return true;
                 if (local(request.getUrl()) && "/native/kiosk-toggle".equals(request.getUrl().getPath())) {
                     // A gesture from the first-party badge; no general admin JS bridge.
                     if (resumed && request.isForMainFrame() && request.hasGesture() && web.hasWindowFocus()
@@ -142,14 +172,19 @@ public final class MainActivity extends Activity {
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                if (local(Uri.parse(url))) { status.setVisibility(View.GONE); EngineService.record("page_loaded t=" + (SystemClock.elapsedRealtime()-android.os.Process.getStartElapsedRealtime())); }
+                if (view == web && local(Uri.parse(url))) {
+                    status.setVisibility(View.GONE);
+                    rendererRecovering = false;
+                    EngineService.foreground(resumed);
+                    EngineService.record("page_loaded t=" + (SystemClock.elapsedRealtime()-android.os.Process.getStartElapsedRealtime()));
+                }
             }
             @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
-                kiosk.ready(false);
-                return false; // Use Android's normal renderer-crash recovery after releasing kiosk.
+                recoverRenderer(view, detail.didCrash());
+                return true;
             }
             @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
-                if (request.isForMainFrame()) {
+                if (view == web && request.isForMainFrame()) {
                     kiosk.ready(false);
                     EngineService.record("page_failed " + error.getErrorCode() + " " + error.getDescription());
                     status.setText(error.getDescription()); status.setVisibility(View.VISIBLE); loaded = false;
@@ -169,6 +204,7 @@ public final class MainActivity extends Activity {
                 return super.onConsoleMessage(message);
             }
             @Override public boolean onShowFileChooser(WebView view, ValueCallback<Uri[]> callback, FileChooserParams params) {
+                if (view != web) { callback.onReceiveValue(null); return true; }
                 if (fileCallback != null) fileCallback.onReceiveValue(null);
                 fileCallback = callback;
                 Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*");
@@ -180,7 +216,7 @@ public final class MainActivity extends Activity {
             @JavascriptInterface public String sample() { return tiltSensor.sample(); }
             @JavascriptInterface public void start() {
                 runOnUiThread(() -> {
-                    if (resumed && !isFinishing() && !isDestroyed() && web.hasWindowFocus()
+                    if (web == createdView && resumed && !isFinishing() && !isDestroyed() && web.hasWindowFocus()
                         && local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) tiltSensor.start();
                 });
             }
@@ -189,7 +225,7 @@ public final class MainActivity extends Activity {
         web.addJavascriptInterface(new Object() {
             @JavascriptInterface public void jogPress() {
                 runOnUiThread(() -> {
-                    if (web == null || !web.hasWindowFocus() || !local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) return;
+                    if (web != createdView || !web.hasWindowFocus() || !local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) return;
                     android.os.Vibrator vibrator = getSystemService(android.os.Vibrator.class);
                     if (vibrator == null || !vibrator.hasVibrator()) return;
                     // An explicit app pulse works even when system key-click feedback is off.
@@ -209,7 +245,7 @@ public final class MainActivity extends Activity {
             @JavascriptInterface public void save(String name, String data) {
                 if (data.length() > 48 * 1024 * 1024) return;
                 runOnUiThread(() -> {
-                    if (!local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) return;
+                    if (web != createdView || !local(Uri.parse(web.getUrl() == null ? "" : web.getUrl()))) return;
                     if (export != null) return;
                     try {
                         export = Base64.decode(data, Base64.DEFAULT);
@@ -234,11 +270,40 @@ public final class MainActivity extends Activity {
             }
         }, "AndroidBenchmark");
         web.setDownloadListener((url, userAgent, disposition, mime, length) -> {
+            if (web != createdView) return;
             if (!url.startsWith("blob:" + EngineService.url) && !local(Uri.parse(url))) return;
             String name = URLUtil.guessFileName(url, disposition, mime);
             web.evaluateJavascript("fetch(" + JSONObject.quote(url) + ").then(r=>r.blob()).then(b=>{const f=new FileReader();f.onload=()=>AndroidDownload.save(" + JSONObject.quote(name) + ",f.result.split(',')[1]);f.readAsDataURL(b);})", null);
         });
         EngineService.record("webview_created ms=" + (SystemClock.elapsedRealtime()-start) + " deferred=" + deferredWebView);
+    }
+    private void recoverRenderer(WebView failedView, boolean crashed) {
+        if (failedView != web) {
+            layout.removeView(failedView);
+            failedView.destroy();
+            return;
+        }
+        EngineService.record("renderer_gone crashed=" + crashed);
+        kiosk.ready(false);
+        kiosk.touching(false);
+        rendererRecovering = true;
+        // End manual input leases. The service/serial stream and job remain owned by the backend.
+        EngineService.foreground(false);
+        if (tiltSensor != null) tiltSensor.stop();
+        if (qr != null) qr.cancel();
+        if (fileCallback != null) { fileCallback.onReceiveValue(null); fileCallback = null; }
+        pageGeneration++;
+        kioskCheckPending = false;
+        loaded = false;
+        web = null;
+        layout.removeView(failedView);
+        failedView.destroy();
+        boolean retry = rendererRecovery.failed(SystemClock.elapsedRealtime());
+        status.setVisibility(View.VISIBLE);
+        status.setText(retry ? "Reloading display…" : "The display stopped repeatedly. The CNC service has not been restarted. Tap Reload display to retry.");
+        rendererRetry.setVisibility(retry ? View.GONE : View.VISIBLE);
+        EngineService.uiStatus = retry ? "Recovering display" : "Display recovery paused";
+        // The normal poll creates an authenticated page. Never restart Node or replay a job.
     }
     @Override protected void onNewIntent(Intent intent) {
         super.onNewIntent(intent);
@@ -287,6 +352,15 @@ public final class MainActivity extends Activity {
             }, "gsender-export").start();
         }
     }
+    @Override public boolean dispatchTouchEvent(MotionEvent event) {
+        // Do not move the WebView by auto-hiding bars during a held jog/drag.
+        if (kiosk != null) {
+            int action = event.getActionMasked();
+            if (action == MotionEvent.ACTION_DOWN) kiosk.touching(true);
+            else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) kiosk.touching(false);
+        }
+        return super.dispatchTouchEvent(event);
+    }
     @Override public void onBackPressed() {
         if (kiosk != null && kiosk.locked()) return;
         super.onBackPressed();
@@ -312,7 +386,7 @@ public final class MainActivity extends Activity {
         resumed = true;
         kiosk.resume();
         if (qr != null) qr.resume();
-        EngineService.foreground(true);
+        EngineService.foreground(!rendererRecovering);
         if (web != null) web.evaluateJavascript("window.__usbKnobActive=true;window.dispatchEvent(new Event('usb-knob-visibility'));", null);
     }
     @Override protected void onDestroy() {

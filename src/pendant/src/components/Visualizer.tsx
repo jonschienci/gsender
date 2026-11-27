@@ -3,26 +3,14 @@ import {installPositionReadouts} from '../../../../android-port/ui/position-read
 import {machineXYBounds, jobXYBounds, centeredView, rebaseWorkView} from '../../../../android-port/ui/visualizer-bounds.mjs';
 import {shallowEqual} from 'react-redux';
 import {useWorkspaceState} from 'app/hooks/useWorkspaceState';
-import { GCodeSVGRenderer } from '@sienci/gviewer/viewer';
-import { installSvgFraming } from '../../../../android-port/ui/svg-framing.mjs';
-import type { GCodeSVGRendererHandle } from '@sienci/gviewer/react';
-import { GCodeSVGVisualizer } from '@sienci/gviewer/react';
-import { WORKFLOW_STATE_RUNNING } from 'app/constants';
+import OfficialToolpathVisualizer, {type OfficialRendererHandle} from '../../../../android-port/ui/OfficialToolpathVisualizer';
 import { useTypedSelector } from 'app/hooks/useTypedSelector';
 import type { RootState } from 'app/store/redux';
 import pubsub from 'pubsub-js';
 import { useEffect, useRef } from 'react';
-import {
-    PENDANT_BOUNDS_COLOR,
-    PENDANT_CUT_COLOR,
-    PENDANT_RAPID_COLOR,
-} from '../visualizerTheme';
-
-installSvgFraming(GCodeSVGRenderer);
-
 export default function Visualizer() {
     const coordinateMode = useCoordinateMode();
-    const svgRef = useRef<GCodeSVGRendererHandle>(null);
+    const svgRef = useRef<OfficialRendererHandle>(null);
     const fileLoaded = useTypedSelector((s: RootState) => s.file.fileLoaded);
     const workflowState = useTypedSelector(
         (s: RootState) => s.controller.workflow.state,
@@ -123,6 +111,7 @@ export default function Visualizer() {
         const setLabel=(node:Element,key:string,value:string)=>{if(node.getAttribute(key)!==value)node.setAttribute(key,value);};
         const xLabel=svg.querySelector('.android-job-bound-x');
         const yLabel=svg.querySelector('.android-job-bound-y');
+        const jobOutline=svg.querySelector('.android-job-boundary');
         const updateGrid = () => {
             const view = svg.viewBox.baseVal;
             if (!view.width || !view.height) return;
@@ -137,6 +126,10 @@ export default function Visualizer() {
             for (const rect of [area,boundary]) {
                 set(rect,'visibility',machine?'visible':'hidden');
                 if(machine)for(const key of ['x','y','width','height'])set(rect,key,String(machine[key]));
+            }
+            if(jobOutline){
+                set(jobOutline,'visibility',job?'visible':'hidden');
+                if(job)for(const [key,value] of Object.entries({x:job.minX,y:-job.maxY,width:job.maxX-job.minX,height:job.maxY-job.minY}))set(jobOutline,key,String(value));
             }
             const boundaryFont=Math.min(view.width,view.height)*.028;
             for(const [label,bounds] of [[machineLabel,machine],[jobLabel,job?{x:job.minX,y:-job.maxY,width:job.maxX-job.minX}:null]] as const){
@@ -182,7 +175,8 @@ export default function Visualizer() {
         // Initial framing only. User pan/zoom cancels pending framing and remains free.
         let cancelled=false,second=0;
         const cancel=()=>{cancelled=true;};
-        svg.addEventListener('pointerdown',cancel);svg.addEventListener('wheel',cancel);
+        const target=svg.parentElement!;
+        target.addEventListener('pointerdown',cancel,true);target.addEventListener('wheel',cancel,true);
         const center=()=>{
             if(cancelled)return;
             const viewport=(svg as any).__gsenderViewport;
@@ -197,13 +191,13 @@ export default function Visualizer() {
         };
         const frame=requestAnimationFrame(()=>{second=requestAnimationFrame(center);});
         const timer=window.setTimeout(center,100);
-        return ()=>{cancelled=true;cancelAnimationFrame(frame);cancelAnimationFrame(second);clearTimeout(timer);svg.removeEventListener('pointerdown',cancel);svg.removeEventListener('wheel',cancel);};
+        return ()=>{cancelled=true;cancelAnimationFrame(frame);cancelAnimationFrame(second);clearTimeout(timer);target.removeEventListener('pointerdown',cancel,true);target.removeEventListener('wheel',cancel,true);};
     },[fileLoaded,fileName,jobBbox,hasPosition,travelX,travelY,homingCorner,homingFlag]);
 
     useEffect(() => {
         const tokens = [
             pubsub.subscribe('file:load', (_msg, data) => {
-                if (data.svgSegmentGroups?.length) {
+                if (data.svgSegmentGroups) {
                     svgRef.current?.loadFromPrecomputedGroups(
                         data.svgSegmentGroups,
                         data.svgMeta,
@@ -253,19 +247,9 @@ export default function Visualizer() {
     }, [wpos, mpos, fileLoaded, workflowState, travelX, travelY, homingCorner, homingFlag]);
 
     return (
-        <GCodeSVGVisualizer
+        <OfficialToolpathVisualizer
             ref={svgRef}
-            id="pendant-svg-vis"
-            options={{
-                cutColor: PENDANT_CUT_COLOR,
-                rapidColor: PENDANT_RAPID_COLOR,
-                boundingBoxColor: PENDANT_BOUNDS_COLOR,
-                strokeWidth: 1,
-                crosshairColor: PENDANT_CUT_COLOR,
-                originColor: PENDANT_BOUNDS_COLOR,
-                projectionMode: 'top',
-                padding: 8,
-            }}
+            id="pendant-gl-vis"
             className="w-full h-full"
         />
     );

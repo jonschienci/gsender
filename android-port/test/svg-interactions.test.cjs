@@ -1,7 +1,10 @@
 const {test} = require('node:test'), assert = require('node:assert/strict');
 const {JSDOM} = require('jsdom');
+const fs = require('node:fs'), path = require('node:path');
 
-test('real SVG pan/pinch/wheel preserves view while coalescing draws and isolating live marker updates', async () => {
+test('legacy SVG 0.1.37 interaction adapter', async t => {
+    const version=JSON.parse(fs.readFileSync(path.join(__dirname,'../../node_modules/@sienci/gviewer/package.json'),'utf8')).version;
+    if(version!=='0.1.37'){t.skip('Retired SVG adapter; official WebGL is covered by visualizer-performance.test.cjs');return;}
     const dom = new JSDOM('<div id="host"></div>');
     global.document = dom.window.document; global.window = dom.window;
     const frames = new Map(); let next = 0;

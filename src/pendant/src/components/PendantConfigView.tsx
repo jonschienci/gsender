@@ -1,6 +1,9 @@
 import { Config } from 'app/features/Config';
 import { SettingsProvider } from 'app/features/Config/utils/SettingsContext';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import controller from 'app/lib/controller';
+import { store as reduxStore } from 'app/store/redux';
+import { WORKFLOW_STATE_IDLE } from 'app/constants';
 import { MemoryRouter } from 'react-router';
 
 class ConfigErrorBoundary extends React.Component<
@@ -32,16 +35,27 @@ class ConfigErrorBoundary extends React.Component<
     }
 }
 
-export default function PendantConfigView() {
+export default function PendantConfigView({ active = true }: { active?: boolean }) {
+    const firstActivation = useRef(true);
+    useEffect(() => {
+        if (!active) return;
+        if (firstActivation.current) { firstActivation.current = false; return; }
+        const state = reduxStore.getState();
+        if (state.connection.isConnected && state.controller.workflow.state === WORKFLOW_STATE_IDLE) {
+            controller.command('gcode', ['$$']);
+        }
+    }, [active]);
     return (
-        <ConfigErrorBoundary>
-            <MemoryRouter>
-                <SettingsProvider>
-                    <div className="pendant-config flex-1 overflow-hidden [&>div>div:first-child]:!hidden">
-                        <Config />
-                    </div>
-                </SettingsProvider>
-            </MemoryRouter>
-        </ConfigErrorBoundary>
+        <div className={active ? "flex-1 flex flex-col min-h-0 overflow-hidden" : "hidden"}>
+            <ConfigErrorBoundary>
+                <MemoryRouter>
+                    <SettingsProvider>
+                        <div className="pendant-config flex-1 overflow-hidden [&>div>div:first-child]:!hidden">
+                            <Config />
+                        </div>
+                    </SettingsProvider>
+                </MemoryRouter>
+            </ConfigErrorBoundary>
+        </div>
     );
 }

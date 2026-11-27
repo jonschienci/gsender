@@ -2,7 +2,7 @@ import cn from 'classnames';
 import { MouseEventHandler } from 'react';
 import { SettingsMenuSection } from '../assets/SettingsMenu';
 import { useSettings } from 'app/features/Config/utils/SettingsContext.tsx';
-import React from 'react';
+import React, { useMemo } from 'react';
 
 interface MenuProps {
     menu: SettingsMenuSection[];
@@ -64,15 +64,19 @@ export function Menu({ menu, onClick, activeSection }: MenuProps) {
 
     const originalMenuLength = menu.length;
 
-    const filteredSettings = menu.map((section) => {
-        const newSection = { ...section };
-        newSection.settings = section.settings.map((ss) => {
-            const fs = { ...ss };
-            fs.settings = fs.settings.filter((o) => settingsFilter(o));
-            return fs;
-        });
-        return newSection;
-    });
+    const filteredSettings = useMemo(
+        () =>
+            menu.map((section) => {
+                const newSection = { ...section };
+                newSection.settings = section.settings.map((ss) => {
+                    const fs = { ...ss };
+                    fs.settings = fs.settings.filter((o) => settingsFilter(o));
+                    return fs;
+                });
+                return newSection;
+            }),
+        [menu, settingsFilter],
+    );
 
     return (
         //

@@ -11,7 +11,6 @@ import { EEPROM } from 'app/definitions/firmware';
 import { RootState } from 'app/store/redux';
 import { useSelector } from 'react-redux';
 import {
-    resolveGrblCoreDefaults,
     translateGrblCoreKey,
 } from 'app/features/Config/utils/grblCoreMigration.ts';
 import { GRBLHAL } from 'app/constants';
@@ -38,7 +37,7 @@ export function EEPROMSettingRow({
     link = null,
     linkLabel = null,
 }: EEPROMSettingRowProps) {
-    const { EEPROM, eepromMap, machineProfile, firmwareType, eepromIsDefault } =
+    const { EEPROM, eepromMap, profileDefaults, firmwareType, eepromIsDefault } =
         useSettings();
     const firmwareSemver = useSelector(
         (state: RootState) => state.controller.settings.version?.semver,
@@ -58,14 +57,6 @@ export function EEPROMSettingRow({
 
     if (EEPROMData) {
         const isDefault = eepromIsDefault(EEPROMData);
-        const profileDefaults =
-            firmwareType === 'Grbl'
-                ? machineProfile.eepromSettings
-                : resolveGrblCoreDefaults({
-                      firmwareSemver,
-                      baseDefaults: machineProfile.grblHALeepromSettings || {},
-                      boardId,
-                  }).defaults;
 
         const InputElement = getDatatypeInput(
             EEPROMData.dataType,

@@ -6,26 +6,18 @@ const replace = (code, from, to) => {
 exports.transform = (code, id) => {
     if (id.endsWith('/pendant/src/components/Visualizer.tsx')) {
         const androidUi = id.slice(0, id.lastIndexOf('/src/pendant/')) + '/android-port/ui/';
-        code = 'import { GCodeSVGRenderer as AndroidSvgRenderer } from "@sienci/gviewer/viewer";\n'
-            + 'import { installSvgInteractions } from ' + JSON.stringify(androidUi + 'svg-interactions.mjs') + ';\n'
-            + 'import { installRasterPreview } from ' + JSON.stringify(androidUi + 'raster-preview.mjs') + ';\n'
-            + 'import { watchVisualizer } from ' + JSON.stringify(androidUi + 'visualizer-benchmark.mjs') + ';\n'
-            + 'installRasterPreview(AndroidSvgRenderer); installSvgInteractions(AndroidSvgRenderer);\n' + code;
+        // The official WebGL viewer owns its on-demand rendering and touch controls.
+        // Do not patch its prototype or run the former raster-preview worker.
+        if (!code.includes('OfficialToolpathVisualizer')) throw new Error('Official renderer integration changed');
+        code = 'import { watchVisualizer } from ' + JSON.stringify(androidUi + 'visualizer-benchmark.mjs') + ';\n' + code;
         code = replace(code, 'const wpos = useTypedSelector((s: RootState) => s.controller.wpos, shallowEqual);',
             `const wpos = useTypedSelector((s: RootState) => s.controller.wpos, shallowEqual);
     const benchmarkContext = useRef({workflowState, fileLoaded});
     benchmarkContext.current = {workflowState, fileLoaded};
     useEffect(() => {
         const svg = svgRef.current?.getSVGElement();
-        if (svg) return watchVisualizer(svg, () => benchmarkContext.current);
+        if (svg?.parentElement) return watchVisualizer(svg.parentElement, () => benchmarkContext.current);
     }, []);`);
-        // The gviewer React wrapper calls setOptions when this prop changes;
-        // setOptions rebuilds every toolpath. Position updates need overlays only.
-        const options = /options=\{\{([\s\S]*?)\}\}/;
-        const match = code.match(options);
-        if (!match || code.match(/options=\{\{/g).length !== 1) throw new Error('Visualizer options changed');
-        code = code.replace(options, 'options={ANDROID_SVG_OPTIONS}');
-        code = replace(code, 'export default function Visualizer()', 'const ANDROID_SVG_OPTIONS = {' + match[1] + '} as const;\nexport default function Visualizer()');
     } else if (id.endsWith('/pendant/src/components/ProgressAreaWrapper.tsx')) {
         const block = /const totalFromContent = useMemo\(\(\) => \{[\s\S]*?\}, \[fileContent\]\);/;
         if (!block.test(code)) throw new Error('Progress line count changed');

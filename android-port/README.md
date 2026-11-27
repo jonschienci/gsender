@@ -10,6 +10,8 @@ The [parser and K90 responsiveness investigation](PENDING-PARSER-UI-PERFORMANCE.
 
 Build 67 integration details: [selected official Android fixes and gesture rendering](PENDING-UPSTREAM-INTEGRATION.md). The published official APK requires ARM64 Android. A [minimal ARM32 test adaptation](OFFICIAL-ARM32-TEST-1.md) now runs beside Build 67 on the Lenovo with the official application code unchanged.
 
+[Pending November 27 upstream updates](PENDING-UPSTREAM-2026-11-27.md) cover surfacing, tool-change units, start-from-line workspaces, Config responsiveness and bounded WebView recovery. They preserve the custom UI and have not been packaged into an APK.
+
 Backend implementation details: [job-start correction, passive logs and local skull benchmark](PENDING-REAL-JOB-DIAGNOSTICS.md), introduced in Build 61 and retained in Build 63.
 
 ## Target and status
