@@ -1,4 +1,7 @@
-# Selected official updates — pending next Android build
+# Selected official updates — included in Build 80
+
+Release status: included in [Build 80](BUILD-80.md). The integration-stage notes below describe the checks performed before APK assembly; see the release record for packaging and current validation limits.
+
 
 Implemented in source on 2026-11-27 and committed for the next Android build.
 No new APK, installation, or device benchmark was made for this integration.

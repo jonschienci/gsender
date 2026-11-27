@@ -1,0 +1,127 @@
+{
+  "build": 80,
+  "version": "1.6.4-android.80-node24-prototype",
+  "date": "2026-11-27",
+  "package": "com.gsender.android",
+  "apks": [
+    {
+      "filename": "gSender-Android-build-80-arm64.apk",
+      "bytes": 77866452,
+      "sha256": "c428d518096ecf33f9aca717e88c932dee0949bc6efbb2862095bebd3b739cad",
+      "abi": [
+        "arm64-v8a"
+      ],
+      "minimumAndroidApi": 26,
+      "targetAndroidApi": 35,
+      "signingCertificateSha256": "602a46521f240c5f2bab9dd81fd96f21d3878aad4e5b1a56eb1322097efed9e7",
+      "runtime": {
+        "version": "24.21.0",
+        "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
+        "sha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+        "ndkVersion": "27.2.12479018",
+        "androidApi": 26,
+        "abi": "arm64-v8a",
+        "host": "darwin-arm64",
+        "configureFlags": [
+          "--dest-cpu=arm64",
+          "--dest-os=android",
+          "--cross-compiling",
+          "--shared",
+          "--openssl-no-asm",
+          "--without-node-snapshot",
+          "--without-node-code-cache",
+          "--with-intl=small-icu"
+        ],
+        "linkFlags": "-Wl,-z,max-page-size=16384",
+        "buildScriptSha256": "38ea846df007494a316676a26a86e20a2c4ce8d4449bdf2c44610508a3faf105",
+        "patchedSourceSha256": {
+          "deps/uv/uv.gyp": "2b34100098535a06f5661e4114ced91f55675de408e6c3adf373f546bc23742c",
+          "tools/gyp/pylib/gyp/generator/make.py": "30acda0374316afc0f7feb521d949843bb16176b358fddcc83876ce972d20a80",
+          "tools/v8_gypfiles/v8.gyp": "bdf08968e673e3e46d59b8e8252381a7fd2687a0ec0d00c06aff3931f8a71e3f",
+          "deps/zlib/zlib.gyp": "99124846f67fb9e3fde78ce75e681dc59806d5f9b766c8be02201823f1cfca01",
+          "deps/v8/src/trap-handler/trap-handler.h": "c42b0d9f052c61b4ae9a12c2d2117bec5ead160a0a6e777b3710218a3046df8d",
+          "deps/v8/src/codegen/arm64/assembler-arm64.cc": "0da91cd42357d2f5ee1773ace686366573583e234d9fe01a3fc53fd8ff3a0cfb",
+          "deps/v8/src/compiler/turboshaft/int64-lowering-reducer.h": "4363afb05188bb499f6af0aec3bc0e070177cac6ceb516685e69c44074824e0c"
+        },
+        "librarySha256": "bf0f097f5338e109c4c7bf45cf4757ccb5ee2a4e878f865a2a301d720119788f",
+        "compatibilityBaseBuild": 66,
+        "buildRecipeSha256": "38ea846df007494a316676a26a86e20a2c4ce8d4449bdf2c44610508a3faf105"
+      }
+    },
+    {
+      "filename": "gSender-Android-build-80.apk",
+      "bytes": 76787430,
+      "sha256": "b82f24cbd8402548fe85278a2948534a2f97bc2df50806409ef2c4c31e8e9bbb",
+      "abi": [
+        "armeabi-v7a"
+      ],
+      "minimumAndroidApi": 26,
+      "targetAndroidApi": 35,
+      "signingCertificateSha256": "602a46521f240c5f2bab9dd81fd96f21d3878aad4e5b1a56eb1322097efed9e7",
+      "runtime": {
+        "version": "24.21.0",
+        "url": "https://nodejs.org/dist/v24.21.0/node-v24.21.0.tar.xz",
+        "sha256": "a6f54defb6fd7c84f41dba13d61e78e9b4e0961712cf61f29715c05f5ced94fc",
+        "ndkVersion": "27.2.12479018",
+        "androidApi": 26,
+        "abi": "armeabi-v7a",
+        "configureFlags": [
+          "--dest-cpu=arm",
+          "--dest-os=android",
+          "--cross-compiling",
+          "--shared",
+          "--openssl-no-asm",
+          "--without-node-snapshot",
+          "--without-node-code-cache",
+          "--with-intl=small-icu"
+        ],
+        "librarySha256": "1de9485b27394c236e16f0836626e7dfa5978b4d825ef8a5fbec99a4e8534718"
+      }
+    }
+  ],
+  "payloadSha256": "b3a2a720cf5f932a8a9ab3cf0a2b240e06992ad65822cc081db4e6073b8fbad8",
+  "usbDriver": "3.9.0",
+  "renderer": {
+    "package": "@sienci/gviewer",
+    "version": "0.1.52",
+    "mode": "official WebGL top-down orthographic with custom overlays"
+  },
+  "source": {
+    "baseCommit": "df30c9e2eec3907c6421697080d2f0e3e251c0a5",
+    "releaseTag": "android-build-80",
+    "branch": "android-node24-prototype",
+    "buildVersionOnlyCodeChangeFromBase": true,
+    "unrelatedWorkingTreeChangesIncluded": false
+  },
+  "validation": {
+    "androidBackendAndWebGLTestsPassed": 390,
+    "retiredSvgAdapterTestsSkipped": 1,
+    "additionalUiGeometryTestsPassed": 10,
+    "upstreamFixJestTestsPassed": 95,
+    "updaterSelectionUnitTestsPassed": 7,
+    "releaseCompileAndLintBothAbis": "passed",
+    "signaturePayloadNativeAndAlignmentChecks": "passed",
+    "installedAndLaunchVerified": [
+      "Pretech L1008, Android 16, arm64-v8a"
+    ],
+    "installedApkChecksumVerified": true,
+    "officialToCustomHandoffVerified": true,
+    "officialCompatibilityVariant": "15000 / 1.7.0-Edge-4-ab.10, original 218 application entries preserved",
+    "physicalCncConnectedDuringChecks": false,
+    "physicalJobCompletionVerified": false,
+    "deviceRenderingPerformanceBenchmarked": false,
+    "armv7DeviceLaunchTested": false
+  },
+  "updater": {
+    "releaseTagPattern": "android-build-N",
+    "arm64AssetSuffix": "-arm64.apk",
+    "armv7AssetSuffix": ".apk",
+    "publishBothArchitecturesTogether": true,
+    "githubAssetSha256Required": true
+  },
+  "dependencies": {
+    "package.json": "8b4a6858320096cf1a37d5ac8f201dc94eb4899cb69c0bf704d06f7d9acb30cc",
+    "yarn.lock": "765e1a3c5e872cb39a4fc73717b999c714952e855c8a34751816dfd221078c22",
+    "android-port/runtime-deps/yarn.lock": "724231f48bdcb3867739f38c5b1df387a381b8e40a22553eab02b88966cc804e"
+  }
+}
